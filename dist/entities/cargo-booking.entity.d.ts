@@ -1,0 +1,30 @@
+import { FlightSeries } from './flight-series.entity';
+export declare class CargoBooking {
+    id: number;
+    awb_number: string;
+    flight_series_id: number | null;
+    flightSeries?: FlightSeries | null;
+    origin: string;
+    destination: string;
+    shipper_name: string;
+    shipper_phone: string | null;
+    shipper_address: string | null;
+    consignee_name: string;
+    consignee_phone: string | null;
+    consignee_address: string | null;
+    commodity_type: string;
+    special_handling_codes: string | null;
+    pieces: number;
+    gross_weight_kg: number;
+    chargeable_weight_kg: number;
+    volume_cbm: number | null;
+    currency: string;
+    payment_term: string;
+    rate_per_kg: number | null;
+    total_charges: number;
+    booking_date: Date;
+    status: string;
+    remarks: string | null;
+    created_at: Date;
+    updated_at: Date;
+}

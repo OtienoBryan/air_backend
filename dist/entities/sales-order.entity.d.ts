@@ -1,0 +1,33 @@
+export declare class SalesOrder {
+    id: number;
+    soNumber: string;
+    clientId: number;
+    orderDate: Date;
+    expectedDeliveryDate?: Date;
+    subtotal: number;
+    taxAmount: number;
+    totalAmount: number;
+    netPrice: number;
+    notes?: string;
+    createdBy?: string;
+    salesrep?: number;
+    createdAt: Date;
+    updatedAt: Date;
+    riderId?: number;
+    assignedAt?: Date;
+    recipientsName?: string;
+    recipientsContact?: string;
+    dispatchedBy?: number;
+    status: 'draft' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'in payment' | 'paid';
+    myStatus: number;
+    receivedIntoStock: boolean;
+    deliveredAt?: Date;
+    deliveryNotes: string;
+    receivedBy: number;
+    receivedAt?: Date;
+    deliveryImage?: string;
+    returnedAt?: Date;
+    clientName?: string;
+    clientEmail?: string;
+    clientPhone?: string;
+}

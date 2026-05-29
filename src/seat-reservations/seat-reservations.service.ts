@@ -1,0 +1,354 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SeatReservation } from '../entities/seat-reservation.entity';
+import { FlightSeries } from '../entities/flight-series.entity';
+import { Passenger } from '../entities/passenger.entity';
+import { Agent } from '../entities/agent.entity';
+import { CreateSeatReservationDto } from './dto/create-seat-reservation.dto';
+import { UpdateSeatReservationDto } from './dto/update-seat-reservation.dto';
+
+@Injectable()
+export class SeatReservationsService {
+  constructor(
+    @InjectRepository(SeatReservation)
+    private seatReservationRepository: Repository<SeatReservation>,
+    @InjectRepository(FlightSeries)
+    private flightSeriesRepository: Repository<FlightSeries>,
+    @InjectRepository(Passenger)
+    private passengerRepository: Repository<Passenger>,
+  ) {}
+
+  async findAll(page: number = 1, limit: number = 50, flightSeriesId?: number): Promise<{ reservations: SeatReservation[], total: number }> {
+    console.log('🎫 [SeatReservationsService] Finding all seat reservations');
+    
+    const queryBuilder = this.seatReservationRepository.createQueryBuilder('reservation')
+      .leftJoinAndSelect('reservation.flightSeries', 'flightSeries')
+      .leftJoinAndSelect('flightSeries.fromDestination', 'fromDestination')
+      .leftJoinAndSelect('flightSeries.toDestination', 'toDestination')
+      .leftJoinAndSelect('flightSeries.viaDestination', 'viaDestination')
+      .leftJoinAndSelect('reservation.passenger', 'passenger')
+      .leftJoinAndSelect('reservation.agent', 'agent')
+      .leftJoinAndSelect('agent.agency', 'agency')
+      .orderBy('reservation.reservation_date', 'DESC')
+      .addOrderBy('reservation.booking_reference', 'ASC');
+
+    if (flightSeriesId) {
+      queryBuilder.where('reservation.flight_series_id = :flightSeriesId', { flightSeriesId });
+    }
+
+    const [reservations, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+    
+    console.log(`✅ [SeatReservationsService] Found ${reservations.length} reservations`);
+    return { reservations, total };
+  }
+
+  async findOne(id: number): Promise<SeatReservation> {
+    console.log(`🎫 [SeatReservationsService] Finding reservation by ID: ${id}`);
+    
+    const reservation = await this.seatReservationRepository.findOne({
+      where: { id },
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency']
+    });
+    
+    if (!reservation) {
+      console.log(`❌ [SeatReservationsService] Reservation with ID ${id} not found`);
+      throw new NotFoundException(`Seat reservation with ID ${id} not found`);
+    }
+    
+    console.log(`✅ [SeatReservationsService] Reservation found`);
+    return reservation;
+  }
+
+  async findByFlightSeries(flightSeriesId: number): Promise<SeatReservation[]> {
+    console.log(`🎫 [SeatReservationsService] Finding reservations for flight series: ${flightSeriesId}`);
+    
+    const reservations = await this.seatReservationRepository.find({
+      where: { flight_series_id: flightSeriesId },
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'agent', 'agent.agency'],
+      order: { booking_reference: 'ASC' }
+    });
+    
+    console.log(`✅ [SeatReservationsService] Found ${reservations.length} reservations for flight series`);
+    return reservations;
+  }
+
+  async create(createSeatReservationDto: CreateSeatReservationDto): Promise<SeatReservation> {
+    console.log('🎫 [SeatReservationsService] Creating new seat reservation');
+    
+    // Get flight series with aircraft relation to check available seats
+    const flightSeriesWithAircraft = await this.flightSeriesRepository.findOne({
+      where: { id: createSeatReservationDto.flight_series_id },
+      relations: ['aircraft']
+    });
+    
+    if (!flightSeriesWithAircraft) {
+      throw new NotFoundException(`Flight series with ID ${createSeatReservationDto.flight_series_id} not found`);
+    }
+
+    // Determine the maximum number of seats available for this flight
+    // Priority: flight_series.number_of_seats > aircraft.capacity
+    let maxSeats: number | null = null;
+    if (flightSeriesWithAircraft.number_of_seats !== null && flightSeriesWithAircraft.number_of_seats !== undefined) {
+      maxSeats = flightSeriesWithAircraft.number_of_seats;
+    } else if (flightSeriesWithAircraft.aircraft && flightSeriesWithAircraft.aircraft.capacity !== null && flightSeriesWithAircraft.aircraft.capacity !== undefined) {
+      maxSeats = flightSeriesWithAircraft.aircraft.capacity;
+    }
+
+    if (maxSeats === null || maxSeats === undefined) {
+      throw new BadRequestException(`Flight series ${flightSeriesWithAircraft.flt} does not have a defined number of seats. Please set the number of seats in the flight series or ensure the aircraft has a capacity.`);
+    }
+
+    // Calculate total reserved seats for this flight (count all reservations except cancelled)
+    const existingReservations = await this.seatReservationRepository.find({
+      where: {
+        flight_series_id: createSeatReservationDto.flight_series_id
+      }
+    });
+
+    // Count all reservations except cancelled ones
+    const totalReservedSeats = existingReservations
+      .filter(res => res.status !== 'cancelled')
+      .reduce((sum, res) => sum + (res.number_of_seats || 0), 0);
+    const availableSeats = maxSeats - totalReservedSeats;
+
+    if (createSeatReservationDto.number_of_seats > availableSeats) {
+      throw new BadRequestException(
+        `Not enough seats available for flight ${flightSeriesWithAircraft.flt}. ` +
+        `Available: ${availableSeats} of ${maxSeats} total seats, ` +
+        `Requested: ${createSeatReservationDto.number_of_seats}`
+      );
+    }
+
+    // Handle passenger_id - if not provided, create a new passenger
+    let passengerName = createSeatReservationDto.passenger_name;
+    let passengerEmail = createSeatReservationDto.passenger_email ?? null;
+    let passengerPhone = createSeatReservationDto.passenger_phone ?? null;
+    let passengerId = createSeatReservationDto.passenger_id ?? null;
+
+    if (passengerId) {
+      // If passenger_id is provided, fetch passenger details to auto-populate
+      const passenger = await this.passengerRepository.findOne({
+        where: { id: passengerId }
+      });
+      
+      if (!passenger) {
+        throw new NotFoundException(`Passenger with ID ${passengerId} not found`);
+      }
+      
+      // Auto-populate passenger details from passenger record
+      passengerName = passenger.name;
+      passengerEmail = passenger.email;
+      passengerPhone = passenger.contact;
+    } else {
+      // If passenger_id is not provided, create a new passenger
+      const pnr = await this.generatePNR();
+      const newPassenger = this.passengerRepository.create({
+        pnr: pnr,
+        name: passengerName,
+        email: passengerEmail,
+        contact: passengerPhone,
+      });
+      
+      const savedPassenger = await this.passengerRepository.save(newPassenger);
+      passengerId = savedPassenger.id;
+      console.log(`✅ [SeatReservationsService] Created new passenger with ID: ${savedPassenger.id}, PNR: ${savedPassenger.pnr}`);
+    }
+
+    // Generate booking reference (always auto-generated)
+    const bookingReference = this.generateBookingReference();
+
+    const reservation = this.seatReservationRepository.create({
+      flight_series_id: createSeatReservationDto.flight_series_id,
+      passenger_id: passengerId,
+      agent_id: createSeatReservationDto.agent_id ?? null,
+      number_of_seats: createSeatReservationDto.number_of_seats,
+      passenger_name: passengerName,
+      passenger_email: passengerEmail,
+      passenger_phone: passengerPhone,
+      booking_reference: bookingReference,
+      status: createSeatReservationDto.status || 'reserved',
+      reservation_date: new Date(createSeatReservationDto.reservation_date),
+      notes: createSeatReservationDto.notes ?? null,
+    });
+    
+    const savedReservation = await this.seatReservationRepository.save(reservation);
+    console.log(`✅ [SeatReservationsService] Reservation created with ID: ${savedReservation.id}`);
+    
+      // Reload with flight series, destination, passenger, and agent relations
+      const reservationWithRelations = await this.seatReservationRepository.findOne({
+        where: { id: savedReservation.id },
+        relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency']
+      });
+    
+    return reservationWithRelations || savedReservation;
+  }
+
+  async update(id: number, updateSeatReservationDto: UpdateSeatReservationDto): Promise<SeatReservation> {
+    console.log(`🎫 [SeatReservationsService] Updating reservation ID: ${id}`);
+    
+    const reservation = await this.findOne(id);
+
+    // Determine if we need to check seat availability
+    const flightSeriesId = updateSeatReservationDto.flight_series_id ?? reservation.flight_series_id;
+    const numberOfSeats = updateSeatReservationDto.number_of_seats ?? reservation.number_of_seats;
+    const newStatus = updateSeatReservationDto.status ?? reservation.status;
+
+    // Check availability if:
+    // 1. Flight series changed
+    // 2. Number of seats changed
+    // 3. Status changed (cancelling frees seats, uncancelling reserves seats)
+    const needsAvailabilityCheck = 
+      updateSeatReservationDto.flight_series_id !== undefined ||
+      updateSeatReservationDto.number_of_seats !== undefined ||
+      (updateSeatReservationDto.status !== undefined && newStatus !== reservation.status);
+
+    if (needsAvailabilityCheck) {
+      const flightSeriesWithAircraft = await this.flightSeriesRepository.findOne({
+        where: { id: flightSeriesId },
+        relations: ['aircraft']
+      });
+
+      if (!flightSeriesWithAircraft) {
+        throw new NotFoundException(`Flight series with ID ${flightSeriesId} not found`);
+      }
+
+      // Determine the maximum number of seats available for this flight
+      let maxSeats: number | null = null;
+      if (flightSeriesWithAircraft.number_of_seats !== null && flightSeriesWithAircraft.number_of_seats !== undefined) {
+        maxSeats = flightSeriesWithAircraft.number_of_seats;
+      } else if (flightSeriesWithAircraft.aircraft && flightSeriesWithAircraft.aircraft.capacity !== null && flightSeriesWithAircraft.aircraft.capacity !== undefined) {
+        maxSeats = flightSeriesWithAircraft.aircraft.capacity;
+      }
+
+      if (maxSeats === null || maxSeats === undefined) {
+        throw new BadRequestException(`Flight series ${flightSeriesWithAircraft.flt} does not have a defined number of seats. Please set the number of seats in the flight series or ensure the aircraft has a capacity.`);
+      }
+
+      // Calculate total reserved seats for this flight (count all reservations except cancelled)
+      const existingReservations = await this.seatReservationRepository.find({
+        where: {
+          flight_series_id: flightSeriesId
+        }
+      });
+
+      // Calculate total reserved seats excluding the current reservation being updated
+      // Count all reservations except cancelled ones
+      const totalReservedSeats = existingReservations
+        .filter(res => res.id !== id && res.status !== 'cancelled') // Exclude current reservation and cancelled ones
+        .reduce((sum, res) => sum + (res.number_of_seats || 0), 0);
+
+      // If current reservation was not cancelled and is on the same flight, we need to account for its seats being freed up
+      const isSameFlight = !updateSeatReservationDto.flight_series_id || updateSeatReservationDto.flight_series_id === reservation.flight_series_id;
+      const currentReservationWasActive = reservation.status !== 'cancelled' && isSameFlight;
+      const currentReservationSeats = currentReservationWasActive ? (reservation.number_of_seats || 0) : 0;
+
+      // Calculate available seats: max - (other active reservations) + (current reservation seats if it was active)
+      // This ensures we don't double-count the current reservation's seats
+      const availableSeats = maxSeats - totalReservedSeats + currentReservationSeats;
+
+      if (numberOfSeats > availableSeats) {
+        throw new BadRequestException(
+          `Not enough seats available for flight ${flightSeriesWithAircraft.flt}. ` +
+          `Available: ${availableSeats} of ${maxSeats} total seats, ` +
+          `Requested: ${numberOfSeats}`
+        );
+      }
+    }
+
+    // If passenger_id is provided, fetch passenger details to auto-populate
+    if (updateSeatReservationDto.passenger_id !== undefined) {
+      if (updateSeatReservationDto.passenger_id) {
+        const passenger = await this.passengerRepository.findOne({
+          where: { id: updateSeatReservationDto.passenger_id }
+        });
+        
+        if (!passenger) {
+          throw new NotFoundException(`Passenger with ID ${updateSeatReservationDto.passenger_id} not found`);
+        }
+        
+        // Auto-populate passenger details from passenger record
+        reservation.passenger_id = passenger.id;
+        reservation.passenger_name = passenger.name;
+        reservation.passenger_email = passenger.email;
+        reservation.passenger_phone = passenger.contact;
+      } else {
+        // If passenger_id is set to null/empty, create a new passenger from the reservation details
+        const pnr = await this.generatePNR();
+        const newPassenger = this.passengerRepository.create({
+          pnr: pnr,
+          name: reservation.passenger_name,
+          email: reservation.passenger_email,
+          contact: reservation.passenger_phone,
+        });
+        
+        const savedPassenger = await this.passengerRepository.save(newPassenger);
+        reservation.passenger_id = savedPassenger.id;
+        console.log(`✅ [SeatReservationsService] Created new passenger with ID: ${savedPassenger.id}, PNR: ${savedPassenger.pnr}`);
+      }
+    }
+
+    // Update fields (booking_reference is never updated - always auto-generated)
+    if (updateSeatReservationDto.flight_series_id !== undefined) reservation.flight_series_id = updateSeatReservationDto.flight_series_id;
+    if (updateSeatReservationDto.number_of_seats !== undefined) reservation.number_of_seats = updateSeatReservationDto.number_of_seats;
+    if (updateSeatReservationDto.passenger_name !== undefined) reservation.passenger_name = updateSeatReservationDto.passenger_name;
+    if (updateSeatReservationDto.passenger_email !== undefined) reservation.passenger_email = updateSeatReservationDto.passenger_email ?? null;
+    if (updateSeatReservationDto.passenger_phone !== undefined) reservation.passenger_phone = updateSeatReservationDto.passenger_phone ?? null;
+    if (updateSeatReservationDto.status !== undefined) reservation.status = updateSeatReservationDto.status;
+    if (updateSeatReservationDto.reservation_date !== undefined) reservation.reservation_date = new Date(updateSeatReservationDto.reservation_date);
+    if (updateSeatReservationDto.notes !== undefined) reservation.notes = updateSeatReservationDto.notes ?? null;
+    if (updateSeatReservationDto.agent_id !== undefined) reservation.agent_id = updateSeatReservationDto.agent_id ?? null;
+    
+    const updatedReservation = await this.seatReservationRepository.save(reservation);
+    console.log(`✅ [SeatReservationsService] Reservation updated`);
+    
+    // Reload with flight series, destination, passenger, and agent relations
+    const reservationWithRelations = await this.seatReservationRepository.findOne({
+      where: { id: updatedReservation.id },
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency']
+    });
+    return reservationWithRelations || updatedReservation;
+  }
+
+  async remove(id: number): Promise<void> {
+    console.log(`🎫 [SeatReservationsService] Deleting reservation ID: ${id}`);
+    const reservation = await this.findOne(id);
+    await this.seatReservationRepository.remove(reservation);
+    console.log(`✅ [SeatReservationsService] Reservation deleted`);
+  }
+
+  private generateBookingReference(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  private async generatePNR(): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let pnr = '';
+    let isUnique = false;
+    
+    while (!isUnique) {
+      // Generate 10-character PNR
+      pnr = '';
+      for (let i = 0; i < 10; i++) {
+        pnr += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      
+      // Check if PNR already exists
+      const existing = await this.passengerRepository.findOne({ where: { pnr } });
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+    
+    return pnr;
+  }
+}
+

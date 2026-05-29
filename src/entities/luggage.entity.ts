@@ -1,0 +1,44 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Passenger } from './passenger.entity';
+import { FlightSeries } from './flight-series.entity';
+import { Booking } from './booking.entity';
+
+@Entity('luggage')
+export class Luggage {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ name: 'passenger_id', type: 'int' })
+  passenger_id: number;
+
+  @ManyToOne(() => Passenger)
+  @JoinColumn({ name: 'passenger_id' })
+  passenger?: Passenger;
+
+  @Column({ name: 'flight_series_id', type: 'int', nullable: true })
+  flight_series_id: number | null;
+
+  @ManyToOne(() => FlightSeries)
+  @JoinColumn({ name: 'flight_series_id' })
+  flightSeries?: FlightSeries | null;
+
+  @Column({ name: 'booking_id', type: 'int', nullable: true })
+  booking_id: number | null;
+
+  @ManyToOne(() => Booking)
+  @JoinColumn({ name: 'booking_id' })
+  booking?: Booking | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  tag_number: string | null;
+
+  @Column({ type: 'decimal', precision: 8, scale: 2, nullable: true })
+  weight: number | null; // Weight in kg
+
+  @CreateDateColumn({ name: 'created_at' })
+  created_at: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updated_at: Date;
+}
+

@@ -1,0 +1,79 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PurchaseOrderItem = void 0;
+const typeorm_1 = require("typeorm");
+const purchase_order_entity_1 = require("./purchase-order.entity");
+const product_entity_1 = require("./product.entity");
+let PurchaseOrderItem = class PurchaseOrderItem {
+    id;
+    purchase_order_id;
+    product_id;
+    quantity;
+    unit_price;
+    total_price;
+    received_quantity;
+    tax_amount;
+    tax_type;
+    purchase_order;
+    product;
+};
+exports.PurchaseOrderItem = PurchaseOrderItem;
+__decorate([
+    (0, typeorm_1.PrimaryGeneratedColumn)(),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int' }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "purchase_order_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int' }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "product_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int' }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "quantity", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 2 }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "unit_price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 15, scale: 2 }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "total_price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', default: 0, nullable: true }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "received_quantity", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 15, scale: 2, default: 0.00, nullable: true }),
+    __metadata("design:type", Number)
+], PurchaseOrderItem.prototype, "tax_amount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 20, nullable: true }),
+    __metadata("design:type", String)
+], PurchaseOrderItem.prototype, "tax_type", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => purchase_order_entity_1.PurchaseOrder),
+    (0, typeorm_1.JoinColumn)({ name: 'purchase_order_id' }),
+    __metadata("design:type", purchase_order_entity_1.PurchaseOrder)
+], PurchaseOrderItem.prototype, "purchase_order", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => product_entity_1.Product),
+    (0, typeorm_1.JoinColumn)({ name: 'product_id' }),
+    __metadata("design:type", product_entity_1.Product)
+], PurchaseOrderItem.prototype, "product", void 0);
+exports.PurchaseOrderItem = PurchaseOrderItem = __decorate([
+    (0, typeorm_1.Entity)('purchase_order_items')
+], PurchaseOrderItem);
+//# sourceMappingURL=purchase-order-item.entity.js.map

@@ -1,0 +1,28 @@
+CREATE TABLE IF NOT EXISTS bookings (
+  id INT(11) NOT NULL AUTO_INCREMENT,
+  booking_reference VARCHAR(50) NOT NULL UNIQUE,
+  flight_series_id INT(11) NOT NULL,
+  passenger_id INT(11) NULL,
+  passenger_name VARCHAR(255) NOT NULL,
+  passenger_email VARCHAR(255) NULL,
+  passenger_phone VARCHAR(50) NULL,
+  passenger_type VARCHAR(20) NOT NULL,
+  number_of_passengers INT(11) NOT NULL DEFAULT 1,
+  fare_per_passenger DECIMAL(10, 2) NOT NULL,
+  total_amount DECIMAL(10, 2) NOT NULL,
+  payment_method VARCHAR(50) NOT NULL,
+  payment_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+  booking_date DATE NOT NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_booking_reference (booking_reference),
+  INDEX idx_flight_series_id (flight_series_id),
+  INDEX idx_passenger_id (passenger_id),
+  INDEX idx_booking_date (booking_date),
+  INDEX idx_payment_status (payment_status),
+  FOREIGN KEY (flight_series_id) REFERENCES flight_series(id) ON DELETE CASCADE,
+  FOREIGN KEY (passenger_id) REFERENCES passengers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
