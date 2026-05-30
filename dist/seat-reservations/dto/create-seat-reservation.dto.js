@@ -23,6 +23,11 @@ class CreateSeatReservationDto {
     reservation_date;
     notes;
     agent_id;
+    country_id;
+    id_type;
+    id_number;
+    id_expiry;
+    id_issued_by;
 }
 exports.CreateSeatReservationDto = CreateSeatReservationDto;
 __decorate([
@@ -80,4 +85,31 @@ __decorate([
     (0, class_validator_1.IsInt)(),
     __metadata("design:type", Object)
 ], CreateSeatReservationDto.prototype, "agent_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateSeatReservationDto.prototype, "country_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['national_id', 'passport', 'travel_document']),
+    __metadata("design:type", Object)
+], CreateSeatReservationDto.prototype, "id_type", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateSeatReservationDto.prototype, "id_number", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", Object)
+], CreateSeatReservationDto.prototype, "id_expiry", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateSeatReservationDto.prototype, "id_issued_by", void 0);
 //# sourceMappingURL=create-seat-reservation.dto.js.map

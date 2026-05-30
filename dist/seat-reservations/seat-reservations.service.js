@@ -38,6 +38,7 @@ let SeatReservationsService = class SeatReservationsService {
             .leftJoinAndSelect('reservation.passenger', 'passenger')
             .leftJoinAndSelect('reservation.agent', 'agent')
             .leftJoinAndSelect('agent.agency', 'agency')
+            .leftJoinAndSelect('reservation.country', 'country')
             .orderBy('reservation.reservation_date', 'DESC')
             .addOrderBy('reservation.booking_reference', 'ASC');
         if (flightSeriesId) {
@@ -54,7 +55,7 @@ let SeatReservationsService = class SeatReservationsService {
         console.log(`🎫 [SeatReservationsService] Finding reservation by ID: ${id}`);
         const reservation = await this.seatReservationRepository.findOne({
             where: { id },
-            relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency']
+            relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country']
         });
         if (!reservation) {
             console.log(`❌ [SeatReservationsService] Reservation with ID ${id} not found`);
@@ -138,6 +139,11 @@ let SeatReservationsService = class SeatReservationsService {
             flight_series_id: createSeatReservationDto.flight_series_id,
             passenger_id: passengerId,
             agent_id: createSeatReservationDto.agent_id ?? null,
+            country_id: createSeatReservationDto.country_id ?? null,
+            id_type: createSeatReservationDto.id_type ?? null,
+            id_number: createSeatReservationDto.id_number ?? null,
+            id_expiry: createSeatReservationDto.id_expiry ?? null,
+            id_issued_by: createSeatReservationDto.id_issued_by ?? null,
             number_of_seats: createSeatReservationDto.number_of_seats,
             passenger_name: passengerName,
             passenger_email: passengerEmail,
@@ -151,7 +157,7 @@ let SeatReservationsService = class SeatReservationsService {
         console.log(`✅ [SeatReservationsService] Reservation created with ID: ${savedReservation.id}`);
         const reservationWithRelations = await this.seatReservationRepository.findOne({
             where: { id: savedReservation.id },
-            relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency']
+            relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country']
         });
         return reservationWithRelations || savedReservation;
     }
@@ -244,11 +250,21 @@ let SeatReservationsService = class SeatReservationsService {
             reservation.notes = updateSeatReservationDto.notes ?? null;
         if (updateSeatReservationDto.agent_id !== undefined)
             reservation.agent_id = updateSeatReservationDto.agent_id ?? null;
+        if (updateSeatReservationDto.country_id !== undefined)
+            reservation.country_id = updateSeatReservationDto.country_id ?? null;
+        if (updateSeatReservationDto.id_type !== undefined)
+            reservation.id_type = updateSeatReservationDto.id_type ?? null;
+        if (updateSeatReservationDto.id_number !== undefined)
+            reservation.id_number = updateSeatReservationDto.id_number ?? null;
+        if (updateSeatReservationDto.id_expiry !== undefined)
+            reservation.id_expiry = updateSeatReservationDto.id_expiry ?? null;
+        if (updateSeatReservationDto.id_issued_by !== undefined)
+            reservation.id_issued_by = updateSeatReservationDto.id_issued_by ?? null;
         const updatedReservation = await this.seatReservationRepository.save(reservation);
         console.log(`✅ [SeatReservationsService] Reservation updated`);
         const reservationWithRelations = await this.seatReservationRepository.findOne({
             where: { id: updatedReservation.id },
-            relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency']
+            relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country']
         });
         return reservationWithRelations || updatedReservation;
     }

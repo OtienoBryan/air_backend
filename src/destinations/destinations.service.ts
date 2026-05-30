@@ -62,6 +62,7 @@ export class DestinationsService {
         father_code: createDestinationDto.father_code,
         destination: createDestinationDto.destination,
         destination_type: createDestinationDto.destination_type || 'domestic',
+        icao_code: createDestinationDto.icao_code || null,
       });
       
       const savedDestination = await this.destinationRepository.save(destination);
@@ -109,6 +110,7 @@ export class DestinationsService {
     if (updateDestinationDto.father_code !== undefined) destination.father_code = updateDestinationDto.father_code;
     if (updateDestinationDto.destination !== undefined) destination.destination = updateDestinationDto.destination;
     if (updateDestinationDto.destination_type !== undefined) destination.destination_type = updateDestinationDto.destination_type;
+    if (updateDestinationDto.icao_code !== undefined) destination.icao_code = updateDestinationDto.icao_code || null;
     
     console.log(`🌍 [DestinationsService] Destination object before save:`, {
       id: destination.id,

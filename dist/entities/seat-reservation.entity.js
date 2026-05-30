@@ -14,6 +14,7 @@ const typeorm_1 = require("typeorm");
 const flight_series_entity_1 = require("./flight-series.entity");
 const passenger_entity_1 = require("./passenger.entity");
 const agent_entity_1 = require("./agent.entity");
+const country_entity_1 = require("./country.entity");
 let SeatReservation = class SeatReservation {
     id;
     flight_series_id;
@@ -30,6 +31,12 @@ let SeatReservation = class SeatReservation {
     notes;
     agent_id;
     agent;
+    country_id;
+    id_type;
+    id_number;
+    id_expiry;
+    id_issued_by;
+    country;
     created_at;
     updated_at;
 };
@@ -102,6 +109,31 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'agent_id' }),
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "agent", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'country_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "country_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'id_type', type: 'varchar', length: 30, nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "id_type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'id_number', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "id_number", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'id_expiry', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "id_expiry", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'id_issued_by', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "id_issued_by", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => country_entity_1.Country, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'country_id' }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "country", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

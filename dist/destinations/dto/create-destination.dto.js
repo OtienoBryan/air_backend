@@ -22,6 +22,7 @@ class CreateDestinationDto {
     status;
     father_code;
     destination;
+    icao_code;
     destination_type;
 }
 exports.CreateDestinationDto = CreateDestinationDto;
@@ -80,6 +81,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateDestinationDto.prototype, "destination", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateDestinationDto.prototype, "icao_code", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

@@ -2,6 +2,7 @@ import { Country } from './country.entity';
 export declare class Destination {
     id: number;
     code: string;
+    icao_code: string | null;
     name: string;
     country_id: number | null;
     country?: Country;

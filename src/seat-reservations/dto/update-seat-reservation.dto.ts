@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsEmail, IsIn, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsEmail, IsIn, IsDateString, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateSeatReservationDto {
@@ -46,5 +46,27 @@ export class UpdateSeatReservationDto {
   @Type(() => Number)
   @IsInt()
   agent_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  country_id?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['national_id', 'passport', 'travel_document'])
+  id_type?: string | null;
+
+  @IsOptional()
+  @IsString()
+  id_number?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  id_expiry?: string | null;
+
+  @IsOptional()
+  @IsString()
+  id_issued_by?: string | null;
 }
 

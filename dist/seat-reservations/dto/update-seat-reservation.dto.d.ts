@@ -9,4 +9,9 @@ export declare class UpdateSeatReservationDto {
     reservation_date?: string;
     notes?: string;
     agent_id?: number | null;
+    country_id?: number | null;
+    id_type?: string | null;
+    id_number?: string | null;
+    id_expiry?: string | null;
+    id_issued_by?: string | null;
 }

@@ -9,6 +9,9 @@ export class Destination {
   @Column({ type: 'varchar', length: 50, unique: true })
   code: string;
 
+  @Column({ name: 'icao_code', type: 'varchar', length: 10, nullable: true })
+  icao_code: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   name: string;
 

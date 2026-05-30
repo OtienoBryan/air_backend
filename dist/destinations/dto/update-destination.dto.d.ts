@@ -8,5 +8,6 @@ export declare class UpdateDestinationDto {
     status?: string;
     father_code?: string;
     destination?: string;
+    icao_code?: string;
     destination_type?: string;
 }

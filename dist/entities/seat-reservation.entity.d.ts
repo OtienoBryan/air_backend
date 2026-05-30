@@ -1,6 +1,7 @@
 import { FlightSeries } from './flight-series.entity';
 import { Passenger } from './passenger.entity';
 import { Agent } from './agent.entity';
+import { Country } from './country.entity';
 export declare class SeatReservation {
     id: number;
     flight_series_id: number;
@@ -17,6 +18,12 @@ export declare class SeatReservation {
     notes: string | null;
     agent_id: number | null;
     agent?: Agent | null;
+    country_id: number | null;
+    id_type: string | null;
+    id_number: string | null;
+    id_expiry: string | null;
+    id_issued_by: string | null;
+    country?: Country | null;
     created_at: Date;
     updated_at: Date;
 }

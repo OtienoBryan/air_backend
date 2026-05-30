@@ -15,6 +15,7 @@ const country_entity_1 = require("./country.entity");
 let Destination = class Destination {
     id;
     code;
+    icao_code;
     name;
     country_id;
     country;
@@ -37,6 +38,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 50, unique: true }),
     __metadata("design:type", String)
 ], Destination.prototype, "code", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'icao_code', type: 'varchar', length: 10, nullable: true }),
+    __metadata("design:type", Object)
+], Destination.prototype, "icao_code", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 255 }),
     __metadata("design:type", String)

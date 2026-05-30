@@ -40,6 +40,7 @@ import { JournalEntriesModule } from './journal-entries/journal-entries.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { CargoBookingsModule } from './cargo-bookings/cargo-bookings.module';
 import { CurrenciesModule } from './currencies/currencies.module';
+import { FlightRoutesModule } from './flight-routes/flight-routes.module';
 import { GlobalAuthGuard } from './auth/global-auth.guard';
 
 @Module({
@@ -93,6 +94,7 @@ import { GlobalAuthGuard } from './auth/global-auth.guard';
     PayrollModule,
     CargoBookingsModule,
     CurrenciesModule,
+    FlightRoutesModule,
   ],
   controllers: [AppController],
   providers: [

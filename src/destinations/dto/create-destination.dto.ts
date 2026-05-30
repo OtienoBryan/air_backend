@@ -49,6 +49,10 @@ export class CreateDestinationDto {
 
   @IsOptional()
   @IsString()
+  icao_code?: string;
+
+  @IsOptional()
+  @IsString()
   @IsIn(['domestic', 'international'])
   destination_type?: string;
 }

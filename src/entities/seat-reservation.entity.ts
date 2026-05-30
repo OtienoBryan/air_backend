@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { FlightSeries } from './flight-series.entity';
 import { Passenger } from './passenger.entity';
 import { Agent } from './agent.entity';
+import { Country } from './country.entity';
 
 @Entity('seat_reservations')
 export class SeatReservation {
@@ -57,6 +58,25 @@ export class SeatReservation {
   @ManyToOne(() => Agent, { nullable: true })
   @JoinColumn({ name: 'agent_id' })
   agent?: Agent | null;
+
+  @Column({ name: 'country_id', type: 'int', nullable: true })
+  country_id: number | null;
+
+  @Column({ name: 'id_type', type: 'varchar', length: 30, nullable: true })
+  id_type: string | null; // 'national_id' | 'passport' | 'travel_document'
+
+  @Column({ name: 'id_number', type: 'varchar', length: 100, nullable: true })
+  id_number: string | null;
+
+  @Column({ name: 'id_expiry', type: 'date', nullable: true })
+  id_expiry: string | null;
+
+  @Column({ name: 'id_issued_by', type: 'varchar', length: 100, nullable: true })
+  id_issued_by: string | null;
+
+  @ManyToOne(() => Country, { nullable: true })
+  @JoinColumn({ name: 'country_id' })
+  country?: Country | null;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;

@@ -22,6 +22,7 @@ class UpdateDestinationDto {
     status;
     father_code;
     destination;
+    icao_code;
     destination_type;
 }
 exports.UpdateDestinationDto = UpdateDestinationDto;
@@ -80,6 +81,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateDestinationDto.prototype, "destination", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateDestinationDto.prototype, "icao_code", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
