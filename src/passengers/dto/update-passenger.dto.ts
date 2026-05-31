@@ -20,6 +20,10 @@ export class UpdatePassengerDto {
 
   @IsOptional()
   @IsString()
+  id_type?: string | null;
+
+  @IsOptional()
+  @IsString()
   identification?: string | null;
 
   @IsOptional()

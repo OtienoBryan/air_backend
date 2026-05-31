@@ -24,6 +24,12 @@ export declare class SeatReservation {
     id_expiry: string | null;
     id_issued_by: string | null;
     country?: Country | null;
+    trip_type: string;
+    return_flight_series_id: number | null;
+    return_date: string | null;
+    fare_amount: number | null;
+    payment_status: string;
+    amount_paid: number;
     created_at: Date;
     updated_at: Date;
 }

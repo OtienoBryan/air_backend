@@ -17,6 +17,7 @@ class PassengerDto {
     email;
     contact;
     nationality;
+    id_type;
     identification;
     age;
     title;
@@ -47,6 +48,11 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
+], PassengerDto.prototype, "id_type", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
 ], PassengerDto.prototype, "identification", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
@@ -69,6 +75,8 @@ class CreateBookingDto {
     flight_series_id;
     passengers;
     seat_reservation_id;
+    is_return_trip;
+    travel_date;
     payment_method;
     payment_status;
     booking_date;
@@ -98,9 +106,20 @@ __decorate([
     __metadata("design:type", Number)
 ], CreateBookingDto.prototype, "seat_reservation_id", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_transformer_1.Type)(() => Boolean),
+    __metadata("design:type", Boolean)
+], CreateBookingDto.prototype, "is_return_trip", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "travel_date", void 0);
+__decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsIn)(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'other']),
+    (0, class_validator_1.IsIn)(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'agency_balance', 'other']),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "payment_method", void 0);
 __decorate([

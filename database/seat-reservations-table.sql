@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS seat_reservations (
   id INT(11) NOT NULL AUTO_INCREMENT,
   flight_series_id INT(11) NOT NULL,
+  passenger_id INT(11) NULL,
+  agent_id INT(11) NULL,
   number_of_seats INT(11) NOT NULL,
   passenger_name VARCHAR(255) NOT NULL,
   passenger_email VARCHAR(255) NULL,
@@ -9,13 +11,23 @@ CREATE TABLE IF NOT EXISTS seat_reservations (
   status VARCHAR(50) NOT NULL DEFAULT 'reserved',
   reservation_date DATE NOT NULL,
   notes TEXT NULL,
+  country_id INT(11) NULL,
+  id_type VARCHAR(30) NULL,
+  id_number VARCHAR(100) NULL,
+  id_expiry DATE NULL,
+  id_issued_by VARCHAR(100) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   INDEX idx_flight_series_id (flight_series_id),
+  INDEX idx_passenger_id (passenger_id),
+  INDEX idx_agent_id (agent_id),
+  INDEX idx_country_id (country_id),
   INDEX idx_status (status),
   INDEX idx_reservation_date (reservation_date),
   INDEX idx_booking_reference (booking_reference),
-  FOREIGN KEY (flight_series_id) REFERENCES flight_series(id) ON DELETE CASCADE
+  FOREIGN KEY (flight_series_id) REFERENCES flight_series(id) ON DELETE CASCADE,
+  FOREIGN KEY (passenger_id) REFERENCES passengers(id) ON DELETE SET NULL,
+  FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL,
+  FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-

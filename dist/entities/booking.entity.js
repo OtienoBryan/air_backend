@@ -33,6 +33,7 @@ let Booking = class Booking {
     payment_status;
     booking_date;
     notes;
+    is_return_trip;
     created_at;
     updated_at;
 };
@@ -111,6 +112,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'notes', type: 'text', nullable: true }),
     __metadata("design:type", Object)
 ], Booking.prototype, "notes", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_return_trip', type: 'tinyint', width: 1, default: 0 }),
+    __metadata("design:type", Boolean)
+], Booking.prototype, "is_return_trip", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

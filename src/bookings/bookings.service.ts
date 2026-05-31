@@ -8,8 +8,6 @@ import { BookingPassenger } from '../entities/booking-passenger.entity';
 import { SeatReservation } from '../entities/seat-reservation.entity';
 import { Agency } from '../entities/agency.entity';
 import { AgencyLedger } from '../entities/agency-ledger.entity';
-import { Account } from '../entities/account.entity';
-import { AccountLedger } from '../entities/account-ledger.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalEntryLine } from '../entities/journal-entry-line.entity';
 import { ChartOfAccount } from '../entities/chart-of-account.entity';
@@ -33,10 +31,6 @@ export class BookingsService {
     private agencyRepository: Repository<Agency>,
     @InjectRepository(AgencyLedger)
     private agencyLedgerRepository: Repository<AgencyLedger>,
-    @InjectRepository(Account)
-    private accountRepository: Repository<Account>,
-    @InjectRepository(AccountLedger)
-    private accountLedgerRepository: Repository<AccountLedger>,
     @InjectRepository(JournalEntry)
     private journalEntryRepository: Repository<JournalEntry>,
     @InjectRepository(JournalEntryLine)
@@ -67,19 +61,28 @@ export class BookingsService {
     const createdPassengers: Passenger[] = []
     let totalAmount = 0
     let farePerPassenger = 0
+    const isReturnTrip = !!createBookingDto.is_return_trip
+    console.log(`✈️ [BookingsService] is_return_trip=${createBookingDto.is_return_trip} → isReturnTrip=${isReturnTrip}, flight=${flightSeries.flt}, adult_fare=${flightSeries.adult_fare}, adult_return_fare=${flightSeries.adult_return_fare}`)
 
     for (const passengerDto of createBookingDto.passengers) {
       // Calculate fare based on passenger type
+      // For return trips: use adult_return_fare ÷ 2 per leg (each leg gets half the round-trip fare)
       let fare = 0
       switch (passengerDto.passenger_type) {
         case 'adult':
-          fare = Number(flightSeries.adult_fare) || 0
+          fare = isReturnTrip
+            ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
+            : Number(flightSeries.adult_fare) || 0
           break
         case 'child':
-          fare = Number(flightSeries.child_fare) || 0
+          fare = isReturnTrip
+            ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
+            : Number(flightSeries.child_fare) || 0
           break
         case 'infant':
-          fare = Number(flightSeries.infant_fare) || 0
+          fare = isReturnTrip
+            ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
+            : Number(flightSeries.infant_fare) || 0
           break
       }
       totalAmount += fare
@@ -91,6 +94,7 @@ export class BookingsService {
         email: passengerDto.email || null,
         contact: passengerDto.contact || null,
         nationality: passengerDto.nationality || null,
+        id_type: passengerDto.id_type || null,
         identification: passengerDto.identification || null,
         age: passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
         title: passengerDto.title || null
@@ -121,6 +125,7 @@ export class BookingsService {
       payment_status: createBookingDto.payment_status || 'pending',
       booking_date: new Date(createBookingDto.booking_date),
       notes: createBookingDto.notes ?? null,
+      is_return_trip: isReturnTrip,
     });
     
     const savedBooking = await this.bookingRepository.save(booking);
@@ -133,17 +138,23 @@ export class BookingsService {
       const passenger = createdPassengers[i]
       const passengerDto = createBookingDto.passengers[i]
       
-      // Calculate fare for this passenger
+      // Calculate fare for this passenger (same logic as above — return trips get half)
       let fare = 0
       switch (passengerDto.passenger_type) {
         case 'adult':
-          fare = Number(flightSeries.adult_fare) || 0
+          fare = isReturnTrip
+            ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
+            : Number(flightSeries.adult_fare) || 0
           break
         case 'child':
-          fare = Number(flightSeries.child_fare) || 0
+          fare = isReturnTrip
+            ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
+            : Number(flightSeries.child_fare) || 0
           break
         case 'infant':
-          fare = Number(flightSeries.infant_fare) || 0
+          fare = isReturnTrip
+            ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
+            : Number(flightSeries.infant_fare) || 0
           break
       }
       
@@ -153,7 +164,8 @@ export class BookingsService {
         booking_id: savedBooking.id,
         passenger_id: passenger.id,
         passenger_type: passengerDto.passenger_type,
-        fare_amount: fare
+        fare_amount: fare,
+        travel_date: createBookingDto.travel_date ?? null,
       })
       
       try {
@@ -228,17 +240,17 @@ export class BookingsService {
       }
     }
     
-    // Handle payment account addition (required - payment is always added to an account)
-    if (!createBookingDto.payment_account_id) {
-      throw new BadRequestException('Payment account is required. Please select a payment account.');
+    // Handle payment account addition — required for direct bookings, optional for agency bookings
+    if (!createBookingDto.payment_account_id && !createBookingDto.agency_id) {
+      throw new BadRequestException('Payment account is required for direct bookings. Please select a payment account.');
     }
     
-    try {
+    if (createBookingDto.payment_account_id) try {
       // Find payment account from chart_of_accounts (where account_type = 9)
       const paymentAccount = await this.chartOfAccountRepository.findOne({
         where: { id: createBookingDto.payment_account_id, account_type: 9 }
       });
-      
+
       if (!paymentAccount) {
         throw new BadRequestException(`Payment account with ID ${createBookingDto.payment_account_id} not found in chart_of_accounts`);
       }
@@ -283,32 +295,10 @@ export class BookingsService {
         console.warn(`⚠️ [BookingsService] WARNING: Journal entry was not created. Please check the logs above for details.`);
       }
 
-      // Legacy account ledger write (optional). Keep non-blocking because some DBs don't have account_ledger.
-      try {
-        const latestLedger = await this.accountLedgerRepository.findOne({
-          where: { account_id: paymentAccount.id },
-          order: { transactionDate: 'DESC', createdAt: 'DESC' }
-        });
-        
-        const currentBalance = latestLedger ? Number(latestLedger.balance) : 0;
-        const newBalance = currentBalance + totalAmount;
-        
-        const ledgerEntry = this.accountLedgerRepository.create({
-          account_id: paymentAccount.id,
-          transactionDate: new Date(createBookingDto.booking_date),
-          description: `Booking payment received - ${savedBooking.booking_reference}${createBookingDto.agency_id ? ` (Agency ID: ${createBookingDto.agency_id})` : ''}`,
-          debit: totalAmount,
-          credit: 0,
-          balance: newBalance,
-          reference: savedBooking.booking_reference,
-          payment_method: createBookingDto.payment_method
-        });
-        
-        await this.accountLedgerRepository.save(ledgerEntry);
-        console.log(`✅ [BookingsService] Added ${totalAmount} to payment account ${paymentAccount.name} (${paymentAccount.code}). New balance: ${newBalance}`);
-      } catch (ledgerError) {
-        console.warn(`⚠️ [BookingsService] account_ledger write skipped (non-blocking):`, ledgerError instanceof Error ? ledgerError.message : String(ledgerError));
-      }
+      // Legacy account_ledger write — skipped because account_ledger references the
+      // accounts table which does not exist in this installation.
+      // Journal entries are written via createJournalEntryForBooking above.
+      console.log(`✅ [BookingsService] Skipping legacy account_ledger write (uses accounts table).`);
     } catch (error) {
       console.error(`❌ [BookingsService] Error adding to payment account:`, error);
       // Re-throw if it's a BadRequestException, otherwise log and continue
@@ -318,91 +308,19 @@ export class BookingsService {
       console.warn(`⚠️ [BookingsService] Continuing despite payment account addition error`);
     }
     
-    // Legacy account addition (if still needed)
+    // Legacy account addition — uses chart_of_accounts table
     if (createBookingDto.deduct_from_account && createBookingDto.account_id) {
       try {
-        const account = await this.accountRepository.findOne({
-          where: { id: createBookingDto.payment_account_id }
-        });
-        
-        if (!account) {
-          throw new BadRequestException(`Payment account with ID ${createBookingDto.payment_account_id} not found`);
-        }
-        
-        // Get current balance from latest ledger entry
-        const latestLedger = await this.accountLedgerRepository.findOne({
-          where: { account_id: account.id },
-          order: { transactionDate: 'DESC', createdAt: 'DESC' }
-        });
-        
-        const currentBalance = latestLedger ? Number(latestLedger.balance) : Number(account.balance);
-        const newBalance = currentBalance + totalAmount;
-        
-        // Update account balance
-        account.balance = newBalance;
-        await this.accountRepository.save(account);
-        
-        // Create ledger entry (debit increases account balance)
-        const ledgerEntry = this.accountLedgerRepository.create({
-          account_id: account.id,
-          transactionDate: new Date(createBookingDto.booking_date),
-          description: `Booking payment received - ${savedBooking.booking_reference}${createBookingDto.agency_id ? ` (Agency ID: ${createBookingDto.agency_id})` : ''}`,
-          debit: totalAmount,
-          credit: 0,
-          balance: newBalance,
-          reference: savedBooking.booking_reference
-        });
-        
-        await this.accountLedgerRepository.save(ledgerEntry);
-        console.log(`✅ [BookingsService] Added ${totalAmount} to payment account ${account.name} (${account.code}). New balance: ${newBalance}`);
-      } catch (error) {
-        console.error(`❌ [BookingsService] Error adding to payment account:`, error);
-        // Re-throw if it's a BadRequestException, otherwise log and continue
-        if (error instanceof BadRequestException) {
-          throw error;
-        }
-        console.warn(`⚠️ [BookingsService] Continuing despite payment account addition error`);
-      }
-    }
-    
-    // Handle account addition if applicable (legacy option)
-    if (createBookingDto.deduct_from_account && createBookingDto.account_id) {
-      try {
-        const account = await this.accountRepository.findOne({
+        const account = await this.chartOfAccountRepository.findOne({
           where: { id: createBookingDto.account_id }
         });
-        
+
         if (!account) {
-          throw new BadRequestException(`Account with ID ${createBookingDto.account_id} not found`);
+          throw new BadRequestException(`Account with ID ${createBookingDto.account_id} not found in chart_of_accounts`);
         }
-        
-        // Get current balance from latest ledger entry
-        const latestLedger = await this.accountLedgerRepository.findOne({
-          where: { account_id: account.id },
-          order: { transactionDate: 'DESC', createdAt: 'DESC' }
-        });
-        
-        const currentBalance = latestLedger ? Number(latestLedger.balance) : Number(account.balance);
-        const newBalance = currentBalance + totalAmount;
-        
-        // Update account balance
-        account.balance = newBalance;
-        await this.accountRepository.save(account);
-        
-        // Create ledger entry (debit increases account balance)
-        const ledgerEntry = this.accountLedgerRepository.create({
-          account_id: account.id,
-          transactionDate: new Date(createBookingDto.booking_date),
-          description: `Booking payment - ${savedBooking.booking_reference}${createBookingDto.agency_id ? ` (Agency ID: ${createBookingDto.agency_id})` : ''}`,
-          debit: totalAmount,
-          credit: 0,
-          balance: newBalance,
-          reference: savedBooking.booking_reference,
-          payment_method: createBookingDto.payment_method
-        });
-        
-        await this.accountLedgerRepository.save(ledgerEntry);
-        console.log(`✅ [BookingsService] Added ${totalAmount} to account ${account.name} (${account.code}). New balance: ${newBalance}`);
+
+        // account_ledger skipped — references accounts table which does not exist.
+        console.log(`✅ [BookingsService] Legacy deduct_from_account: chart entry found for ${account.name}. Ledger write skipped.`);
       } catch (error) {
         console.error(`❌ [BookingsService] Error adding to account:`, error);
         // Re-throw if it's a BadRequestException, otherwise log and continue
@@ -806,7 +724,15 @@ export class BookingsService {
 
   async findAll(page: number = 1, limit: number = 50): Promise<{ bookings: Booking[], total: number }> {
     const [bookings, total] = await this.bookingRepository.findAndCount({
-      relations: ['flightSeries', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger'],
+      relations: [
+        'flightSeries',
+        'flightSeries.fromDestination',
+        'flightSeries.toDestination',
+        'flightSeries.viaDestination',
+        'passenger',
+        'bookingPassengers',
+        'bookingPassengers.passenger',
+      ],
       order: { booking_date: 'DESC', created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,

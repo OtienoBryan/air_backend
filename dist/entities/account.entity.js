@@ -11,15 +11,13 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Account = void 0;
 const typeorm_1 = require("typeorm");
-const account_ledger_entity_1 = require("./account-ledger.entity");
 let Account = class Account {
     id;
     name;
     code;
-    currency;
-    balance;
-    status;
-    ledgerEntries;
+    currency = null;
+    balance = 0;
+    status = 'active';
     created_at;
     updated_at;
 };
@@ -29,29 +27,13 @@ __decorate([
     __metadata("design:type", Number)
 ], Account.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 255 }),
+    (0, typeorm_1.Column)({ name: 'account_name', type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], Account.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 50, unique: true }),
+    (0, typeorm_1.Column)({ name: 'account_code', type: 'varchar', length: 50, unique: true }),
     __metadata("design:type", String)
 ], Account.prototype, "code", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 3, nullable: true }),
-    __metadata("design:type", Object)
-], Account.prototype, "currency", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 2, default: 0 }),
-    __metadata("design:type", Number)
-], Account.prototype, "balance", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 50, default: 'active' }),
-    __metadata("design:type", String)
-], Account.prototype, "status", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => account_ledger_entity_1.AccountLedger, ledger => ledger.account),
-    __metadata("design:type", Array)
-], Account.prototype, "ledgerEntries", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)
@@ -61,6 +43,6 @@ __decorate([
     __metadata("design:type", Date)
 ], Account.prototype, "updated_at", void 0);
 exports.Account = Account = __decorate([
-    (0, typeorm_1.Entity)('accounts')
+    (0, typeorm_1.Entity)('chart_of_accounts')
 ], Account);
 //# sourceMappingURL=account.entity.js.map

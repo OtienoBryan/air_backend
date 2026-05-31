@@ -1,4 +1,3 @@
-import { AccountLedger } from './account-ledger.entity';
 export declare class Account {
     id: number;
     name: string;
@@ -6,7 +5,6 @@ export declare class Account {
     currency: string | null;
     balance: number;
     status: string;
-    ledgerEntries?: AccountLedger[];
     created_at: Date;
     updated_at: Date;
 }

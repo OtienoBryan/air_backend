@@ -28,6 +28,9 @@ export class BookingPassenger {
   @Column({ name: 'fare_amount', type: 'decimal', precision: 10, scale: 2 })
   fare_amount: number;
 
+  @Column({ name: 'travel_date', type: 'date', nullable: true })
+  travel_date: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 }

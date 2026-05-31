@@ -67,6 +67,9 @@ export class FlightSeriesService {
         std: createFlightSeriesDto.std ?? null,
         sta: createFlightSeriesDto.sta ?? null,
         number_of_seats: createFlightSeriesDto.number_of_seats ?? null,
+        is_recurring: createFlightSeriesDto.is_recurring ?? false,
+        days_of_week: createFlightSeriesDto.days_of_week ?? null,
+        recurring_schedule: createFlightSeriesDto.recurring_schedule ?? null,
         from_destination_id: createFlightSeriesDto.from_destination_id ?? null,
         from_terminal: createFlightSeriesDto.from_terminal ?? null,
         to_terminal: createFlightSeriesDto.to_terminal ?? null,
@@ -77,6 +80,9 @@ export class FlightSeriesService {
         adult_fare: createFlightSeriesDto.adult_fare ?? null,
         child_fare: createFlightSeriesDto.child_fare ?? null,
         infant_fare: createFlightSeriesDto.infant_fare ?? null,
+        adult_return_fare: createFlightSeriesDto.adult_return_fare ?? null,
+        child_return_fare: createFlightSeriesDto.child_return_fare ?? null,
+        infant_return_fare: createFlightSeriesDto.infant_return_fare ?? null,
       });
       
       const savedFlightSeries = await this.flightSeriesRepository.save(flightSeries);
@@ -118,6 +124,9 @@ export class FlightSeriesService {
     if (updateFlightSeriesDto.std !== undefined) flightSeries.std = updateFlightSeriesDto.std ?? null;
     if (updateFlightSeriesDto.sta !== undefined) flightSeries.sta = updateFlightSeriesDto.sta ?? null;
     if (updateFlightSeriesDto.number_of_seats !== undefined) flightSeries.number_of_seats = updateFlightSeriesDto.number_of_seats ?? null;
+    if (updateFlightSeriesDto.is_recurring !== undefined) flightSeries.is_recurring = updateFlightSeriesDto.is_recurring ?? false;
+    if (updateFlightSeriesDto.days_of_week !== undefined) flightSeries.days_of_week = updateFlightSeriesDto.days_of_week ?? null;
+    if (updateFlightSeriesDto.recurring_schedule !== undefined) flightSeries.recurring_schedule = updateFlightSeriesDto.recurring_schedule ?? null;
     if (updateFlightSeriesDto.from_destination_id !== undefined) flightSeries.from_destination_id = updateFlightSeriesDto.from_destination_id ?? null;
     if (updateFlightSeriesDto.from_terminal !== undefined) flightSeries.from_terminal = updateFlightSeriesDto.from_terminal ?? null;
     if (updateFlightSeriesDto.to_terminal !== undefined) flightSeries.to_terminal = updateFlightSeriesDto.to_terminal ?? null;
@@ -139,6 +148,9 @@ export class FlightSeriesService {
       flightSeries.infant_fare = updateFlightSeriesDto.infant_fare ?? null;
       console.log(`✈️ [FlightSeriesService] Setting infant_fare:`, updateFlightSeriesDto.infant_fare);
     }
+    if (updateFlightSeriesDto.adult_return_fare !== undefined) flightSeries.adult_return_fare = updateFlightSeriesDto.adult_return_fare ?? null;
+    if (updateFlightSeriesDto.child_return_fare !== undefined) flightSeries.child_return_fare = updateFlightSeriesDto.child_return_fare ?? null;
+    if (updateFlightSeriesDto.infant_return_fare !== undefined) flightSeries.infant_return_fare = updateFlightSeriesDto.infant_return_fare ?? null;
     
     console.log(`✈️ [FlightSeriesService] Flight series object before save:`, {
       id: flightSeries.id,

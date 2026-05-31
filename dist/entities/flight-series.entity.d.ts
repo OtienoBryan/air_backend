@@ -12,6 +12,9 @@ export declare class FlightSeries {
     std: string | null;
     sta: string | null;
     number_of_seats: number | null;
+    is_recurring: boolean;
+    days_of_week: string | null;
+    recurring_schedule: string | null;
     from_destination_id: number | null;
     fromDestination?: Destination;
     from_terminal: string | null;
@@ -25,6 +28,9 @@ export declare class FlightSeries {
     adult_fare: number | null;
     child_fare: number | null;
     infant_fare: number | null;
+    adult_return_fare: number | null;
+    child_return_fare: number | null;
+    infant_return_fare: number | null;
     flightCrew?: FlightCrew[];
     created_at: Date;
     updated_at: Date;

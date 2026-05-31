@@ -68,6 +68,7 @@ export class PassengersService {
     if (updatePassengerDto.email !== undefined) passenger.email = updatePassengerDto.email ?? null;
     if (updatePassengerDto.contact !== undefined) passenger.contact = updatePassengerDto.contact ?? null;
     if (updatePassengerDto.nationality !== undefined) passenger.nationality = updatePassengerDto.nationality ?? null;
+    if (updatePassengerDto.id_type !== undefined) passenger.id_type = updatePassengerDto.id_type ?? null;
     if (updatePassengerDto.identification !== undefined) passenger.identification = updatePassengerDto.identification ?? null;
     if (updatePassengerDto.age !== undefined) passenger.age = updatePassengerDto.age ?? null;
     if (updatePassengerDto.title !== undefined) passenger.title = updatePassengerDto.title ?? null;

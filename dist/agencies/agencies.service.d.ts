@@ -31,6 +31,7 @@ export declare class AgenciesService {
         agency: Agency;
         account: Account;
     }>;
+    deductForBooking(agencyId: number, amount: number, reference: string, description: string, transactionDate: Date): Promise<Agency>;
     findAllDeposits(page?: number, limit?: number): Promise<{
         deposits: any[];
         total: number;

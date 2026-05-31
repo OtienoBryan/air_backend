@@ -36,6 +36,15 @@ export class FlightSeries {
   @Column({ name: 'number_of_seats', type: 'int', nullable: true })
   number_of_seats: number | null;
 
+  @Column({ name: 'is_recurring', type: 'tinyint', width: 1, default: 0 })
+  is_recurring: boolean;
+
+  @Column({ name: 'days_of_week', type: 'varchar', length: 20, nullable: true })
+  days_of_week: string | null; // comma-separated: "Mon,Wed,Fri"
+
+  @Column({ name: 'recurring_schedule', type: 'text', nullable: true })
+  recurring_schedule: string | null; // JSON: {"Mon":{"std":"08:00","sta":"10:00"},...}
+
   // From-To fields
   @Column({ name: 'from_destination_id', type: 'int', nullable: true })
   from_destination_id: number | null;
@@ -79,6 +88,15 @@ export class FlightSeries {
 
   @Column({ name: 'infant_fare', type: 'decimal', precision: 10, scale: 2, nullable: true })
   infant_fare: number | null;
+
+  @Column({ name: 'adult_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  adult_return_fare: number | null;
+
+  @Column({ name: 'child_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  child_return_fare: number | null;
+
+  @Column({ name: 'infant_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  infant_return_fare: number | null;
 
   @OneToMany(() => FlightCrew, flightCrew => flightCrew.flightSeries)
   flightCrew?: FlightCrew[];

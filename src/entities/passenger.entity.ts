@@ -5,8 +5,8 @@ export class Passenger {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 10, unique: true })
-  pnr: string; // Passenger Name Record - auto-generated, 10 characters
+  @Column({ type: 'varchar', length: 20, unique: true })
+  pnr: string;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
@@ -20,8 +20,11 @@ export class Passenger {
   @Column({ type: 'varchar', length: 100, nullable: true })
   nationality: string | null;
 
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  id_type: string | null;
+
   @Column({ type: 'varchar', length: 100, nullable: true })
-  identification: string | null; // ID document number
+  identification: string | null;
 
   @Column({ type: 'int', nullable: true })
   age: number | null;

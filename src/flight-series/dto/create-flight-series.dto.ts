@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsInt, IsIn, IsDateString, ValidateIf } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsInt, IsIn, IsDateString, ValidateIf, IsBoolean } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class CreateFlightSeriesDto {
@@ -36,6 +36,19 @@ export class CreateFlightSeriesDto {
   @Type(() => Number)
   @IsInt()
   number_of_seats?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  is_recurring?: boolean;
+
+  @IsOptional()
+  @IsString()
+  days_of_week?: string | null;
+
+  @IsOptional()
+  @IsString()
+  recurring_schedule?: string | null;
 
   // From-To fields
   @IsOptional()
@@ -100,5 +113,35 @@ export class CreateFlightSeriesDto {
   @ValidateIf((o, value) => value !== null)
   @IsNumber({}, { message: 'infant_fare must be a number' })
   infant_fare?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === null || value === '' || value === undefined) return null;
+    const num = Number(value);
+    return isNaN(num) ? null : num;
+  })
+  @ValidateIf((o, value) => value !== null)
+  @IsNumber({}, { message: 'adult_return_fare must be a number' })
+  adult_return_fare?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === null || value === '' || value === undefined) return null;
+    const num = Number(value);
+    return isNaN(num) ? null : num;
+  })
+  @ValidateIf((o, value) => value !== null)
+  @IsNumber({}, { message: 'child_return_fare must be a number' })
+  child_return_fare?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === null || value === '' || value === undefined) return null;
+    const num = Number(value);
+    return isNaN(num) ? null : num;
+  })
+  @ValidateIf((o, value) => value !== null)
+  @IsNumber({}, { message: 'infant_return_fare must be a number' })
+  infant_return_fare?: number | null;
 }
 

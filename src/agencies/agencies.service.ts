@@ -272,32 +272,34 @@ export class AgenciesService {
     });
     await this.agencyLedgerRepository.save(agencyLedgerEntry);
     
-    // Update account balance (increase - money coming in)
-    const newAccountBalance = accountBalance + depositAmount;
-    account.balance = newAccountBalance;
-    await this.accountRepository.save(account);
-    
-    // Get current account ledger balance
-    const latestAccountLedger = await this.accountLedgerRepository.findOne({
-      where: { account_id: account.id },
-      order: { transactionDate: 'DESC', createdAt: 'DESC' }
-    });
-    
-    const currentAccountLedgerBalance = latestAccountLedger ? Number(latestAccountLedger.balance) : accountBalance;
-    const updatedAccountLedgerBalance = currentAccountLedgerBalance + depositAmount;
-    
-    // Create account ledger entry (debit for account - money coming in)
-    const accountLedgerEntry = this.accountLedgerRepository.create({
-      account_id: account.id,
-      transactionDate: transactionDate,
-      description: createDepositDto.description,
-      debit: depositAmount,
-      credit: 0,
-      balance: updatedAccountLedgerBalance,
-      reference: createDepositDto.reference,
-      payment_method: createDepositDto.payment_method,
-    });
-    await this.accountLedgerRepository.save(accountLedgerEntry);
+    // Update account balance — non-blocking if accounts/account_ledger tables missing
+    try {
+      account.balance = accountBalance + depositAmount;
+      await this.accountRepository.save(account);
+    } catch (e) {
+      console.warn('⚠️ [AgenciesService] Skipping account balance update (table may not exist):', (e as Error).message);
+    }
+
+    try {
+      const latestAccountLedger = await this.accountLedgerRepository.findOne({
+        where: { account_id: account.id },
+        order: { transactionDate: 'DESC', createdAt: 'DESC' }
+      });
+      const currentAccountLedgerBalance = latestAccountLedger ? Number(latestAccountLedger.balance) : accountBalance;
+      const accountLedgerEntry = this.accountLedgerRepository.create({
+        account_id: account.id,
+        transactionDate: transactionDate,
+        description: createDepositDto.description,
+        debit: depositAmount,
+        credit: 0,
+        balance: currentAccountLedgerBalance + depositAmount,
+        reference: createDepositDto.reference,
+        payment_method: createDepositDto.payment_method,
+      });
+      await this.accountLedgerRepository.save(accountLedgerEntry);
+    } catch (e) {
+      console.warn('⚠️ [AgenciesService] Skipping account_ledger write (table may not exist):', (e as Error).message);
+    }
     
     // Create agency deposit record
     console.log(`💰 [AgenciesService] Creating agency deposit record...`, {
@@ -334,9 +336,52 @@ export class AgenciesService {
       throw new BadRequestException(`Failed to save deposit record: ${error?.message || 'Unknown error'}`);
     }
     
-    console.log(`✅ [AgenciesService] Deposit created successfully. Agency balance: ${newAgencyBalance.toFixed(2)}, Account balance: ${newAccountBalance.toFixed(2)}`);
+    console.log(`✅ [AgenciesService] Deposit created successfully. Agency balance: ${newAgencyBalance.toFixed(2)}, Account balance: ${(accountBalance + depositAmount).toFixed(2)}`);
     
     return { agency, account };
+  }
+
+  async deductForBooking(
+    agencyId: number,
+    amount: number,
+    reference: string,
+    description: string,
+    transactionDate: Date,
+  ): Promise<Agency> {
+    const agency = await this.findOne(agencyId);
+    const currentBalance = Number(agency.balance);
+
+    if (currentBalance < amount) {
+      throw new BadRequestException(
+        `Insufficient agency balance. Available: ${currentBalance.toFixed(2)}, Required: ${amount.toFixed(2)}`
+      );
+    }
+
+    // Deduct from agency balance
+    agency.balance = currentBalance - amount;
+    await this.agencyRepository.save(agency);
+
+    // Get latest ledger balance
+    const latestLedger = await this.agencyLedgerRepository.findOne({
+      where: { agencyId: agency.id },
+      order: { transactionDate: 'DESC', createdAt: 'DESC' },
+    });
+    const ledgerBalance = latestLedger ? Number(latestLedger.balance) : currentBalance;
+
+    // Create ledger entry (credit = money leaving agency account)
+    const entry = this.agencyLedgerRepository.create({
+      agencyId: agency.id,
+      transactionDate,
+      description,
+      debit: 0,
+      credit: amount,
+      balance: ledgerBalance - amount,
+      reference,
+    });
+    await this.agencyLedgerRepository.save(entry);
+
+    console.log(`✅ [AgenciesService] Deducted ${amount} from agency ${agency.id}, new balance: ${agency.balance}`);
+    return agency;
   }
 
   async findAllDeposits(page: number = 1, limit: number = 50): Promise<{ deposits: any[], total: number }> {

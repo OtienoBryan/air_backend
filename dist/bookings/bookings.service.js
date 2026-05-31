@@ -23,8 +23,6 @@ const booking_passenger_entity_1 = require("../entities/booking-passenger.entity
 const seat_reservation_entity_1 = require("../entities/seat-reservation.entity");
 const agency_entity_1 = require("../entities/agency.entity");
 const agency_ledger_entity_1 = require("../entities/agency-ledger.entity");
-const account_entity_1 = require("../entities/account.entity");
-const account_ledger_entity_1 = require("../entities/account-ledger.entity");
 const journal_entry_entity_1 = require("../entities/journal-entry.entity");
 const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
 const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
@@ -37,14 +35,12 @@ let BookingsService = class BookingsService {
     seatReservationRepository;
     agencyRepository;
     agencyLedgerRepository;
-    accountRepository;
-    accountLedgerRepository;
     journalEntryRepository;
     journalEntryLineRepository;
     chartOfAccountRepository;
     passengersService;
     dataSource;
-    constructor(bookingRepository, flightSeriesRepository, passengerRepository, bookingPassengerRepository, seatReservationRepository, agencyRepository, agencyLedgerRepository, accountRepository, accountLedgerRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, passengersService, dataSource) {
+    constructor(bookingRepository, flightSeriesRepository, passengerRepository, bookingPassengerRepository, seatReservationRepository, agencyRepository, agencyLedgerRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, passengersService, dataSource) {
         this.bookingRepository = bookingRepository;
         this.flightSeriesRepository = flightSeriesRepository;
         this.passengerRepository = passengerRepository;
@@ -52,8 +48,6 @@ let BookingsService = class BookingsService {
         this.seatReservationRepository = seatReservationRepository;
         this.agencyRepository = agencyRepository;
         this.agencyLedgerRepository = agencyLedgerRepository;
-        this.accountRepository = accountRepository;
-        this.accountLedgerRepository = accountLedgerRepository;
         this.journalEntryRepository = journalEntryRepository;
         this.journalEntryLineRepository = journalEntryLineRepository;
         this.chartOfAccountRepository = chartOfAccountRepository;
@@ -74,17 +68,25 @@ let BookingsService = class BookingsService {
         const createdPassengers = [];
         let totalAmount = 0;
         let farePerPassenger = 0;
+        const isReturnTrip = !!createBookingDto.is_return_trip;
+        console.log(`✈️ [BookingsService] is_return_trip=${createBookingDto.is_return_trip} → isReturnTrip=${isReturnTrip}, flight=${flightSeries.flt}, adult_fare=${flightSeries.adult_fare}, adult_return_fare=${flightSeries.adult_return_fare}`);
         for (const passengerDto of createBookingDto.passengers) {
             let fare = 0;
             switch (passengerDto.passenger_type) {
                 case 'adult':
-                    fare = Number(flightSeries.adult_fare) || 0;
+                    fare = isReturnTrip
+                        ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
+                        : Number(flightSeries.adult_fare) || 0;
                     break;
                 case 'child':
-                    fare = Number(flightSeries.child_fare) || 0;
+                    fare = isReturnTrip
+                        ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
+                        : Number(flightSeries.child_fare) || 0;
                     break;
                 case 'infant':
-                    fare = Number(flightSeries.infant_fare) || 0;
+                    fare = isReturnTrip
+                        ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
+                        : Number(flightSeries.infant_fare) || 0;
                     break;
             }
             totalAmount += fare;
@@ -94,6 +96,7 @@ let BookingsService = class BookingsService {
                 email: passengerDto.email || null,
                 contact: passengerDto.contact || null,
                 nationality: passengerDto.nationality || null,
+                id_type: passengerDto.id_type || null,
                 identification: passengerDto.identification || null,
                 age: passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
                 title: passengerDto.title || null
@@ -118,6 +121,7 @@ let BookingsService = class BookingsService {
             payment_status: createBookingDto.payment_status || 'pending',
             booking_date: new Date(createBookingDto.booking_date),
             notes: createBookingDto.notes ?? null,
+            is_return_trip: isReturnTrip,
         });
         const savedBooking = await this.bookingRepository.save(booking);
         console.log(`✅ [BookingsService] Booking created with ID: ${savedBooking.id}, Reference: ${savedBooking.booking_reference}`);
@@ -129,13 +133,19 @@ let BookingsService = class BookingsService {
             let fare = 0;
             switch (passengerDto.passenger_type) {
                 case 'adult':
-                    fare = Number(flightSeries.adult_fare) || 0;
+                    fare = isReturnTrip
+                        ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
+                        : Number(flightSeries.adult_fare) || 0;
                     break;
                 case 'child':
-                    fare = Number(flightSeries.child_fare) || 0;
+                    fare = isReturnTrip
+                        ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
+                        : Number(flightSeries.child_fare) || 0;
                     break;
                 case 'infant':
-                    fare = Number(flightSeries.infant_fare) || 0;
+                    fare = isReturnTrip
+                        ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
+                        : Number(flightSeries.infant_fare) || 0;
                     break;
             }
             console.log(`🎫 [BookingsService] Creating booking_passenger record: booking_id=${savedBooking.id}, passenger_id=${passenger.id}, type=${passengerDto.passenger_type}, fare=${fare}`);
@@ -143,7 +153,8 @@ let BookingsService = class BookingsService {
                 booking_id: savedBooking.id,
                 passenger_id: passenger.id,
                 passenger_type: passengerDto.passenger_type,
-                fare_amount: fare
+                fare_amount: fare,
+                travel_date: createBookingDto.travel_date ?? null,
             });
             try {
                 const savedBookingPassenger = await this.bookingPassengerRepository.save(bookingPassenger);
@@ -200,101 +211,45 @@ let BookingsService = class BookingsService {
                 console.warn(`⚠️ [BookingsService] Continuing despite agency balance deduction error`);
             }
         }
-        if (!createBookingDto.payment_account_id) {
-            throw new common_1.BadRequestException('Payment account is required. Please select a payment account.');
+        if (!createBookingDto.payment_account_id && !createBookingDto.agency_id) {
+            throw new common_1.BadRequestException('Payment account is required for direct bookings. Please select a payment account.');
         }
-        try {
-            const paymentAccount = await this.chartOfAccountRepository.findOne({
-                where: { id: createBookingDto.payment_account_id, account_type: 9 }
-            });
-            if (!paymentAccount) {
-                throw new common_1.BadRequestException(`Payment account with ID ${createBookingDto.payment_account_id} not found in chart_of_accounts`);
-            }
-            console.log(`✅ [BookingsService] Payment account found: ${paymentAccount.name} (${paymentAccount.code})`);
-            console.log(`📝 [BookingsService] ==========================================`);
-            console.log(`📝 [BookingsService] CREATING JOURNAL ENTRY - Payment account selected: ${paymentAccount.name} (ID: ${createBookingDto.payment_account_id})`);
-            console.log(`📝 [BookingsService] This will record to journal_entries and journal_entry_lines tables`);
-            console.log(`📝 [BookingsService] ==========================================`);
+        if (createBookingDto.payment_account_id)
             try {
-                await this.createJournalEntryForBooking(savedBooking, flightSeries, totalAmount, createBookingDto.payment_account_id, createBookingDto.booking_date, createBookingDto.agency_id);
-                console.log(`✅ [BookingsService] ==========================================`);
-                console.log(`✅ [BookingsService] JOURNAL ENTRY CREATION COMPLETED SUCCESSFULLY`);
-                console.log(`✅ [BookingsService] Entry recorded to journal_entries table`);
-                console.log(`✅ [BookingsService] Lines recorded to journal_entry_lines table`);
-                console.log(`✅ [BookingsService] ==========================================`);
-            }
-            catch (journalError) {
-                console.error(`❌ [BookingsService] ==========================================`);
-                console.error(`❌ [BookingsService] ⚠️⚠️⚠️ CRITICAL: FAILED TO CREATE JOURNAL ENTRY ⚠️⚠️⚠️`);
-                console.error(`❌ [BookingsService] Payment account was selected (ID: ${createBookingDto.payment_account_id}) but journal entry creation failed`);
-                console.error(`❌ [BookingsService] Booking was created successfully, but journal entry was NOT recorded`);
-                console.error(`❌ [BookingsService] This means the transaction is NOT in journal_entries or journal_entry_lines tables`);
-                console.error(`❌ [BookingsService] Error:`, journalError);
-                console.error(`❌ [BookingsService] Error type:`, journalError?.constructor?.name || typeof journalError);
-                console.error(`❌ [BookingsService] Error message:`, journalError instanceof Error ? journalError.message : String(journalError));
-                console.error(`❌ [BookingsService] Error stack:`, journalError instanceof Error ? journalError.stack : 'No stack trace');
-                console.error(`❌ [BookingsService] Full error:`, JSON.stringify(journalError, Object.getOwnPropertyNames(journalError), 2));
-                console.error(`❌ [BookingsService] ==========================================`);
-                console.warn(`⚠️ [BookingsService] WARNING: Journal entry was not created. Please check the logs above for details.`);
-            }
-            try {
-                const latestLedger = await this.accountLedgerRepository.findOne({
-                    where: { account_id: paymentAccount.id },
-                    order: { transactionDate: 'DESC', createdAt: 'DESC' }
+                const paymentAccount = await this.chartOfAccountRepository.findOne({
+                    where: { id: createBookingDto.payment_account_id, account_type: 9 }
                 });
-                const currentBalance = latestLedger ? Number(latestLedger.balance) : 0;
-                const newBalance = currentBalance + totalAmount;
-                const ledgerEntry = this.accountLedgerRepository.create({
-                    account_id: paymentAccount.id,
-                    transactionDate: new Date(createBookingDto.booking_date),
-                    description: `Booking payment received - ${savedBooking.booking_reference}${createBookingDto.agency_id ? ` (Agency ID: ${createBookingDto.agency_id})` : ''}`,
-                    debit: totalAmount,
-                    credit: 0,
-                    balance: newBalance,
-                    reference: savedBooking.booking_reference,
-                    payment_method: createBookingDto.payment_method
-                });
-                await this.accountLedgerRepository.save(ledgerEntry);
-                console.log(`✅ [BookingsService] Added ${totalAmount} to payment account ${paymentAccount.name} (${paymentAccount.code}). New balance: ${newBalance}`);
-            }
-            catch (ledgerError) {
-                console.warn(`⚠️ [BookingsService] account_ledger write skipped (non-blocking):`, ledgerError instanceof Error ? ledgerError.message : String(ledgerError));
-            }
-        }
-        catch (error) {
-            console.error(`❌ [BookingsService] Error adding to payment account:`, error);
-            if (error instanceof common_1.BadRequestException) {
-                throw error;
-            }
-            console.warn(`⚠️ [BookingsService] Continuing despite payment account addition error`);
-        }
-        if (createBookingDto.deduct_from_account && createBookingDto.account_id) {
-            try {
-                const account = await this.accountRepository.findOne({
-                    where: { id: createBookingDto.payment_account_id }
-                });
-                if (!account) {
-                    throw new common_1.BadRequestException(`Payment account with ID ${createBookingDto.payment_account_id} not found`);
+                if (!paymentAccount) {
+                    throw new common_1.BadRequestException(`Payment account with ID ${createBookingDto.payment_account_id} not found in chart_of_accounts`);
                 }
-                const latestLedger = await this.accountLedgerRepository.findOne({
-                    where: { account_id: account.id },
-                    order: { transactionDate: 'DESC', createdAt: 'DESC' }
-                });
-                const currentBalance = latestLedger ? Number(latestLedger.balance) : Number(account.balance);
-                const newBalance = currentBalance + totalAmount;
-                account.balance = newBalance;
-                await this.accountRepository.save(account);
-                const ledgerEntry = this.accountLedgerRepository.create({
-                    account_id: account.id,
-                    transactionDate: new Date(createBookingDto.booking_date),
-                    description: `Booking payment received - ${savedBooking.booking_reference}${createBookingDto.agency_id ? ` (Agency ID: ${createBookingDto.agency_id})` : ''}`,
-                    debit: totalAmount,
-                    credit: 0,
-                    balance: newBalance,
-                    reference: savedBooking.booking_reference
-                });
-                await this.accountLedgerRepository.save(ledgerEntry);
-                console.log(`✅ [BookingsService] Added ${totalAmount} to payment account ${account.name} (${account.code}). New balance: ${newBalance}`);
+                console.log(`✅ [BookingsService] Payment account found: ${paymentAccount.name} (${paymentAccount.code})`);
+                console.log(`📝 [BookingsService] ==========================================`);
+                console.log(`📝 [BookingsService] CREATING JOURNAL ENTRY - Payment account selected: ${paymentAccount.name} (ID: ${createBookingDto.payment_account_id})`);
+                console.log(`📝 [BookingsService] This will record to journal_entries and journal_entry_lines tables`);
+                console.log(`📝 [BookingsService] ==========================================`);
+                try {
+                    await this.createJournalEntryForBooking(savedBooking, flightSeries, totalAmount, createBookingDto.payment_account_id, createBookingDto.booking_date, createBookingDto.agency_id);
+                    console.log(`✅ [BookingsService] ==========================================`);
+                    console.log(`✅ [BookingsService] JOURNAL ENTRY CREATION COMPLETED SUCCESSFULLY`);
+                    console.log(`✅ [BookingsService] Entry recorded to journal_entries table`);
+                    console.log(`✅ [BookingsService] Lines recorded to journal_entry_lines table`);
+                    console.log(`✅ [BookingsService] ==========================================`);
+                }
+                catch (journalError) {
+                    console.error(`❌ [BookingsService] ==========================================`);
+                    console.error(`❌ [BookingsService] ⚠️⚠️⚠️ CRITICAL: FAILED TO CREATE JOURNAL ENTRY ⚠️⚠️⚠️`);
+                    console.error(`❌ [BookingsService] Payment account was selected (ID: ${createBookingDto.payment_account_id}) but journal entry creation failed`);
+                    console.error(`❌ [BookingsService] Booking was created successfully, but journal entry was NOT recorded`);
+                    console.error(`❌ [BookingsService] This means the transaction is NOT in journal_entries or journal_entry_lines tables`);
+                    console.error(`❌ [BookingsService] Error:`, journalError);
+                    console.error(`❌ [BookingsService] Error type:`, journalError?.constructor?.name || typeof journalError);
+                    console.error(`❌ [BookingsService] Error message:`, journalError instanceof Error ? journalError.message : String(journalError));
+                    console.error(`❌ [BookingsService] Error stack:`, journalError instanceof Error ? journalError.stack : 'No stack trace');
+                    console.error(`❌ [BookingsService] Full error:`, JSON.stringify(journalError, Object.getOwnPropertyNames(journalError), 2));
+                    console.error(`❌ [BookingsService] ==========================================`);
+                    console.warn(`⚠️ [BookingsService] WARNING: Journal entry was not created. Please check the logs above for details.`);
+                }
+                console.log(`✅ [BookingsService] Skipping legacy account_ledger write (uses accounts table).`);
             }
             catch (error) {
                 console.error(`❌ [BookingsService] Error adding to payment account:`, error);
@@ -303,35 +258,15 @@ let BookingsService = class BookingsService {
                 }
                 console.warn(`⚠️ [BookingsService] Continuing despite payment account addition error`);
             }
-        }
         if (createBookingDto.deduct_from_account && createBookingDto.account_id) {
             try {
-                const account = await this.accountRepository.findOne({
+                const account = await this.chartOfAccountRepository.findOne({
                     where: { id: createBookingDto.account_id }
                 });
                 if (!account) {
-                    throw new common_1.BadRequestException(`Account with ID ${createBookingDto.account_id} not found`);
+                    throw new common_1.BadRequestException(`Account with ID ${createBookingDto.account_id} not found in chart_of_accounts`);
                 }
-                const latestLedger = await this.accountLedgerRepository.findOne({
-                    where: { account_id: account.id },
-                    order: { transactionDate: 'DESC', createdAt: 'DESC' }
-                });
-                const currentBalance = latestLedger ? Number(latestLedger.balance) : Number(account.balance);
-                const newBalance = currentBalance + totalAmount;
-                account.balance = newBalance;
-                await this.accountRepository.save(account);
-                const ledgerEntry = this.accountLedgerRepository.create({
-                    account_id: account.id,
-                    transactionDate: new Date(createBookingDto.booking_date),
-                    description: `Booking payment - ${savedBooking.booking_reference}${createBookingDto.agency_id ? ` (Agency ID: ${createBookingDto.agency_id})` : ''}`,
-                    debit: totalAmount,
-                    credit: 0,
-                    balance: newBalance,
-                    reference: savedBooking.booking_reference,
-                    payment_method: createBookingDto.payment_method
-                });
-                await this.accountLedgerRepository.save(ledgerEntry);
-                console.log(`✅ [BookingsService] Added ${totalAmount} to account ${account.name} (${account.code}). New balance: ${newBalance}`);
+                console.log(`✅ [BookingsService] Legacy deduct_from_account: chart entry found for ${account.name}. Ledger write skipped.`);
             }
             catch (error) {
                 console.error(`❌ [BookingsService] Error adding to account:`, error);
@@ -688,7 +623,15 @@ let BookingsService = class BookingsService {
     }
     async findAll(page = 1, limit = 50) {
         const [bookings, total] = await this.bookingRepository.findAndCount({
-            relations: ['flightSeries', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger'],
+            relations: [
+                'flightSeries',
+                'flightSeries.fromDestination',
+                'flightSeries.toDestination',
+                'flightSeries.viaDestination',
+                'passenger',
+                'bookingPassengers',
+                'bookingPassengers.passenger',
+            ],
             order: { booking_date: 'DESC', created_at: 'DESC' },
             skip: (page - 1) * limit,
             take: limit,
@@ -722,14 +665,10 @@ exports.BookingsService = BookingsService = __decorate([
     __param(4, (0, typeorm_1.InjectRepository)(seat_reservation_entity_1.SeatReservation)),
     __param(5, (0, typeorm_1.InjectRepository)(agency_entity_1.Agency)),
     __param(6, (0, typeorm_1.InjectRepository)(agency_ledger_entity_1.AgencyLedger)),
-    __param(7, (0, typeorm_1.InjectRepository)(account_entity_1.Account)),
-    __param(8, (0, typeorm_1.InjectRepository)(account_ledger_entity_1.AccountLedger)),
-    __param(9, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
-    __param(10, (0, typeorm_1.InjectRepository)(journal_entry_line_entity_1.JournalEntryLine)),
-    __param(11, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
+    __param(7, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
+    __param(8, (0, typeorm_1.InjectRepository)(journal_entry_line_entity_1.JournalEntryLine)),
+    __param(9, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository,
-        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

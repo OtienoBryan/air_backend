@@ -21,6 +21,7 @@ let BookingPassenger = class BookingPassenger {
     passenger;
     passenger_type;
     fare_amount;
+    travel_date;
     created_at;
 };
 exports.BookingPassenger = BookingPassenger;
@@ -54,6 +55,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'fare_amount', type: 'decimal', precision: 10, scale: 2 }),
     __metadata("design:type", Number)
 ], BookingPassenger.prototype, "fare_amount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'travel_date', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "travel_date", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

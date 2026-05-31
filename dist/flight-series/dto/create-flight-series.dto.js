@@ -21,6 +21,9 @@ class CreateFlightSeriesDto {
     std;
     sta;
     number_of_seats;
+    is_recurring;
+    days_of_week;
+    recurring_schedule;
     from_destination_id;
     from_terminal;
     to_terminal;
@@ -31,6 +34,9 @@ class CreateFlightSeriesDto {
     adult_fare;
     child_fare;
     infant_fare;
+    adult_return_fare;
+    child_return_fare;
+    infant_return_fare;
 }
 exports.CreateFlightSeriesDto = CreateFlightSeriesDto;
 __decorate([
@@ -76,6 +82,22 @@ __decorate([
     (0, class_validator_1.IsInt)(),
     __metadata("design:type", Number)
 ], CreateFlightSeriesDto.prototype, "number_of_seats", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Boolean),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateFlightSeriesDto.prototype, "is_recurring", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateFlightSeriesDto.prototype, "days_of_week", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateFlightSeriesDto.prototype, "recurring_schedule", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),
@@ -150,4 +172,40 @@ __decorate([
     (0, class_validator_1.IsNumber)({}, { message: 'infant_fare must be a number' }),
     __metadata("design:type", Object)
 ], CreateFlightSeriesDto.prototype, "infant_fare", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (value === null || value === '' || value === undefined)
+            return null;
+        const num = Number(value);
+        return isNaN(num) ? null : num;
+    }),
+    (0, class_validator_1.ValidateIf)((o, value) => value !== null),
+    (0, class_validator_1.IsNumber)({}, { message: 'adult_return_fare must be a number' }),
+    __metadata("design:type", Object)
+], CreateFlightSeriesDto.prototype, "adult_return_fare", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (value === null || value === '' || value === undefined)
+            return null;
+        const num = Number(value);
+        return isNaN(num) ? null : num;
+    }),
+    (0, class_validator_1.ValidateIf)((o, value) => value !== null),
+    (0, class_validator_1.IsNumber)({}, { message: 'child_return_fare must be a number' }),
+    __metadata("design:type", Object)
+], CreateFlightSeriesDto.prototype, "child_return_fare", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (value === null || value === '' || value === undefined)
+            return null;
+        const num = Number(value);
+        return isNaN(num) ? null : num;
+    }),
+    (0, class_validator_1.ValidateIf)((o, value) => value !== null),
+    (0, class_validator_1.IsNumber)({}, { message: 'infant_return_fare must be a number' }),
+    __metadata("design:type", Object)
+], CreateFlightSeriesDto.prototype, "infant_return_fare", void 0);
 //# sourceMappingURL=create-flight-series.dto.js.map

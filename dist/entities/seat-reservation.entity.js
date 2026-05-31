@@ -37,6 +37,12 @@ let SeatReservation = class SeatReservation {
     id_expiry;
     id_issued_by;
     country;
+    trip_type;
+    return_flight_series_id;
+    return_date;
+    fare_amount;
+    payment_status;
+    amount_paid;
     created_at;
     updated_at;
 };
@@ -134,6 +140,30 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'country_id' }),
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "country", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'trip_type', type: 'varchar', length: 20, default: 'one_way' }),
+    __metadata("design:type", String)
+], SeatReservation.prototype, "trip_type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'return_flight_series_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "return_flight_series_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'return_date', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "return_date", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'fare_amount', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "fare_amount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_status', type: 'varchar', length: 20, default: 'unpaid' }),
+    __metadata("design:type", String)
+], SeatReservation.prototype, "payment_status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'amount_paid', type: 'decimal', precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], SeatReservation.prototype, "amount_paid", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

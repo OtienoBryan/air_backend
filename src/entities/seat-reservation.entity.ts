@@ -78,6 +78,24 @@ export class SeatReservation {
   @JoinColumn({ name: 'country_id' })
   country?: Country | null;
 
+  @Column({ name: 'trip_type', type: 'varchar', length: 20, default: 'one_way' })
+  trip_type: string; // 'one_way' | 'return'
+
+  @Column({ name: 'return_flight_series_id', type: 'int', nullable: true })
+  return_flight_series_id: number | null;
+
+  @Column({ name: 'return_date', type: 'date', nullable: true })
+  return_date: string | null;
+
+  @Column({ name: 'fare_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  fare_amount: number | null;
+
+  @Column({ name: 'payment_status', type: 'varchar', length: 20, default: 'unpaid' })
+  payment_status: string; // 'unpaid' | 'partial' | 'paid'
+
+  @Column({ name: 'amount_paid', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  amount_paid: number;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

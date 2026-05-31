@@ -14,4 +14,10 @@ export declare class UpdateSeatReservationDto {
     id_number?: string | null;
     id_expiry?: string | null;
     id_issued_by?: string | null;
+    trip_type?: string;
+    return_flight_series_id?: number | null;
+    return_date?: string | null;
+    fare_amount?: number | null;
+    payment_status?: string;
+    amount_paid?: number;
 }

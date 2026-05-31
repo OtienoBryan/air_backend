@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsIn, IsDateString, IsNumber, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsIn, IsDateString, IsNumber, IsArray, ValidateNested, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PassengerDto {
@@ -17,6 +17,10 @@ export class PassengerDto {
   @IsOptional()
   @IsString()
   nationality?: string;
+
+  @IsOptional()
+  @IsString()
+  id_type?: string;
 
   @IsOptional()
   @IsString()
@@ -53,9 +57,18 @@ export class CreateBookingDto {
   @IsInt()
   seat_reservation_id?: number;
 
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  is_return_trip?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  travel_date?: string | null;
+
   @IsString()
   @IsNotEmpty()
-  @IsIn(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'other'])
+  @IsIn(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'agency_balance', 'other'])
   payment_method: string;
 
   @IsOptional()

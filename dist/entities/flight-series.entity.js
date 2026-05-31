@@ -25,6 +25,9 @@ let FlightSeries = class FlightSeries {
     std;
     sta;
     number_of_seats;
+    is_recurring;
+    days_of_week;
+    recurring_schedule;
     from_destination_id;
     fromDestination;
     from_terminal;
@@ -38,6 +41,9 @@ let FlightSeries = class FlightSeries {
     adult_fare;
     child_fare;
     infant_fare;
+    adult_return_fare;
+    child_return_fare;
+    infant_return_fare;
     flightCrew;
     created_at;
     updated_at;
@@ -84,6 +90,18 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'number_of_seats', type: 'int', nullable: true }),
     __metadata("design:type", Object)
 ], FlightSeries.prototype, "number_of_seats", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_recurring', type: 'tinyint', width: 1, default: 0 }),
+    __metadata("design:type", Boolean)
+], FlightSeries.prototype, "is_recurring", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'days_of_week', type: 'varchar', length: 20, nullable: true }),
+    __metadata("design:type", Object)
+], FlightSeries.prototype, "days_of_week", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'recurring_schedule', type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], FlightSeries.prototype, "recurring_schedule", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'from_destination_id', type: 'int', nullable: true }),
     __metadata("design:type", Object)
@@ -139,6 +157,18 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'infant_fare', type: 'decimal', precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Object)
 ], FlightSeries.prototype, "infant_fare", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'adult_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightSeries.prototype, "adult_return_fare", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'child_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightSeries.prototype, "child_return_fare", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'infant_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightSeries.prototype, "infant_return_fare", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => flight_crew_entity_1.FlightCrew, flightCrew => flightCrew.flightSeries),
     __metadata("design:type", Array)

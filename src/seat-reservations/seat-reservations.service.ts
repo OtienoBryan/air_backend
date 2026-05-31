@@ -5,6 +5,7 @@ import { SeatReservation } from '../entities/seat-reservation.entity';
 import { FlightSeries } from '../entities/flight-series.entity';
 import { Passenger } from '../entities/passenger.entity';
 import { Agent } from '../entities/agent.entity';
+import { Country } from '../entities/country.entity';
 import { CreateSeatReservationDto } from './dto/create-seat-reservation.dto';
 import { UpdateSeatReservationDto } from './dto/update-seat-reservation.dto';
 
@@ -17,6 +18,8 @@ export class SeatReservationsService {
     private flightSeriesRepository: Repository<FlightSeries>,
     @InjectRepository(Passenger)
     private passengerRepository: Repository<Passenger>,
+    @InjectRepository(Country)
+    private countryRepository: Repository<Country>,
   ) {}
 
   async findAll(page: number = 1, limit: number = 50, flightSeriesId?: number): Promise<{ reservations: SeatReservation[], total: number }> {
@@ -144,20 +147,8 @@ export class SeatReservationsService {
       passengerName = passenger.name;
       passengerEmail = passenger.email;
       passengerPhone = passenger.contact;
-    } else {
-      // If passenger_id is not provided, create a new passenger
-      const pnr = await this.generatePNR();
-      const newPassenger = this.passengerRepository.create({
-        pnr: pnr,
-        name: passengerName,
-        email: passengerEmail,
-        contact: passengerPhone,
-      });
-      
-      const savedPassenger = await this.passengerRepository.save(newPassenger);
-      passengerId = savedPassenger.id;
-      console.log(`✅ [SeatReservationsService] Created new passenger with ID: ${savedPassenger.id}, PNR: ${savedPassenger.pnr}`);
     }
+    // No passenger_id provided — leave null; passenger will be created when reservation is confirmed
 
     // Generate booking reference (always auto-generated)
     const bookingReference = this.generateBookingReference();
@@ -179,6 +170,12 @@ export class SeatReservationsService {
       status: createSeatReservationDto.status || 'reserved',
       reservation_date: new Date(createSeatReservationDto.reservation_date),
       notes: createSeatReservationDto.notes ?? null,
+      trip_type: createSeatReservationDto.trip_type ?? 'one_way',
+      return_flight_series_id: createSeatReservationDto.return_flight_series_id ?? null,
+      return_date: createSeatReservationDto.return_date ?? null,
+      fare_amount: createSeatReservationDto.fare_amount ?? null,
+      payment_status: createSeatReservationDto.payment_status ?? 'unpaid',
+      amount_paid: createSeatReservationDto.amount_paid ?? 0,
     });
     
     const savedReservation = await this.seatReservationRepository.save(reservation);
@@ -265,36 +262,22 @@ export class SeatReservationsService {
       }
     }
 
-    // If passenger_id is provided, fetch passenger details to auto-populate
-    if (updateSeatReservationDto.passenger_id !== undefined) {
-      if (updateSeatReservationDto.passenger_id) {
-        const passenger = await this.passengerRepository.findOne({
-          where: { id: updateSeatReservationDto.passenger_id }
-        });
-        
-        if (!passenger) {
-          throw new NotFoundException(`Passenger with ID ${updateSeatReservationDto.passenger_id} not found`);
-        }
-        
-        // Auto-populate passenger details from passenger record
-        reservation.passenger_id = passenger.id;
-        reservation.passenger_name = passenger.name;
-        reservation.passenger_email = passenger.email;
-        reservation.passenger_phone = passenger.contact;
-      } else {
-        // If passenger_id is set to null/empty, create a new passenger from the reservation details
-        const pnr = await this.generatePNR();
-        const newPassenger = this.passengerRepository.create({
-          pnr: pnr,
-          name: reservation.passenger_name,
-          email: reservation.passenger_email,
-          contact: reservation.passenger_phone,
-        });
-        
-        const savedPassenger = await this.passengerRepository.save(newPassenger);
-        reservation.passenger_id = savedPassenger.id;
-        console.log(`✅ [SeatReservationsService] Created new passenger with ID: ${savedPassenger.id}, PNR: ${savedPassenger.pnr}`);
+    // If an explicit existing passenger_id is provided, link that passenger
+    if (updateSeatReservationDto.passenger_id !== undefined && updateSeatReservationDto.passenger_id !== null) {
+      const passenger = await this.passengerRepository.findOne({
+        where: { id: updateSeatReservationDto.passenger_id }
+      });
+
+      if (!passenger) {
+        throw new NotFoundException(`Passenger with ID ${updateSeatReservationDto.passenger_id} not found`);
       }
+
+      reservation.passenger_id = passenger.id;
+      reservation.passenger_name = passenger.name;
+      reservation.passenger_email = passenger.email;
+      reservation.passenger_phone = passenger.contact;
+    } else if (updateSeatReservationDto.passenger_id === null) {
+      reservation.passenger_id = null;
     }
 
     // Update fields (booking_reference is never updated - always auto-generated)
@@ -312,7 +295,64 @@ export class SeatReservationsService {
     if (updateSeatReservationDto.id_number !== undefined) reservation.id_number = updateSeatReservationDto.id_number ?? null;
     if (updateSeatReservationDto.id_expiry !== undefined) reservation.id_expiry = updateSeatReservationDto.id_expiry ?? null;
     if (updateSeatReservationDto.id_issued_by !== undefined) reservation.id_issued_by = updateSeatReservationDto.id_issued_by ?? null;
-    
+    if (updateSeatReservationDto.trip_type !== undefined) reservation.trip_type = updateSeatReservationDto.trip_type;
+    if (updateSeatReservationDto.return_flight_series_id !== undefined) reservation.return_flight_series_id = updateSeatReservationDto.return_flight_series_id ?? null;
+    if (updateSeatReservationDto.return_date !== undefined) reservation.return_date = updateSeatReservationDto.return_date ?? null;
+    if (updateSeatReservationDto.fare_amount !== undefined) reservation.fare_amount = updateSeatReservationDto.fare_amount ?? null;
+    if (updateSeatReservationDto.payment_status !== undefined) reservation.payment_status = updateSeatReservationDto.payment_status;
+    if (updateSeatReservationDto.amount_paid !== undefined) reservation.amount_paid = updateSeatReservationDto.amount_paid ?? 0;
+
+    // Only create or sync passenger record when the reservation is confirmed
+    const finalStatus = updateSeatReservationDto.status ?? reservation.status;
+    if (finalStatus === 'confirmed') {
+      if (!reservation.passenger_id) {
+        // Create new passenger on first confirmation
+        const pnr = await this.generatePNR();
+        let nationalityName: string | null = null;
+        if (reservation.country_id) {
+          const country = await this.countryRepository.findOne({ where: { id: reservation.country_id } });
+          if (country) nationalityName = country.name;
+        }
+        const newPassenger = this.passengerRepository.create({
+          pnr,
+          name: reservation.passenger_name,
+          email: reservation.passenger_email,
+          contact: reservation.passenger_phone,
+          nationality: nationalityName,
+          id_type: reservation.id_type ?? null,
+          identification: reservation.id_number ?? null,
+        });
+        const savedPassenger = await this.passengerRepository.save(newPassenger);
+        reservation.passenger_id = savedPassenger.id;
+        console.log(`✅ [SeatReservationsService] Created passenger on confirmation, ID: ${savedPassenger.id}, PNR: ${savedPassenger.pnr}`);
+      } else {
+        // Sync changes to the existing linked passenger
+        const nationalityChanged = updateSeatReservationDto.country_id !== undefined;
+        const idTypeChanged = updateSeatReservationDto.id_type !== undefined;
+        const identificationChanged = updateSeatReservationDto.id_number !== undefined;
+        if (nationalityChanged || idTypeChanged || identificationChanged) {
+          const linkedPassenger = await this.passengerRepository.findOne({ where: { id: reservation.passenger_id } });
+          if (linkedPassenger) {
+            if (nationalityChanged) {
+              if (reservation.country_id) {
+                const country = await this.countryRepository.findOne({ where: { id: reservation.country_id } });
+                linkedPassenger.nationality = country ? country.name : null;
+              } else {
+                linkedPassenger.nationality = null;
+              }
+            }
+            if (idTypeChanged) {
+              linkedPassenger.id_type = reservation.id_type ?? null;
+            }
+            if (identificationChanged) {
+              linkedPassenger.identification = reservation.id_number ?? null;
+            }
+            await this.passengerRepository.save(linkedPassenger);
+          }
+        }
+      }
+    }
+
     const updatedReservation = await this.seatReservationRepository.save(reservation);
     console.log(`✅ [SeatReservationsService] Reservation updated`);
     

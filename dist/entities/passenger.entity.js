@@ -18,6 +18,7 @@ let Passenger = class Passenger {
     email;
     contact;
     nationality;
+    id_type;
     identification;
     age;
     title;
@@ -31,7 +32,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Passenger.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 10, unique: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 20, unique: true }),
     __metadata("design:type", String)
 ], Passenger.prototype, "pnr", void 0);
 __decorate([
@@ -50,6 +51,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 100, nullable: true }),
     __metadata("design:type", Object)
 ], Passenger.prototype, "nationality", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 30, nullable: true }),
+    __metadata("design:type", Object)
+], Passenger.prototype, "id_type", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 100, nullable: true }),
     __metadata("design:type", Object)

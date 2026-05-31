@@ -17,6 +17,7 @@ class UpdatePassengerDto {
     email;
     contact;
     nationality;
+    id_type;
     identification;
     age;
     title;
@@ -43,6 +44,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", Object)
 ], UpdatePassengerDto.prototype, "nationality", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], UpdatePassengerDto.prototype, "id_type", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

@@ -3,6 +3,7 @@ export declare class PassengerDto {
     email?: string;
     contact?: string;
     nationality?: string;
+    id_type?: string;
     identification?: string;
     age?: number;
     title?: string;
@@ -12,6 +13,8 @@ export declare class CreateBookingDto {
     flight_series_id: number;
     passengers: PassengerDto[];
     seat_reservation_id?: number;
+    is_return_trip?: boolean;
+    travel_date?: string | null;
     payment_method: string;
     payment_status?: string;
     booking_date: string;

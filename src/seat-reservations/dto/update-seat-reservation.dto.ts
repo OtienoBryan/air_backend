@@ -1,5 +1,5 @@
-import { IsString, IsOptional, IsInt, IsEmail, IsIn, IsDateString, ValidateIf } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsInt, IsEmail, IsIn, IsDateString, ValidateIf, IsNumber } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class UpdateSeatReservationDto {
   @IsOptional()
@@ -68,5 +68,35 @@ export class UpdateSeatReservationDto {
   @IsOptional()
   @IsString()
   id_issued_by?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['one_way', 'return'])
+  trip_type?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  return_flight_series_id?: number | null;
+
+  @IsOptional()
+  @IsDateString()
+  return_date?: string | null;
+
+  @IsOptional()
+  @Transform(({ value }) => { if (value === null || value === '' || value === undefined) return null; const n = Number(value); return isNaN(n) ? null : n; })
+  @ValidateIf((o, v) => v !== null)
+  @IsNumber()
+  fare_amount?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['unpaid', 'partial', 'paid'])
+  payment_status?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => { if (value === null || value === '' || value === undefined) return 0; const n = Number(value); return isNaN(n) ? 0 : n; })
+  @IsNumber()
+  amount_paid?: number;
 }
 

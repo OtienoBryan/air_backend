@@ -86,6 +86,21 @@ export class AgenciesController {
     return this.agenciesService.createDeposit(id, createDepositDto);
   }
 
+  @Post(':id/booking-deduction')
+  async deductForBooking(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { amount: number; reference: string; description: string; date: string }
+  ): Promise<Agency> {
+    console.log(`💸 [AgenciesController] POST /admin/agencies/${id}/booking-deduction`, body);
+    return this.agenciesService.deductForBooking(
+      id,
+      body.amount,
+      body.reference,
+      body.description,
+      new Date(body.date),
+    );
+  }
+
   @Get('deposits/all')
   async findAllDeposits(
     @Query('page') page: number = 1,

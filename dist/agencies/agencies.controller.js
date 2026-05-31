@@ -73,6 +73,10 @@ let AgenciesController = class AgenciesController {
         console.log('💰 [AgenciesController] Deposit data:', JSON.stringify(createDepositDto, null, 2));
         return this.agenciesService.createDeposit(id, createDepositDto);
     }
+    async deductForBooking(id, body) {
+        console.log(`💸 [AgenciesController] POST /admin/agencies/${id}/booking-deduction`, body);
+        return this.agenciesService.deductForBooking(id, body.amount, body.reference, body.description, new Date(body.date));
+    }
     async findAllDeposits(page = 1, limit = 50) {
         console.log('💰 [AgenciesController] GET /admin/agencies/deposits/all', { page, limit });
         return this.agenciesService.findAllDeposits(page, limit);
@@ -144,6 +148,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, create_deposit_dto_1.CreateDepositDto]),
     __metadata("design:returntype", Promise)
 ], AgenciesController.prototype, "createDeposit", null);
+__decorate([
+    (0, common_1.Post)(':id/booking-deduction'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], AgenciesController.prototype, "deductForBooking", null);
 __decorate([
     (0, common_1.Get)('deposits/all'),
     __param(0, (0, common_1.Query)('page')),

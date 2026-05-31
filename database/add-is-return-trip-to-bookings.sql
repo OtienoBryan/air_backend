@@ -1,0 +1,2 @@
+ALTER TABLE bookings
+  ADD COLUMN is_return_trip TINYINT(1) NOT NULL DEFAULT 0 AFTER notes;

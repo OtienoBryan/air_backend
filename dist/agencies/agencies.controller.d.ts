@@ -25,6 +25,12 @@ export declare class AgenciesController {
         agency: Agency;
         account: any;
     }>;
+    deductForBooking(id: number, body: {
+        amount: number;
+        reference: string;
+        description: string;
+        date: string;
+    }): Promise<Agency>;
     findAllDeposits(page?: number, limit?: number): Promise<{
         deposits: any[];
         total: number;

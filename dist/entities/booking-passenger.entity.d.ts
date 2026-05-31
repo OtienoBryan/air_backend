@@ -8,5 +8,6 @@ export declare class BookingPassenger {
     passenger?: Passenger;
     passenger_type: string;
     fare_amount: number;
+    travel_date: string | null;
     created_at: Date;
 }

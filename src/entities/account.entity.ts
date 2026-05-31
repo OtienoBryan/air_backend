@@ -1,28 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { AccountLedger } from './account-ledger.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity('accounts')
+// Mapped to chart_of_accounts — the accounts table does not exist in this installation.
+@Entity('chart_of_accounts')
 export class Account {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ name: 'account_name', type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({ name: 'account_code', type: 'varchar', length: 50, unique: true })
   code: string;
 
-  @Column({ type: 'varchar', length: 3, nullable: true })
-  currency: string | null; // Currency code (USD, EUR, etc.)
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  balance: number;
-
-  @Column({ type: 'varchar', length: 50, default: 'active' })
-  status: string; // 'active', 'inactive', 'suspended', etc.
-
-  @OneToMany(() => AccountLedger, ledger => ledger.account)
-  ledgerEntries?: AccountLedger[];
+  // chart_of_accounts does not have currency/balance/status — exposed as null for compatibility
+  currency: string | null = null;
+  balance: number = 0;
+  status: string = 'active';
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;

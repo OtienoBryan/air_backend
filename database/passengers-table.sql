@@ -1,13 +1,15 @@
 CREATE TABLE IF NOT EXISTS passengers (
   id INT(11) NOT NULL AUTO_INCREMENT,
-  pnr VARCHAR(10) NOT NULL UNIQUE,
+  pnr VARCHAR(20) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NULL,
   contact VARCHAR(50) NULL,
   nationality VARCHAR(100) NULL,
+  id_type VARCHAR(30) NULL,
   identification VARCHAR(100) NULL,
   age INT(11) NULL,
   title VARCHAR(20) NULL,
+  booking_status VARCHAR(50) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -16,4 +18,3 @@ CREATE TABLE IF NOT EXISTS passengers (
   INDEX idx_name (name),
   INDEX idx_identification (identification)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-

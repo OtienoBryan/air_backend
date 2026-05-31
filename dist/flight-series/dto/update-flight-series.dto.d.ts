@@ -7,6 +7,9 @@ export declare class UpdateFlightSeriesDto {
     std?: string;
     sta?: string;
     number_of_seats?: number;
+    is_recurring?: boolean;
+    days_of_week?: string | null;
+    recurring_schedule?: string | null;
     from_destination_id?: number;
     from_terminal?: string;
     to_terminal?: string;
@@ -17,4 +20,7 @@ export declare class UpdateFlightSeriesDto {
     adult_fare?: number | null;
     child_fare?: number | null;
     infant_fare?: number | null;
+    adult_return_fare?: number | null;
+    child_return_fare?: number | null;
+    infant_return_fare?: number | null;
 }
