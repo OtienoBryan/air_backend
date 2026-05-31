@@ -11,6 +11,7 @@ export declare class SuppliersController {
     }>;
     getStats(): Promise<SupplierStats>;
     searchSuppliers(searchTerm: string): Promise<Supplier[]>;
+    getLedger(id: number): Promise<SupplierLedger[]>;
     findOne(id: number): Promise<Supplier>;
     create(createSupplierDto: CreateSupplierDto): Promise<Supplier>;
     update(id: number, updateSupplierDto: UpdateSupplierDto): Promise<Supplier>;

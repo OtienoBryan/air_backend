@@ -228,6 +228,12 @@ let SuppliersService = class SuppliersService {
         console.log(`📊 [SuppliersService] Found ${filteredInvoices.length} invoices for aging period ${agingPeriod}`);
         return filteredInvoices;
     }
+    async getLedger(supplierId) {
+        return this.supplierLedgerRepository.find({
+            where: { supplierId },
+            order: { id: 'DESC' },
+        });
+    }
 };
 exports.SuppliersService = SuppliersService;
 exports.SuppliersService = SuppliersService = __decorate([

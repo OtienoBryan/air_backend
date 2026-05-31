@@ -56,6 +56,11 @@ export class SuppliersController {
     return suppliers;
   }
 
+  @Get(':id/ledger')
+  async getLedger(@Param('id', ParseIntPipe) id: number) {
+    return this.suppliersService.getLedger(id);
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<Supplier> {
     console.log(`🔍 [SuppliersController] GET /admin/suppliers/${id}`);

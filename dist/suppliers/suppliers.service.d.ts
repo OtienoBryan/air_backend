@@ -70,4 +70,5 @@ export declare class SuppliersService {
     searchSuppliers(searchTerm: string): Promise<Supplier[]>;
     getPayablesAging(): Promise<PayablesAgingSummary>;
     getSupplierInvoicesByAging(supplierId: number, agingPeriod: 'current' | 'days31_60' | 'days61_90' | 'days91_120' | 'days120_plus'): Promise<SupplierLedger[]>;
+    getLedger(supplierId: number): Promise<SupplierLedger[]>;
 }
