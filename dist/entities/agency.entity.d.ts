@@ -11,6 +11,7 @@ export declare class Agency {
     credit_days: number | null;
     payment_limit: number | null;
     balance: number;
+    commission_percentage: number | null;
     created_at: Date;
     updated_at: Date;
 }

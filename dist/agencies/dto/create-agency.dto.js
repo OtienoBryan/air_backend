@@ -23,6 +23,7 @@ class CreateAgencyDto {
     credit_days;
     payment_limit;
     balance;
+    commission_percentage;
 }
 exports.CreateAgencyDto = CreateAgencyDto;
 __decorate([
@@ -84,4 +85,9 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateAgencyDto.prototype, "balance", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Object)
+], CreateAgencyDto.prototype, "commission_percentage", void 0);
 //# sourceMappingURL=create-agency.dto.js.map

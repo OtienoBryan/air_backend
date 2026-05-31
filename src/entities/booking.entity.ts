@@ -61,6 +61,9 @@ export class Booking {
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
 
+  @Column({ name: 'agency_id', type: 'int', nullable: true })
+  agency_id: number | null;
+
   @Column({ name: 'is_return_trip', type: 'tinyint', width: 1, default: 0 })
   is_return_trip: boolean;
 

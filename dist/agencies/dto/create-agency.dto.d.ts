@@ -10,4 +10,5 @@ export declare class CreateAgencyDto {
     credit_days?: number | null;
     payment_limit?: number | null;
     balance?: number;
+    commission_percentage?: number | null;
 }

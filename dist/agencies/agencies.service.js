@@ -73,6 +73,7 @@ let AgenciesService = class AgenciesService {
                 : null,
             credit_days: createAgencyDto.credit_days ?? null,
             payment_limit: createAgencyDto.payment_limit ?? null,
+            commission_percentage: createAgencyDto.commission_percentage ?? null,
             balance: initialBalance,
         });
         console.log('🏢 [AgenciesService] Agency entity before save:', JSON.stringify(agency, null, 2));
@@ -123,6 +124,8 @@ let AgenciesService = class AgenciesService {
             agency.credit_days = updateAgencyDto.credit_days ?? null;
         if (updateAgencyDto.payment_limit !== undefined)
             agency.payment_limit = updateAgencyDto.payment_limit ?? null;
+        if (updateAgencyDto.commission_percentage !== undefined)
+            agency.commission_percentage = updateAgencyDto.commission_percentage ?? null;
         if (updateAgencyDto.balance !== undefined) {
             const newBalance = updateAgencyDto.balance ?? 0;
             const balanceDifference = newBalance - oldBalance;

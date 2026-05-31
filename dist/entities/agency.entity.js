@@ -24,6 +24,7 @@ let Agency = class Agency {
     credit_days;
     payment_limit;
     balance;
+    commission_percentage;
     created_at;
     updated_at;
 };
@@ -76,6 +77,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'balance', type: 'decimal', precision: 10, scale: 2, default: 0 }),
     __metadata("design:type", Number)
 ], Agency.prototype, "balance", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'commission_percentage', type: 'decimal', precision: 5, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], Agency.prototype, "commission_percentage", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

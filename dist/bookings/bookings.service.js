@@ -121,6 +121,7 @@ let BookingsService = class BookingsService {
             payment_status: createBookingDto.payment_status || 'pending',
             booking_date: new Date(createBookingDto.booking_date),
             notes: createBookingDto.notes ?? null,
+            agency_id: createBookingDto.agency_id ?? null,
             is_return_trip: isReturnTrip,
         });
         const savedBooking = await this.bookingRepository.save(booking);

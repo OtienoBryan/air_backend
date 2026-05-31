@@ -48,5 +48,9 @@ export class CreateAgencyDto {
   @IsOptional()
   @IsNumber()
   balance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  commission_percentage?: number | null;
 }
 

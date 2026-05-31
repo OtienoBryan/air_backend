@@ -20,6 +20,7 @@ export declare class Booking {
     payment_status: string;
     booking_date: Date;
     notes: string | null;
+    agency_id: number | null;
     is_return_trip: boolean;
     created_at: Date;
     updated_at: Date;

@@ -38,6 +38,9 @@ export class Agency {
   @Column({ name: 'balance', type: 'decimal', precision: 10, scale: 2, default: 0 })
   balance: number;
 
+  @Column({ name: 'commission_percentage', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  commission_percentage: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

@@ -73,6 +73,7 @@ export class AgenciesService {
         : null,
       credit_days: createAgencyDto.credit_days ?? null,
       payment_limit: createAgencyDto.payment_limit ?? null,
+      commission_percentage: createAgencyDto.commission_percentage ?? null,
       balance: initialBalance,
     });
     
@@ -122,6 +123,7 @@ export class AgenciesService {
     }
     if (updateAgencyDto.credit_days !== undefined) agency.credit_days = updateAgencyDto.credit_days ?? null;
     if (updateAgencyDto.payment_limit !== undefined) agency.payment_limit = updateAgencyDto.payment_limit ?? null;
+    if (updateAgencyDto.commission_percentage !== undefined) agency.commission_percentage = updateAgencyDto.commission_percentage ?? null;
     
     // Handle balance update and create ledger entry if balance changed
     if (updateAgencyDto.balance !== undefined) {
