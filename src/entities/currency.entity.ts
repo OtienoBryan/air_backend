@@ -23,6 +23,9 @@ export class Currency {
   @Column({ type: 'tinyint', default: 0 })
   is_default: number;
 
+  @Column({ name: 'exchange_rate', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  exchange_rate: number | null;
+
   @CreateDateColumn()
   created_at: Date;
 

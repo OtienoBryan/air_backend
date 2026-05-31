@@ -75,12 +75,28 @@ let CountriesService = class CountriesService {
         return country;
     }
     async findByName(name) {
-        console.log('🌍 [CountriesService] Finding country by name:', name);
-        const country = await this.countryRepository.findOne({
-            where: { name: name, status: 1 }
-        });
-        console.log('🌍 [CountriesService] Country found by name:', country ? 'Yes' : 'No');
+        const country = await this.countryRepository.findOne({ where: { name, status: 1 } });
         return country;
+    }
+    async findAllAdmin() {
+        return this.countryRepository.find({ order: { name: 'ASC' } });
+    }
+    async create(data) {
+        const country = this.countryRepository.create(data);
+        const saved = await this.countryRepository.save(country);
+        this.cache.delete('all_countries');
+        return saved;
+    }
+    async update(id, data) {
+        await this.countryRepository.update(id, data);
+        this.cache.delete('all_countries');
+        this.cache.delete(`country_${id}`);
+        return this.countryRepository.findOne({ where: { id } });
+    }
+    async remove(id) {
+        await this.countryRepository.delete(id);
+        this.cache.delete('all_countries');
+        this.cache.delete(`country_${id}`);
     }
 };
 exports.CountriesService = CountriesService;

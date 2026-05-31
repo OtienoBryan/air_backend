@@ -10,4 +10,16 @@ export declare class CountriesService {
     findAll(): Promise<Country[]>;
     findOne(id: number): Promise<Country | null>;
     findByName(name: string): Promise<Country | null>;
+    findAllAdmin(): Promise<Country[]>;
+    create(data: {
+        name: string;
+        status: number;
+        tax_percentage?: number | null;
+    }): Promise<Country>;
+    update(id: number, data: {
+        name?: string;
+        status?: number;
+        tax_percentage?: number | null;
+    }): Promise<Country>;
+    remove(id: number): Promise<void>;
 }

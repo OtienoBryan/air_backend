@@ -19,6 +19,7 @@ let Currency = class Currency {
     code;
     status;
     is_default;
+    exchange_rate;
     created_at;
     updated_at;
 };
@@ -51,6 +52,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'tinyint', default: 0 }),
     __metadata("design:type", Number)
 ], Currency.prototype, "is_default", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'exchange_rate', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], Currency.prototype, "exchange_rate", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

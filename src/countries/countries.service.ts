@@ -81,13 +81,31 @@ export class CountriesService {
   }
 
   async findByName(name: string): Promise<Country | null> {
-    console.log('🌍 [CountriesService] Finding country by name:', name);
-    
-    const country = await this.countryRepository.findOne({
-      where: { name: name, status: 1 }
-    });
-    
-    console.log('🌍 [CountriesService] Country found by name:', country ? 'Yes' : 'No');
+    const country = await this.countryRepository.findOne({ where: { name, status: 1 } });
     return country;
+  }
+
+  async findAllAdmin(): Promise<Country[]> {
+    return this.countryRepository.find({ order: { name: 'ASC' } });
+  }
+
+  async create(data: { name: string; status: number; tax_percentage?: number | null }): Promise<Country> {
+    const country = this.countryRepository.create(data);
+    const saved = await this.countryRepository.save(country);
+    this.cache.delete('all_countries');
+    return saved;
+  }
+
+  async update(id: number, data: { name?: string; status?: number; tax_percentage?: number | null }): Promise<Country> {
+    await this.countryRepository.update(id, data);
+    this.cache.delete('all_countries');
+    this.cache.delete(`country_${id}`);
+    return this.countryRepository.findOne({ where: { id } }) as Promise<Country>;
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.countryRepository.delete(id);
+    this.cache.delete('all_countries');
+    this.cache.delete(`country_${id}`);
   }
 }

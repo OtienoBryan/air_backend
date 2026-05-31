@@ -12,6 +12,9 @@ export class Country {
   @Column({ type: 'int', default: 0, nullable: true })
   status: number; // 0 = inactive, 1 = active
 
+  @Column({ name: 'tax_percentage', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  tax_percentage: number | null;
+
   @OneToMany(() => Notice, notice => notice.country)
   notices?: Notice[];
 }

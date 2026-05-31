@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CountriesController = void 0;
+exports.AdminCountriesController = exports.CountriesController = void 0;
 const common_1 = require("@nestjs/common");
 const countries_service_1 = require("./countries.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
@@ -22,15 +22,12 @@ let CountriesController = class CountriesController {
         this.countriesService = countriesService;
     }
     async findAll() {
-        console.log('🌍 [CountriesController] Getting all countries');
         return this.countriesService.findAll();
     }
     async findOne(id) {
-        console.log('🌍 [CountriesController] Getting country by ID:', id);
         return this.countriesService.findOne(id);
     }
     async findByName(name) {
-        console.log('🌍 [CountriesController] Getting country by name:', name);
         return this.countriesService.findByName(name);
     }
 };
@@ -60,4 +57,57 @@ exports.CountriesController = CountriesController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [countries_service_1.CountriesService])
 ], CountriesController);
+let AdminCountriesController = class AdminCountriesController {
+    countriesService;
+    constructor(countriesService) {
+        this.countriesService = countriesService;
+    }
+    async findAll() {
+        return this.countriesService.findAllAdmin();
+    }
+    async create(body) {
+        return this.countriesService.create(body);
+    }
+    async update(id, body) {
+        return this.countriesService.update(id, body);
+    }
+    async remove(id) {
+        await this.countriesService.remove(id);
+        return { message: 'Country deleted successfully' };
+    }
+};
+exports.AdminCountriesController = AdminCountriesController;
+__decorate([
+    (0, common_1.Get)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "remove", null);
+exports.AdminCountriesController = AdminCountriesController = __decorate([
+    (0, common_1.Controller)('admin/countries'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __metadata("design:paramtypes", [countries_service_1.CountriesService])
+], AdminCountriesController);
 //# sourceMappingURL=countries.controller.js.map

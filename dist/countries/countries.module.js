@@ -18,7 +18,7 @@ exports.CountriesModule = CountriesModule;
 exports.CountriesModule = CountriesModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([country_entity_1.Country])],
-        controllers: [countries_controller_1.CountriesController],
+        controllers: [countries_controller_1.CountriesController, countries_controller_1.AdminCountriesController],
         providers: [countries_service_1.CountriesService],
         exports: [countries_service_1.CountriesService],
     })

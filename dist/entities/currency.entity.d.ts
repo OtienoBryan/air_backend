@@ -6,6 +6,7 @@ export declare class Currency {
     code: string | null;
     status: string;
     is_default: number;
+    exchange_rate: number | null;
     created_at: Date;
     updated_at: Date;
 }

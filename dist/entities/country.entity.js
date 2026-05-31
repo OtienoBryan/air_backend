@@ -16,6 +16,7 @@ let Country = class Country {
     id;
     name;
     status;
+    tax_percentage;
     notices;
 };
 exports.Country = Country;
@@ -31,6 +32,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'int', default: 0, nullable: true }),
     __metadata("design:type", Number)
 ], Country.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'tax_percentage', type: 'decimal', precision: 5, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], Country.prototype, "tax_percentage", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => notice_entity_1.Notice, notice => notice.country),
     __metadata("design:type", Array)
