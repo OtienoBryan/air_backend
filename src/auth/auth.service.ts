@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Staff } from '../entities/staff.entity';
+import { Agent } from '../entities/agent.entity';
+import { Agency } from '../entities/agency.entity';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from './jwt.service';
 import * as bcrypt from 'bcryptjs';
@@ -22,6 +24,10 @@ export class AuthService {
   constructor(
     @InjectRepository(Staff)
     private staffRepository: Repository<Staff>,
+    @InjectRepository(Agent)
+    private agentRepository: Repository<Agent>,
+    @InjectRepository(Agency)
+    private agencyRepository: Repository<Agency>,
     private jwtService: JwtService,
   ) {}
 
@@ -173,5 +179,71 @@ export class AuthService {
 
   async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
+  }
+
+  async loginAgent(loginDto: LoginDto): Promise<any> {
+    try {
+      // Use raw query to avoid issues with columns that may not exist yet
+      const agentRaw = await this.agentRepository
+        .createQueryBuilder('agent')
+        .leftJoinAndSelect('agent.agency', 'agency')
+        .where('agent.email = :email', { email: loginDto.email })
+        .getOne();
+
+      if (!agentRaw) {
+        console.log(`❌ [AgentLogin] No agent found with email: ${loginDto.email}`);
+        throw new UnauthorizedException('Invalid email or password');
+      }
+
+      console.log(`✅ [AgentLogin] Agent found: ${agentRaw.name} (id=${agentRaw.id})`);
+
+      const storedHash  = (agentRaw as any).password_hash || null;
+      const storedPlain = (agentRaw as any).password || null;
+
+      console.log(`🔑 [AgentLogin] password_hash=${storedHash ? 'SET' : 'NULL'}, password=${storedPlain ? 'SET' : 'NULL'}`);
+
+      if (!storedHash && !storedPlain) {
+        console.log('❌ [AgentLogin] No password set for this agent');
+        throw new UnauthorizedException('No password set for this agent. Run: UPDATE agents SET password = \'yourpassword\' WHERE email = \'' + loginDto.email + '\';');
+      }
+
+      let valid = false;
+
+      // 1. Try bcrypt hash first
+      if (storedHash) {
+        try { valid = await bcrypt.compare(loginDto.password, storedHash) } catch { valid = false }
+      }
+
+      // 2. Try plaintext password (legacy)
+      if (!valid && storedPlain) {
+        valid = storedPlain === loginDto.password;
+        // Also try bcrypt on the plain field (some setups store hash in 'password')
+        if (!valid) {
+          try { valid = await bcrypt.compare(loginDto.password, storedPlain) } catch { valid = false }
+        }
+      }
+
+      if (!valid) throw new UnauthorizedException('Invalid email or password');
+
+      const token = this.jwtService.generateToken({ sub: agentRaw.id, email: agentRaw.email, type: 'agent' });
+
+      return {
+        access_token: token,
+        agent: {
+          id: agentRaw.id,
+          name: agentRaw.name,
+          email: agentRaw.email,
+          contact: agentRaw.contact,
+          agency_id: agentRaw.agency_id,
+          agency: agentRaw.agency
+            ? { id: agentRaw.agency.id, name: agentRaw.agency.name, balance: Number(agentRaw.agency.balance || 0) }
+            : null,
+        },
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      console.error('❌ [AuthService] Agent login error:', error?.message || error);
+      throw new UnauthorizedException('Login failed. Please try again.');
+    }
   }
 }

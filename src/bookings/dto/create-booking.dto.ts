@@ -66,6 +66,15 @@ export class CreateBookingDto {
   @IsDateString()
   travel_date?: string | null;
 
+  @IsOptional()
+  @IsDateString()
+  return_date?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  return_flight_series_id?: number | null;
+
   @IsString()
   @IsNotEmpty()
   @IsIn(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'agency_balance', 'other'])
@@ -75,6 +84,11 @@ export class CreateBookingDto {
   @IsString()
   @IsIn(['pending', 'paid', 'failed', 'refunded'])
   payment_status?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  override_total_amount?: number;
 
   @IsDateString()
   @IsNotEmpty()

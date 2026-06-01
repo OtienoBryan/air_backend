@@ -25,6 +25,12 @@ export class Agent {
   @JoinColumn({ name: 'agency_id' })
   agency?: Agency | null;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  password: string | null;
+
+  @Column({ name: 'password_hash', type: 'varchar', length: 255, nullable: true })
+  password_hash: string | null;
+
   @Column({ name: 'use_deposit', type: 'boolean', default: false })
   use_deposit: boolean;
 

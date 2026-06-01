@@ -13,15 +13,20 @@ exports.BookingPassenger = void 0;
 const typeorm_1 = require("typeorm");
 const booking_entity_1 = require("./booking.entity");
 const passenger_entity_1 = require("./passenger.entity");
+const flight_series_entity_1 = require("./flight-series.entity");
 let BookingPassenger = class BookingPassenger {
     id;
     booking_id;
     booking;
+    flight_series_id;
+    flightSeries;
     passenger_id;
     passenger;
     passenger_type;
     fare_amount;
     travel_date;
+    leg;
+    ticket_status;
     created_at;
 };
 exports.BookingPassenger = BookingPassenger;
@@ -38,6 +43,15 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'booking_id' }),
     __metadata("design:type", booking_entity_1.Booking)
 ], BookingPassenger.prototype, "booking", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'flight_series_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "flight_series_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => flight_series_entity_1.FlightSeries, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'flight_series_id' }),
+    __metadata("design:type", flight_series_entity_1.FlightSeries)
+], BookingPassenger.prototype, "flightSeries", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'passenger_id', type: 'int' }),
     __metadata("design:type", Number)
@@ -60,11 +74,19 @@ __decorate([
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "travel_date", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'leg', type: 'varchar', length: 20, default: 'outbound' }),
+    __metadata("design:type", String)
+], BookingPassenger.prototype, "leg", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'ticket_status', type: 'varchar', length: 50, nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "ticket_status", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)
 ], BookingPassenger.prototype, "created_at", void 0);
 exports.BookingPassenger = BookingPassenger = __decorate([
     (0, typeorm_1.Entity)('booking_passengers'),
-    (0, typeorm_1.Unique)(['booking_id', 'passenger_id'])
+    (0, typeorm_1.Unique)(['booking_id', 'passenger_id', 'leg'])
 ], BookingPassenger);
 //# sourceMappingURL=booking-passenger.entity.js.map

@@ -39,6 +39,9 @@ import { CargoBooking } from '../entities/cargo-booking.entity';
 import { Currency } from '../entities/currency.entity';
 import { FlightRoute } from '../entities/flight-route.entity';
 import { FareHistory } from '../entities/fare-history.entity';
+import { CargoShcCharge } from '../entities/cargo-shc-charge.entity';
+import { CargoFreightRate } from '../entities/cargo-freight-rate.entity';
+import { CargoHandlingFee } from '../entities/cargo-handling-fee.entity';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'mysql',
@@ -47,7 +50,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   username: configService.get<string>('DB_USERNAME'),
   password: configService.get<string>('DB_PASSWORD'),
   database: configService.get<string>('DB_DATABASE'),
-      entities: [Staff, Department, ChatRoom, ChatMessage, Notice, Country, SalesRep, Region, Route, LoginHistory, Client, Product, Category, Aircraft, Destination, FlightSeries, SeatReservation, Passenger, Booking, BookingPassenger, ClientLedger, SalesOrder, SalesOrderItem, Supplier, SupplierLedger, PurchaseOrder, PurchaseOrderItem, Task, Crew, FlightCrew, Agency, AgencyLedger, AgencyDeposit, Agent, Account, AccountLedger, ChartOfAccount, Expense, JournalEntry, JournalEntryLine, Luggage, IataCode, AccountType, Fueling, CargoBooking, Currency, FlightRoute, FareHistory],
+      entities: [Staff, Department, ChatRoom, ChatMessage, Notice, Country, SalesRep, Region, Route, LoginHistory, Client, Product, Category, Aircraft, Destination, FlightSeries, SeatReservation, Passenger, Booking, BookingPassenger, ClientLedger, SalesOrder, SalesOrderItem, Supplier, SupplierLedger, PurchaseOrder, PurchaseOrderItem, Task, Crew, FlightCrew, Agency, AgencyLedger, AgencyDeposit, Agent, Account, AccountLedger, ChartOfAccount, Expense, JournalEntry, JournalEntryLine, Luggage, IataCode, AccountType, Fueling, CargoBooking, Currency, FlightRoute, FareHistory, CargoShcCharge, CargoFreightRate, CargoHandlingFee],
   synchronize: false, // Disabled to avoid schema conflicts
   logging: configService.get<string>('NODE_ENV') === 'development',
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],

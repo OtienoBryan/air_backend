@@ -14,6 +14,8 @@ const auth_controller_1 = require("./auth.controller");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
 const jwt_service_1 = require("./jwt.service");
 const staff_entity_1 = require("../entities/staff.entity");
+const agent_entity_1 = require("../entities/agent.entity");
+const agency_entity_1 = require("../entities/agency.entity");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -21,7 +23,7 @@ exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([staff_entity_1.Staff]),
+            typeorm_1.TypeOrmModule.forFeature([staff_entity_1.Staff, agent_entity_1.Agent, agency_entity_1.Agency]),
         ],
         controllers: [auth_controller_1.AuthController],
         providers: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard, jwt_service_1.JwtService],

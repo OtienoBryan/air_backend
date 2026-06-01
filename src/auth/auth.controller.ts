@@ -14,6 +14,12 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Public()
+  @Post('agent/login')
+  async agentLogin(@Body() loginDto: LoginDto) {
+    return this.authService.loginAgent(loginDto);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {

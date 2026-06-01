@@ -5,11 +5,13 @@ import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtService } from './jwt.service';
 import { Staff } from '../entities/staff.entity';
+import { Agent } from '../entities/agent.entity';
+import { Agency } from '../entities/agency.entity';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Staff]),
+    TypeOrmModule.forFeature([Staff, Agent, Agency]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard, JwtService],

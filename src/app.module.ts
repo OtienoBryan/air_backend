@@ -39,6 +39,7 @@ import { FuelingModule } from './fueling/fueling.module';
 import { JournalEntriesModule } from './journal-entries/journal-entries.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { CargoBookingsModule } from './cargo-bookings/cargo-bookings.module';
+import { CargoSettingsModule } from './cargo-settings/cargo-settings.module';
 import { CurrenciesModule } from './currencies/currencies.module';
 import { FlightRoutesModule } from './flight-routes/flight-routes.module';
 import { GlobalAuthGuard } from './auth/global-auth.guard';
@@ -93,6 +94,7 @@ import { GlobalAuthGuard } from './auth/global-auth.guard';
     JournalEntriesModule,
     PayrollModule,
     CargoBookingsModule,
+    CargoSettingsModule,
     CurrenciesModule,
     FlightRoutesModule,
   ],

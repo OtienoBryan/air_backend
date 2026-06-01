@@ -77,8 +77,11 @@ class CreateBookingDto {
     seat_reservation_id;
     is_return_trip;
     travel_date;
+    return_date;
+    return_flight_series_id;
     payment_method;
     payment_status;
+    override_total_amount;
     booking_date;
     notes;
     agency_id;
@@ -117,6 +120,17 @@ __decorate([
     __metadata("design:type", Object)
 ], CreateBookingDto.prototype, "travel_date", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "return_date", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "return_flight_series_id", void 0);
+__decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsIn)(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'agency_balance', 'other']),
@@ -128,6 +142,12 @@ __decorate([
     (0, class_validator_1.IsIn)(['pending', 'paid', 'failed', 'refunded']),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "payment_status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateBookingDto.prototype, "override_total_amount", void 0);
 __decorate([
     (0, class_validator_1.IsDateString)(),
     (0, class_validator_1.IsNotEmpty)(),

@@ -50,13 +50,19 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const staff_entity_1 = require("../entities/staff.entity");
+const agent_entity_1 = require("../entities/agent.entity");
+const agency_entity_1 = require("../entities/agency.entity");
 const jwt_service_1 = require("./jwt.service");
 const bcrypt = __importStar(require("bcryptjs"));
 let AuthService = class AuthService {
     staffRepository;
+    agentRepository;
+    agencyRepository;
     jwtService;
-    constructor(staffRepository, jwtService) {
+    constructor(staffRepository, agentRepository, agencyRepository, jwtService) {
         this.staffRepository = staffRepository;
+        this.agentRepository = agentRepository;
+        this.agencyRepository = agencyRepository;
         this.jwtService = jwtService;
     }
     async validateStaff(email, password) {
@@ -179,12 +185,79 @@ let AuthService = class AuthService {
     async verifyPassword(password, hashedPassword) {
         return bcrypt.compare(password, hashedPassword);
     }
+    async loginAgent(loginDto) {
+        try {
+            const agentRaw = await this.agentRepository
+                .createQueryBuilder('agent')
+                .leftJoinAndSelect('agent.agency', 'agency')
+                .where('agent.email = :email', { email: loginDto.email })
+                .getOne();
+            if (!agentRaw) {
+                console.log(`❌ [AgentLogin] No agent found with email: ${loginDto.email}`);
+                throw new common_1.UnauthorizedException('Invalid email or password');
+            }
+            console.log(`✅ [AgentLogin] Agent found: ${agentRaw.name} (id=${agentRaw.id})`);
+            const storedHash = agentRaw.password_hash || null;
+            const storedPlain = agentRaw.password || null;
+            console.log(`🔑 [AgentLogin] password_hash=${storedHash ? 'SET' : 'NULL'}, password=${storedPlain ? 'SET' : 'NULL'}`);
+            if (!storedHash && !storedPlain) {
+                console.log('❌ [AgentLogin] No password set for this agent');
+                throw new common_1.UnauthorizedException('No password set for this agent. Run: UPDATE agents SET password = \'yourpassword\' WHERE email = \'' + loginDto.email + '\';');
+            }
+            let valid = false;
+            if (storedHash) {
+                try {
+                    valid = await bcrypt.compare(loginDto.password, storedHash);
+                }
+                catch {
+                    valid = false;
+                }
+            }
+            if (!valid && storedPlain) {
+                valid = storedPlain === loginDto.password;
+                if (!valid) {
+                    try {
+                        valid = await bcrypt.compare(loginDto.password, storedPlain);
+                    }
+                    catch {
+                        valid = false;
+                    }
+                }
+            }
+            if (!valid)
+                throw new common_1.UnauthorizedException('Invalid email or password');
+            const token = this.jwtService.generateToken({ sub: agentRaw.id, email: agentRaw.email, type: 'agent' });
+            return {
+                access_token: token,
+                agent: {
+                    id: agentRaw.id,
+                    name: agentRaw.name,
+                    email: agentRaw.email,
+                    contact: agentRaw.contact,
+                    agency_id: agentRaw.agency_id,
+                    agency: agentRaw.agency
+                        ? { id: agentRaw.agency.id, name: agentRaw.agency.name, balance: Number(agentRaw.agency.balance || 0) }
+                        : null,
+                },
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.UnauthorizedException)
+                throw error;
+            console.error('❌ [AuthService] Agent login error:', error?.message || error);
+            throw new common_1.UnauthorizedException('Login failed. Please try again.');
+        }
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(staff_entity_1.Staff)),
+    __param(1, (0, typeorm_1.InjectRepository)(agent_entity_1.Agent)),
+    __param(2, (0, typeorm_1.InjectRepository)(agency_entity_1.Agency)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         jwt_service_1.JwtService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

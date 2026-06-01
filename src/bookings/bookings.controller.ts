@@ -32,6 +32,21 @@ export class BookingsController {
     return this.bookingsService.findAll(page, limit);
   }
 
+  @Get('seat-counts')
+  async getSeatCounts(
+    @Query('flightSeriesId') flightSeriesId: number,
+  ): Promise<Record<string, number>> {
+    return this.bookingsService.getBookedSeatCounts(Number(flightSeriesId));
+  }
+
+  // Returns all booking_passenger rows for a flight series, with full passenger details and fare
+  @Get('passengers-by-flight')
+  async getPassengersByFlight(
+    @Query('flightSeriesId') flightSeriesId: number,
+  ): Promise<any[]> {
+    return this.bookingsService.getPassengersByFlight(Number(flightSeriesId));
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<Booking> {
     console.log(`🎫 [BookingsController] GET /admin/bookings/${id}`);

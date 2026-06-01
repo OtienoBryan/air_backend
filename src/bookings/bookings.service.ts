@@ -120,26 +120,34 @@ export class BookingsService {
       passenger_type: createBookingDto.passengers[0].passenger_type,
       number_of_passengers: createBookingDto.passengers.length,
       fare_per_passenger: farePerPassenger,
-      total_amount: totalAmount,
+      total_amount: createBookingDto.override_total_amount ?? totalAmount,
       payment_method: createBookingDto.payment_method,
-      payment_status: createBookingDto.payment_status || 'pending',
+      // agency_balance always settles immediately — mark paid regardless of what frontend sent
+      payment_status: (createBookingDto.payment_status === 'paid' || createBookingDto.payment_method === 'agency_balance')
+        ? 'paid'
+        : (createBookingDto.payment_status || 'pending'),
       booking_date: new Date(createBookingDto.booking_date),
       notes: createBookingDto.notes ?? null,
       agency_id: createBookingDto.agency_id ?? null,
       is_return_trip: isReturnTrip,
+      return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
+      return_flight_series_id: isReturnTrip ? (createBookingDto.return_flight_series_id ?? null) : null,
     });
     
     const savedBooking = await this.bookingRepository.save(booking);
-    console.log(`✅ [BookingsService] Booking created with ID: ${savedBooking.id}, Reference: ${savedBooking.booking_reference}`);
+    console.log(`✅ [BookingsService] Booking created: id=${savedBooking.id}, ref=${savedBooking.booking_reference}, payment_status=${savedBooking.payment_status}, method=${savedBooking.payment_method}`);
     console.log(`✅ [BookingsService] Created ${createdPassengers.length} passengers for booking`);
     
-    // Create booking_passengers records for all passengers
+    // Create booking_passengers records — one row per passenger per leg
+    const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null
+    const returnDate   = isReturnTrip ? (createBookingDto.return_date ?? null) : null
+    const returnFsId   = isReturnTrip ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id) : null
+
     const bookingPassengerRecords: BookingPassenger[] = []
     for (let i = 0; i < createdPassengers.length; i++) {
       const passenger = createdPassengers[i]
       const passengerDto = createBookingDto.passengers[i]
-      
-      // Calculate fare for this passenger (same logic as above — return trips get half)
+
       let fare = 0
       switch (passengerDto.passenger_type) {
         case 'adult':
@@ -158,31 +166,63 @@ export class BookingsService {
             : Number(flightSeries.infant_fare) || 0
           break
       }
-      
-      console.log(`🎫 [BookingsService] Creating booking_passenger record: booking_id=${savedBooking.id}, passenger_id=${passenger.id}, type=${passengerDto.passenger_type}, fare=${fare}`)
-      
-      const bookingPassenger = this.bookingPassengerRepository.create({
+
+      // Outbound leg
+      const outboundBp = this.bookingPassengerRepository.create({
         booking_id: savedBooking.id,
         passenger_id: passenger.id,
+        flight_series_id: createBookingDto.flight_series_id,
         passenger_type: passengerDto.passenger_type,
         fare_amount: fare,
-        travel_date: createBookingDto.travel_date ?? null,
+        travel_date: outboundDate,
+        leg: 'outbound',
       })
-      
       try {
-        const savedBookingPassenger = await this.bookingPassengerRepository.save(bookingPassenger)
-        bookingPassengerRecords.push(savedBookingPassenger)
-        console.log(`✅ [BookingsService] Linked passenger ${passenger.id} (${passenger.pnr}) to booking ${savedBooking.id}, booking_passenger ID: ${savedBookingPassenger.id}`)
+        const saved = await this.bookingPassengerRepository.save(outboundBp)
+        bookingPassengerRecords.push(saved)
+        console.log(`✅ [BookingsService] Created outbound booking_passenger for pax ${passenger.id} (${passenger.pnr}), date=${outboundDate}, fs=${createBookingDto.flight_series_id}`)
       } catch (error) {
-        console.error(`❌ [BookingsService] Error saving booking_passenger for passenger ${passenger.id}:`, error)
-        console.error(`❌ [BookingsService] Error details:`, JSON.stringify(error, null, 2))
-        // Re-throw to prevent booking from being created without passenger links
+        console.error(`❌ [BookingsService] Error saving outbound booking_passenger for passenger ${passenger.id}:`, error)
         throw new BadRequestException(`Failed to link passenger ${passenger.name} to booking: ${error instanceof Error ? error.message : String(error)}`)
       }
+
+      // Return leg — always created for return trips so both travel dates and flight
+      // details are stored as separate rows in booking_passengers.
+      if (isReturnTrip) {
+        const retFsId = returnFsId ?? createBookingDto.flight_series_id
+        console.log(`🔁 [BookingsService] Saving return booking_passenger: booking=${savedBooking.id}, pax=${passenger.id}, fs=${retFsId}, date=${returnDate ?? 'null'}`)
+        const returnBp = this.bookingPassengerRepository.create({
+          booking_id: savedBooking.id,
+          passenger_id: passenger.id,
+          flight_series_id: retFsId,
+          passenger_type: passengerDto.passenger_type,
+          fare_amount: fare,
+          travel_date: returnDate,
+          leg: 'return',
+        })
+        try {
+          const saved = await this.bookingPassengerRepository.save(returnBp)
+          bookingPassengerRecords.push(saved)
+          console.log(`✅ [BookingsService] Return booking_passenger saved: id=${saved.id}, pax=${passenger.id} (${passenger.pnr}), date=${returnDate ?? 'null'}, fs=${retFsId}`)
+        } catch (error: any) {
+          // Surface the real error — most likely cause is the old unique constraint
+          // (booking_id, passenger_id) without the leg column.
+          // Fix: ALTER TABLE booking_passengers DROP INDEX <old>, ADD UNIQUE KEY(booking_id, passenger_id, leg)
+          console.error(`❌ [BookingsService] Return booking_passenger FAILED for pax ${passenger.id}: ${error?.message}`)
+          console.error(`❌ SQL error code: ${error?.code}  errno: ${error?.errno}`)
+          throw new BadRequestException(
+            `Failed to save return leg for passenger ${passenger.name}: ${error?.message}. ` +
+            `If this is a duplicate key error, run the DB migration to update the unique constraint on booking_passengers.`
+          )
+        }
+      }
     }
+
+    console.log(`✅ [BookingsService] Created ${bookingPassengerRecords.length} booking_passenger records (${isReturnTrip ? 'return trip' : 'one-way'})`)
     
-    console.log(`✅ [BookingsService] Successfully created ${bookingPassengerRecords.length} booking_passenger records`)
-    
+    // Use override amount for agency deduction if provided (e.g. reservation's agreed fare_amount)
+    const deductAmount = createBookingDto.override_total_amount ?? totalAmount;
+
     // Handle agency balance deduction if applicable
     if (createBookingDto.agency_id) {
       try {
@@ -197,46 +237,55 @@ export class BookingsService {
           const currentBalance = Number(agency.balance);
           
           // Check if agency has sufficient balance
-          if (currentBalance < totalAmount) {
+          if (currentBalance < deductAmount) {
             throw new BadRequestException(
-              `Insufficient agency balance. Agency "${agency.name}" has a balance of ${currentBalance.toFixed(2)}, but the booking amount is ${totalAmount.toFixed(2)}. Shortfall: ${(totalAmount - currentBalance).toFixed(2)}`
+              `Insufficient agency balance. Agency "${agency.name}" has ${currentBalance.toFixed(2)}, booking requires ${deductAmount.toFixed(2)}. Shortfall: ${(deductAmount - currentBalance).toFixed(2)}`
             );
           }
-          
+
           // Deduct from agency balance
-          const newBalance = currentBalance - totalAmount;
+          const newBalance = currentBalance - deductAmount;
           agency.balance = newBalance;
           await this.agencyRepository.save(agency);
-          
+
           // Get current ledger balance
           const latestLedger = await this.agencyLedgerRepository.findOne({
             where: { agencyId: agency.id },
             order: { transactionDate: 'DESC', createdAt: 'DESC' }
           });
-          
+
           const currentLedgerBalance = latestLedger ? Number(latestLedger.balance) : currentBalance;
-          const updatedLedgerBalance = currentLedgerBalance - totalAmount;
-          
-          // Create ledger entry
+
+          // Create ledger entry for the full deductAmount
           const ledgerEntry = this.agencyLedgerRepository.create({
             agencyId: agency.id,
             transactionDate: new Date(createBookingDto.booking_date),
             description: `Booking payment - ${savedBooking.booking_reference}`,
             debit: 0,
-            credit: totalAmount,
-            balance: updatedLedgerBalance,
+            credit: deductAmount,
+            balance: currentLedgerBalance - deductAmount,
             reference: savedBooking.booking_reference
           });
-          
+
           await this.agencyLedgerRepository.save(ledgerEntry);
-          console.log(`✅ [BookingsService] Deducted ${totalAmount} from agency ${agency.name}. New balance: ${newBalance}`);
+          console.log(`✅ [BookingsService] Deducted ${deductAmount} from agency ${agency.name}. New balance: ${newBalance}`);
+
+          // Log to journal entries
+          try {
+            await this.createJournalEntryForBooking(
+              savedBooking, flightSeries, deductAmount,
+              createBookingDto.payment_account_id ?? 0,
+              createBookingDto.booking_date,
+              createBookingDto.agency_id,
+            );
+            console.log(`✅ [BookingsService] Journal entry created for agency booking ${savedBooking.booking_reference}`);
+          } catch (journalErr) {
+            console.warn(`⚠️ [BookingsService] Journal entry skipped for agency booking:`, journalErr instanceof Error ? journalErr.message : String(journalErr));
+          }
         }
       } catch (error) {
         console.error(`❌ [BookingsService] Error deducting from agency balance:`, error);
-        // Re-throw if it's a BadRequestException, otherwise log and continue
-        if (error instanceof BadRequestException) {
-          throw error;
-        }
+        if (error instanceof BadRequestException) throw error;
         console.warn(`⚠️ [BookingsService] Continuing despite agency balance deduction error`);
       }
     }
@@ -338,11 +387,42 @@ export class BookingsService {
         const seatReservation = await this.seatReservationRepository.findOne({
           where: { id: createBookingDto.seat_reservation_id }
         });
-        
+
         if (seatReservation) {
           seatReservation.status = 'booked';
           await this.seatReservationRepository.save(seatReservation);
           console.log(`✅ [BookingsService] Updated seat reservation ${seatReservation.id} status to 'booked'`);
+
+          // Also create a separate booked record for the return leg so the return flight's
+          // availability is tracked (the reservation record only covers the outbound date).
+          if (isReturnTrip && createBookingDto.return_date) {
+            const returnFlightSeriesId = createBookingDto.return_flight_series_id
+              ?? seatReservation.return_flight_series_id
+              ?? createBookingDto.flight_series_id;
+            const returnRef = `${savedBooking.booking_reference}-R`;
+            const existing = await this.seatReservationRepository.findOne({ where: { booking_reference: returnRef } });
+            if (!existing) {
+              const returnRes = this.seatReservationRepository.create({
+                flight_series_id: returnFlightSeriesId,
+                passenger_id: primaryPassenger.id,
+                number_of_seats: createBookingDto.passengers.length,
+                passenger_name: primaryPassenger.name,
+                passenger_email: primaryPassenger.email ?? null,
+                passenger_phone: primaryPassenger.contact ?? null,
+                booking_reference: returnRef,
+                status: 'booked',
+                reservation_date: createBookingDto.return_date as any,
+                trip_type: 'one_way',
+                payment_status: 'paid',
+                amount_paid: 0,
+                fare_amount: 0,
+                agent_id: null,
+                notes: createBookingDto.notes ?? null,
+              });
+              await this.seatReservationRepository.save(returnRes);
+              console.log(`✅ [BookingsService] Created return seat_reservation for reservation-based booking ${returnRef}`);
+            }
+          }
         } else {
           console.warn(`⚠️ [BookingsService] Seat reservation ${createBookingDto.seat_reservation_id} not found`);
         }
@@ -350,12 +430,74 @@ export class BookingsService {
         console.error(`❌ [BookingsService] Error updating seat reservation status:`, error);
         // Don't throw - booking is already created successfully
       }
+    } else if (savedBooking.payment_status === 'paid') {
+      // Direct confirmed booking — create seat_reservation records so seat counts are tracked.
+      // Only runs when the booking is actually paid (e.g. agency_balance deduction succeeded).
+      try {
+        const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date;
+        const numSeats = createBookingDto.passengers.length;
+        console.log(`📅 [BookingsService] Seat tracking: outboundDate=${outboundDate}, numSeats=${numSeats}, flightSeriesId=${createBookingDto.flight_series_id}, isReturn=${isReturnTrip}, returnDate=${createBookingDto.return_date}, returnFsId=${createBookingDto.return_flight_series_id}`);
+
+        // Outbound seat record
+        const outboundRes = this.seatReservationRepository.create({
+          flight_series_id: createBookingDto.flight_series_id,
+          passenger_id: primaryPassenger.id,
+          number_of_seats: numSeats,
+          passenger_name: primaryPassenger.name,
+          passenger_email: primaryPassenger.email ?? null,
+          passenger_phone: primaryPassenger.contact ?? null,
+          booking_reference: savedBooking.booking_reference,
+          status: 'booked',
+          reservation_date: outboundDate as any,
+          trip_type: isReturnTrip ? 'return' : 'one_way',
+          return_flight_series_id: isReturnTrip ? (createBookingDto.return_flight_series_id ?? null) : null,
+          return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
+          payment_status: 'paid',
+          amount_paid: deductAmount,
+          fare_amount: deductAmount,
+          agent_id: null,
+          notes: createBookingDto.notes ?? null,
+        });
+        await this.seatReservationRepository.save(outboundRes);
+        console.log(`✅ [BookingsService] Created outbound seat_reservation for confirmed booking ${savedBooking.booking_reference}`);
+
+        // Return seat record — only the return_date is required.
+        // When no separate return_flight_series_id is given (same aircraft/series flies back),
+        // fall back to the outbound flight_series_id so that the return date's availability
+        // on that series is also decremented.
+        if (isReturnTrip && createBookingDto.return_date) {
+          const returnFlightSeriesId = createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id;
+          console.log(`📅 [BookingsService] Creating return seat_reservation: flightSeriesId=${returnFlightSeriesId}, date=${createBookingDto.return_date}`);
+          const returnRes = this.seatReservationRepository.create({
+            flight_series_id: returnFlightSeriesId,
+            passenger_id: primaryPassenger.id,
+            number_of_seats: numSeats,
+            passenger_name: primaryPassenger.name,
+            passenger_email: primaryPassenger.email ?? null,
+            passenger_phone: primaryPassenger.contact ?? null,
+            booking_reference: `${savedBooking.booking_reference}-R`,
+            status: 'booked',
+            reservation_date: createBookingDto.return_date as any,
+            trip_type: 'one_way',
+            payment_status: 'paid',
+            amount_paid: 0,
+            fare_amount: 0,
+            agent_id: null,
+            notes: createBookingDto.notes ?? null,
+          });
+          await this.seatReservationRepository.save(returnRes);
+          console.log(`✅ [BookingsService] Created return seat_reservation for confirmed booking ${savedBooking.booking_reference}-R`);
+        }
+      } catch (error) {
+        console.error(`❌ [BookingsService] Error creating seat_reservation for confirmed booking:`, error);
+        // Don't throw — booking already created
+      }
     }
     
     // Reload with relations
     const bookingWithRelations = await this.bookingRepository.findOne({
       where: { id: savedBooking.id },
-      relations: ['flightSeries', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger']
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'returnFlightSeries', 'returnFlightSeries.fromDestination', 'returnFlightSeries.toDestination', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger', 'bookingPassengers.flightSeries', 'bookingPassengers.flightSeries.fromDestination', 'bookingPassengers.flightSeries.toDestination']
     });
     
     return bookingWithRelations || savedBooking;
@@ -730,9 +872,15 @@ export class BookingsService {
         'flightSeries.fromDestination',
         'flightSeries.toDestination',
         'flightSeries.viaDestination',
+        'returnFlightSeries',
+        'returnFlightSeries.fromDestination',
+        'returnFlightSeries.toDestination',
         'passenger',
         'bookingPassengers',
         'bookingPassengers.passenger',
+        'bookingPassengers.flightSeries',
+        'bookingPassengers.flightSeries.fromDestination',
+        'bookingPassengers.flightSeries.toDestination',
       ],
       order: { booking_date: 'DESC', created_at: 'DESC' },
       skip: (page - 1) * limit,
@@ -745,7 +893,7 @@ export class BookingsService {
   async findOne(id: number): Promise<Booking> {
     const booking = await this.bookingRepository.findOne({
       where: { id },
-      relations: ['flightSeries', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger']
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'returnFlightSeries', 'returnFlightSeries.fromDestination', 'returnFlightSeries.toDestination', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger', 'bookingPassengers.flightSeries', 'bookingPassengers.flightSeries.fromDestination', 'bookingPassengers.flightSeries.toDestination']
     });
     
     if (!booking) {
@@ -753,6 +901,65 @@ export class BookingsService {
     }
     
     return booking;
+  }
+
+  // Returns all booking_passenger rows for a flight series with full passenger + booking details.
+  async getPassengersByFlight(flightSeriesId: number): Promise<any[]> {
+    const rows = await this.bookingPassengerRepository.find({
+      where: { flight_series_id: flightSeriesId },
+      relations: ['passenger', 'booking', 'booking.flightSeries',
+                  'booking.flightSeries.fromDestination', 'booking.flightSeries.toDestination'],
+      order: { travel_date: 'ASC' },
+    })
+    return rows.map(bp => ({
+      id:             bp.id,
+      booking_id:     bp.booking_id,
+      booking_reference: (bp as any).booking?.booking_reference ?? null,
+      payment_status:    (bp as any).booking?.payment_status    ?? null,
+      flight_series_id:  bp.flight_series_id,
+      passenger_id:   bp.passenger_id,
+      passenger_type: bp.passenger_type,
+      fare_amount:    Number(bp.fare_amount ?? 0),
+      travel_date:    bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
+      leg:            bp.leg,
+      ticket_status:  bp.ticket_status ?? null,
+      passenger: bp.passenger ? {
+        id:             bp.passenger.id,
+        pnr:            bp.passenger.pnr,
+        name:           bp.passenger.name,
+        title:          (bp.passenger as any).title ?? null,
+        email:          bp.passenger.email,
+        contact:        bp.passenger.contact,
+        nationality:    bp.passenger.nationality,
+        id_type:        bp.passenger.id_type,
+        identification: bp.passenger.identification,
+        booking_status: (bp.passenger as any).booking_status ?? null,
+      } : null,
+    }))
+  }
+
+  // Returns { "2024-01-15": 3, "2024-01-22": 2 } — booked seat count per date for a flight series.
+  // Only counts paid bookings. Source of truth for calendar seat availability.
+  async getBookedSeatCounts(flightSeriesId: number): Promise<Record<string, number>> {
+    // Use raw SQL with DATE_FORMAT to guarantee "YYYY-MM-DD" string keys regardless of
+    // how the MySQL/MariaDB driver returns DATE column values (Date object vs string).
+    const rows: { d: string; cnt: string }[] = await this.bookingPassengerRepository.query(
+      `SELECT DATE_FORMAT(bp.travel_date, '%Y-%m-%d') AS d, COUNT(bp.id) AS cnt
+       FROM booking_passengers bp
+       INNER JOIN bookings b ON b.id = bp.booking_id
+       WHERE bp.flight_series_id = ?
+         AND b.payment_status = 'paid'
+         AND bp.travel_date IS NOT NULL
+       GROUP BY bp.travel_date`,
+      [flightSeriesId],
+    )
+
+    const result: Record<string, number> = {}
+    for (const row of rows) {
+      if (row.d) result[row.d] = Number(row.cnt)
+    }
+    console.log(`📊 [BookingsService] seat-counts for fs=${flightSeriesId}:`, result)
+    return result
   }
 
   private generateBookingReference(): string {

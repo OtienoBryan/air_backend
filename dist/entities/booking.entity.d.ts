@@ -22,6 +22,9 @@ export declare class Booking {
     notes: string | null;
     agency_id: number | null;
     is_return_trip: boolean;
+    return_date: string | null;
+    return_flight_series_id: number | null;
+    returnFlightSeries?: FlightSeries;
     created_at: Date;
     updated_at: Date;
 }

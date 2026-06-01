@@ -35,6 +35,9 @@ let Booking = class Booking {
     notes;
     agency_id;
     is_return_trip;
+    return_date;
+    return_flight_series_id;
+    returnFlightSeries;
     created_at;
     updated_at;
 };
@@ -121,6 +124,19 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'is_return_trip', type: 'tinyint', width: 1, default: 0 }),
     __metadata("design:type", Boolean)
 ], Booking.prototype, "is_return_trip", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'return_date', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], Booking.prototype, "return_date", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'return_flight_series_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Booking.prototype, "return_flight_series_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => flight_series_entity_1.FlightSeries, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'return_flight_series_id' }),
+    __metadata("design:type", flight_series_entity_1.FlightSeries)
+], Booking.prototype, "returnFlightSeries", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

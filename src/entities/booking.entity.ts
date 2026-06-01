@@ -67,6 +67,16 @@ export class Booking {
   @Column({ name: 'is_return_trip', type: 'tinyint', width: 1, default: 0 })
   is_return_trip: boolean;
 
+  @Column({ name: 'return_date', type: 'date', nullable: true })
+  return_date: string | null;
+
+  @Column({ name: 'return_flight_series_id', type: 'int', nullable: true })
+  return_flight_series_id: number | null;
+
+  @ManyToOne(() => FlightSeries, { nullable: true })
+  @JoinColumn({ name: 'return_flight_series_id' })
+  returnFlightSeries?: FlightSeries;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

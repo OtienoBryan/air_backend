@@ -4,6 +4,7 @@ export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
     login(loginDto: LoginDto): Promise<import("./auth.service").AuthResponse>;
+    agentLogin(loginDto: LoginDto): Promise<any>;
     getProfile(req: any): Promise<{
         id: number;
         email: string;

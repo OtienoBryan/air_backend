@@ -20,6 +20,8 @@ let Agent = class Agent {
     contact;
     agency_id;
     agency;
+    password;
+    password_hash;
     use_deposit;
     created_at;
     updated_at;
@@ -54,6 +56,14 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'agency_id' }),
     __metadata("design:type", Object)
 ], Agent.prototype, "agency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
+], Agent.prototype, "password", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'password_hash', type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
+], Agent.prototype, "password_hash", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'use_deposit', type: 'boolean', default: false }),
     __metadata("design:type", Boolean)

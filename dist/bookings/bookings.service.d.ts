@@ -33,5 +33,6 @@ export declare class BookingsService {
         total: number;
     }>;
     findOne(id: number): Promise<Booking>;
+    getBookedSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     private generateBookingReference;
 }
