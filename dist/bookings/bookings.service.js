@@ -18,6 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const booking_entity_1 = require("../entities/booking.entity");
 const flight_series_entity_1 = require("../entities/flight-series.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 const passenger_entity_1 = require("../entities/passenger.entity");
 const booking_passenger_entity_1 = require("../entities/booking-passenger.entity");
 const seat_reservation_entity_1 = require("../entities/seat-reservation.entity");
@@ -30,6 +31,7 @@ const passengers_service_1 = require("../passengers/passengers.service");
 let BookingsService = class BookingsService {
     bookingRepository;
     flightSeriesRepository;
+    flightRepository;
     passengerRepository;
     bookingPassengerRepository;
     seatReservationRepository;
@@ -40,9 +42,10 @@ let BookingsService = class BookingsService {
     chartOfAccountRepository;
     passengersService;
     dataSource;
-    constructor(bookingRepository, flightSeriesRepository, passengerRepository, bookingPassengerRepository, seatReservationRepository, agencyRepository, agencyLedgerRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, passengersService, dataSource) {
+    constructor(bookingRepository, flightSeriesRepository, flightRepository, passengerRepository, bookingPassengerRepository, seatReservationRepository, agencyRepository, agencyLedgerRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, passengersService, dataSource) {
         this.bookingRepository = bookingRepository;
         this.flightSeriesRepository = flightSeriesRepository;
+        this.flightRepository = flightRepository;
         this.passengerRepository = passengerRepository;
         this.bookingPassengerRepository = bookingPassengerRepository;
         this.seatReservationRepository = seatReservationRepository;
@@ -127,6 +130,7 @@ let BookingsService = class BookingsService {
             is_return_trip: isReturnTrip,
             return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
             return_flight_series_id: isReturnTrip ? (createBookingDto.return_flight_series_id ?? null) : null,
+            flight_id: createBookingDto.flight_id ?? null,
         });
         const savedBooking = await this.bookingRepository.save(booking);
         console.log(`✅ [BookingsService] Booking created: id=${savedBooking.id}, ref=${savedBooking.booking_reference}, payment_status=${savedBooking.payment_status}, method=${savedBooking.payment_method}`);
@@ -134,6 +138,25 @@ let BookingsService = class BookingsService {
         const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null;
         const returnDate = isReturnTrip ? (createBookingDto.return_date ?? null) : null;
         const returnFsId = isReturnTrip ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id) : null;
+        const lookupFlightId = async (seriesId, date) => {
+            if (!seriesId || !date)
+                return null;
+            try {
+                const f = await this.flightRepository.findOne({
+                    where: { series_id: seriesId, flight_date: date },
+                });
+                return f?.id ?? null;
+            }
+            catch {
+                return null;
+            }
+        };
+        const outboundFlightId = createBookingDto.flight_id
+            ?? await lookupFlightId(createBookingDto.flight_series_id, outboundDate);
+        const returnFlightId = isReturnTrip
+            ? (createBookingDto.return_flight_id ?? await lookupFlightId(returnFsId, returnDate))
+            : null;
+        console.log(`✈️ [BookingsService] flight_id: outbound=${outboundFlightId}, return=${returnFlightId}`);
         const bookingPassengerRecords = [];
         for (let i = 0; i < createdPassengers.length; i++) {
             const passenger = createdPassengers[i];
@@ -160,6 +183,7 @@ let BookingsService = class BookingsService {
                 booking_id: savedBooking.id,
                 passenger_id: passenger.id,
                 flight_series_id: createBookingDto.flight_series_id,
+                flight_id: outboundFlightId,
                 passenger_type: passengerDto.passenger_type,
                 fare_amount: fare,
                 travel_date: outboundDate,
@@ -181,6 +205,7 @@ let BookingsService = class BookingsService {
                     booking_id: savedBooking.id,
                     passenger_id: passenger.id,
                     flight_series_id: retFsId,
+                    flight_id: returnFlightId,
                     passenger_type: passengerDto.passenger_type,
                     fare_amount: fare,
                     travel_date: returnDate,
@@ -774,6 +799,39 @@ let BookingsService = class BookingsService {
         }
         return booking;
     }
+    async getPassengersByFlight(flightSeriesId) {
+        const rows = await this.bookingPassengerRepository.find({
+            where: { flight_series_id: flightSeriesId },
+            relations: ['passenger', 'booking', 'booking.flightSeries',
+                'booking.flightSeries.fromDestination', 'booking.flightSeries.toDestination'],
+            order: { travel_date: 'ASC' },
+        });
+        return rows.map(bp => ({
+            id: bp.id,
+            booking_id: bp.booking_id,
+            booking_reference: bp.booking?.booking_reference ?? null,
+            payment_status: bp.booking?.payment_status ?? null,
+            flight_series_id: bp.flight_series_id,
+            passenger_id: bp.passenger_id,
+            passenger_type: bp.passenger_type,
+            fare_amount: Number(bp.fare_amount ?? 0),
+            travel_date: bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
+            leg: bp.leg,
+            ticket_status: bp.ticket_status ?? null,
+            passenger: bp.passenger ? {
+                id: bp.passenger.id,
+                pnr: bp.passenger.pnr,
+                name: bp.passenger.name,
+                title: bp.passenger.title ?? null,
+                email: bp.passenger.email,
+                contact: bp.passenger.contact,
+                nationality: bp.passenger.nationality,
+                id_type: bp.passenger.id_type,
+                identification: bp.passenger.identification,
+                booking_status: bp.passenger.booking_status ?? null,
+            } : null,
+        }));
+    }
     async getBookedSeatCounts(flightSeriesId) {
         const rows = await this.bookingPassengerRepository.query(`SELECT DATE_FORMAT(bp.travel_date, '%Y-%m-%d') AS d, COUNT(bp.id) AS cnt
        FROM booking_passengers bp
@@ -802,15 +860,17 @@ exports.BookingsService = BookingsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(booking_entity_1.Booking)),
     __param(1, (0, typeorm_1.InjectRepository)(flight_series_entity_1.FlightSeries)),
-    __param(2, (0, typeorm_1.InjectRepository)(passenger_entity_1.Passenger)),
-    __param(3, (0, typeorm_1.InjectRepository)(booking_passenger_entity_1.BookingPassenger)),
-    __param(4, (0, typeorm_1.InjectRepository)(seat_reservation_entity_1.SeatReservation)),
-    __param(5, (0, typeorm_1.InjectRepository)(agency_entity_1.Agency)),
-    __param(6, (0, typeorm_1.InjectRepository)(agency_ledger_entity_1.AgencyLedger)),
-    __param(7, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
-    __param(8, (0, typeorm_1.InjectRepository)(journal_entry_line_entity_1.JournalEntryLine)),
-    __param(9, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
+    __param(2, (0, typeorm_1.InjectRepository)(flight_entity_1.Flight)),
+    __param(3, (0, typeorm_1.InjectRepository)(passenger_entity_1.Passenger)),
+    __param(4, (0, typeorm_1.InjectRepository)(booking_passenger_entity_1.BookingPassenger)),
+    __param(5, (0, typeorm_1.InjectRepository)(seat_reservation_entity_1.SeatReservation)),
+    __param(6, (0, typeorm_1.InjectRepository)(agency_entity_1.Agency)),
+    __param(7, (0, typeorm_1.InjectRepository)(agency_ledger_entity_1.AgencyLedger)),
+    __param(8, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
+    __param(9, (0, typeorm_1.InjectRepository)(journal_entry_line_entity_1.JournalEntryLine)),
+    __param(10, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

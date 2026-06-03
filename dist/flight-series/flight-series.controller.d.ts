@@ -22,4 +22,9 @@ export declare class FlightSeriesController {
         message: string;
     }>;
     getCrewAssignments(id: number): Promise<import("../entities").FlightCrew[]>;
+    getFlightInstances(id: number, from?: string, to?: string): Promise<import("../entities/flight.entity").Flight[]>;
+    regenerateFlightInstances(id: number): Promise<{
+        message: string;
+        count: number;
+    }>;
 }

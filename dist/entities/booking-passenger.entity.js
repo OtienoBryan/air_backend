@@ -14,19 +14,26 @@ const typeorm_1 = require("typeorm");
 const booking_entity_1 = require("./booking.entity");
 const passenger_entity_1 = require("./passenger.entity");
 const flight_series_entity_1 = require("./flight-series.entity");
+const flight_entity_1 = require("./flight.entity");
 let BookingPassenger = class BookingPassenger {
     id;
     booking_id;
     booking;
     flight_series_id;
     flightSeries;
+    flight_id;
+    flight;
     passenger_id;
     passenger;
     passenger_type;
     fare_amount;
     travel_date;
     leg;
+    return_travel_date;
+    return_flight_series_id;
+    ticket_number;
     ticket_status;
+    issued_at;
     created_at;
 };
 exports.BookingPassenger = BookingPassenger;
@@ -53,6 +60,15 @@ __decorate([
     __metadata("design:type", flight_series_entity_1.FlightSeries)
 ], BookingPassenger.prototype, "flightSeries", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'flight_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "flight_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => flight_entity_1.Flight, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'flight_id' }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "flight", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'passenger_id', type: 'int' }),
     __metadata("design:type", Number)
 ], BookingPassenger.prototype, "passenger_id", void 0);
@@ -78,9 +94,31 @@ __decorate([
     __metadata("design:type", String)
 ], BookingPassenger.prototype, "leg", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'ticket_status', type: 'varchar', length: 50, nullable: true }),
+    (0, typeorm_1.Column)({ name: 'return_travel_date', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "return_travel_date", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'return_flight_series_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "return_flight_series_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'ticket_number', type: 'varchar', length: 20, nullable: true, unique: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "ticket_number", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        name: 'ticket_status',
+        type: 'enum',
+        enum: ['OPEN', 'USED', 'VOID', 'REFUNDED'],
+        nullable: true,
+        default: 'OPEN',
+    }),
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "ticket_status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'issued_at', type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "issued_at", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

@@ -17,19 +17,64 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const flight_series_entity_1 = require("../entities/flight-series.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 const aircraft_entity_1 = require("../entities/aircraft.entity");
 const flight_crew_entity_1 = require("../entities/flight-crew.entity");
 const crew_entity_1 = require("../entities/crew.entity");
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 let FlightSeriesService = class FlightSeriesService {
     flightSeriesRepository;
+    flightRepository;
     aircraftRepository;
     flightCrewRepository;
     crewRepository;
-    constructor(flightSeriesRepository, aircraftRepository, flightCrewRepository, crewRepository) {
+    constructor(flightSeriesRepository, flightRepository, aircraftRepository, flightCrewRepository, crewRepository) {
         this.flightSeriesRepository = flightSeriesRepository;
+        this.flightRepository = flightRepository;
         this.aircraftRepository = aircraftRepository;
         this.flightCrewRepository = flightCrewRepository;
         this.crewRepository = crewRepository;
+    }
+    toDateStr(d) {
+        if (d instanceof Date)
+            return d.toISOString().slice(0, 10);
+        return String(d).slice(0, 10);
+    }
+    async generateFlightInstances(series) {
+        const start = new Date(this.toDateStr(series.start_date) + 'T12:00:00Z');
+        const end = new Date(this.toDateStr(series.end_date) + 'T12:00:00Z');
+        console.log(`✈️ [generateFlightInstances] series=${series.id} flt=${series.flt} start=${this.toDateStr(series.start_date)} end=${this.toDateStr(series.end_date)} recurring=${series.is_recurring} days=${series.days_of_week}`);
+        const allowedDays = series.is_recurring && series.days_of_week
+            ? new Set(series.days_of_week.split(',').map(d => d.trim()))
+            : new Set(DAY_NAMES);
+        const instances = [];
+        const cur = new Date(start);
+        while (cur <= end) {
+            const dayName = DAY_NAMES[cur.getUTCDay()];
+            if (allowedDays.has(dayName)) {
+                const dateStr = cur.toISOString().slice(0, 10);
+                instances.push({
+                    series_id: series.id,
+                    aircraft_id: series.aircraft_id ?? null,
+                    aircraft_capacity: series.aircraft?.capacity ?? null,
+                    flight_no: series.flt,
+                    flight_date: dateStr,
+                    std: series.std ?? null,
+                    sta: series.sta ?? null,
+                    status: 'scheduled',
+                });
+            }
+            cur.setUTCDate(cur.getUTCDate() + 1);
+        }
+        if (instances.length > 0) {
+            const batchSize = 200;
+            for (let i = 0; i < instances.length; i += batchSize) {
+                const entities = instances.slice(i, i + batchSize).map(d => this.flightRepository.create(d));
+                await this.flightRepository.save(entities);
+            }
+            console.log(`✅ [FlightSeriesService] Generated ${instances.length} flight instances for series ${series.id} (${series.flt})`);
+        }
+        return instances.length;
     }
     async findAll(page = 1, limit = 50) {
         console.log('✈️ [FlightSeriesService] Finding all flight series');
@@ -91,6 +136,9 @@ let FlightSeriesService = class FlightSeriesService {
                 where: { id: savedFlightSeries.id },
                 relations: ['aircraft', 'fromDestination', 'viaDestination', 'toDestination', 'flightCrew', 'flightCrew.crew']
             });
+            const seriesForGen = flightSeriesWithRelations ?? savedFlightSeries;
+            const count = await this.generateFlightInstances(seriesForGen);
+            console.log(`✅ [FlightSeriesService] Created ${count} flight instances for series ${savedFlightSeries.id}`);
             if (flightSeriesWithRelations) {
                 return flightSeriesWithRelations;
             }
@@ -236,15 +284,34 @@ let FlightSeriesService = class FlightSeriesService {
         });
         return flightCrew;
     }
+    async getFlightInstances(seriesId, from, to) {
+        const qb = this.flightRepository
+            .createQueryBuilder('f')
+            .where('f.series_id = :seriesId', { seriesId })
+            .orderBy('f.flight_date', 'ASC');
+        if (from)
+            qb.andWhere('f.flight_date >= :from', { from });
+        if (to)
+            qb.andWhere('f.flight_date <= :to', { to });
+        return qb.getMany();
+    }
+    async regenerateFlightInstances(seriesId) {
+        const series = await this.findOne(seriesId);
+        const deleted = await this.flightRepository.delete({ series_id: seriesId });
+        console.log(`🗑️ [FlightSeriesService] Deleted ${(deleted.affected ?? 0)} existing instances for series ${seriesId}`);
+        return this.generateFlightInstances(series);
+    }
 };
 exports.FlightSeriesService = FlightSeriesService;
 exports.FlightSeriesService = FlightSeriesService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(flight_series_entity_1.FlightSeries)),
-    __param(1, (0, typeorm_1.InjectRepository)(aircraft_entity_1.Aircraft)),
-    __param(2, (0, typeorm_1.InjectRepository)(flight_crew_entity_1.FlightCrew)),
-    __param(3, (0, typeorm_1.InjectRepository)(crew_entity_1.Crew)),
+    __param(1, (0, typeorm_1.InjectRepository)(flight_entity_1.Flight)),
+    __param(2, (0, typeorm_1.InjectRepository)(aircraft_entity_1.Aircraft)),
+    __param(3, (0, typeorm_1.InjectRepository)(flight_crew_entity_1.FlightCrew)),
+    __param(4, (0, typeorm_1.InjectRepository)(crew_entity_1.Crew)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository])

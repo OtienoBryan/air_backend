@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SeatReservation } from '../entities/seat-reservation.entity';
 import { FlightSeries } from '../entities/flight-series.entity';
+import { Flight } from '../entities/flight.entity';
 import { Passenger } from '../entities/passenger.entity';
 import { Agent } from '../entities/agent.entity';
 import { Country } from '../entities/country.entity';
@@ -16,6 +17,8 @@ export class SeatReservationsService {
     private seatReservationRepository: Repository<SeatReservation>,
     @InjectRepository(FlightSeries)
     private flightSeriesRepository: Repository<FlightSeries>,
+    @InjectRepository(Flight)
+    private flightRepository: Repository<Flight>,
     @InjectRepository(Passenger)
     private passengerRepository: Repository<Passenger>,
     @InjectRepository(Country)
@@ -153,8 +156,23 @@ export class SeatReservationsService {
     // Generate booking reference (always auto-generated)
     const bookingReference = this.generateBookingReference();
 
+    // Look up the specific flight record from the flights table
+    let flightId: number | null = null
+    if (createSeatReservationDto.reservation_date) {
+      const dateStr = String(createSeatReservationDto.reservation_date).slice(0, 10)
+      const matchingFlight = await this.flightRepository.findOne({
+        where: {
+          series_id:   createSeatReservationDto.flight_series_id,
+          flight_date: dateStr as any,
+        },
+      })
+      flightId = matchingFlight?.id ?? null
+      console.log(`✈️ [SeatReservationsService] flight_id lookup: series=${createSeatReservationDto.flight_series_id} date=${dateStr} → flight_id=${flightId}`)
+    }
+
     const reservation = this.seatReservationRepository.create({
       flight_series_id: createSeatReservationDto.flight_series_id,
+      flight_id: flightId,
       passenger_id: passengerId,
       agent_id: createSeatReservationDto.agent_id ?? null,
       country_id: createSeatReservationDto.country_id ?? null,

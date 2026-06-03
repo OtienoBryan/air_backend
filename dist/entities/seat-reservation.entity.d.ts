@@ -1,4 +1,5 @@
 import { FlightSeries } from './flight-series.entity';
+import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { Agent } from './agent.entity';
 import { Country } from './country.entity';
@@ -6,6 +7,8 @@ export declare class SeatReservation {
     id: number;
     flight_series_id: number;
     flightSeries?: FlightSeries;
+    flight_id: number | null;
+    flight?: Flight | null;
     passenger_id: number | null;
     passenger?: Passenger;
     number_of_seats: number;

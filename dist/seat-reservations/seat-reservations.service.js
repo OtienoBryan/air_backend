@@ -18,16 +18,19 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const seat_reservation_entity_1 = require("../entities/seat-reservation.entity");
 const flight_series_entity_1 = require("../entities/flight-series.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 const passenger_entity_1 = require("../entities/passenger.entity");
 const country_entity_1 = require("../entities/country.entity");
 let SeatReservationsService = class SeatReservationsService {
     seatReservationRepository;
     flightSeriesRepository;
+    flightRepository;
     passengerRepository;
     countryRepository;
-    constructor(seatReservationRepository, flightSeriesRepository, passengerRepository, countryRepository) {
+    constructor(seatReservationRepository, flightSeriesRepository, flightRepository, passengerRepository, countryRepository) {
         this.seatReservationRepository = seatReservationRepository;
         this.flightSeriesRepository = flightSeriesRepository;
+        this.flightRepository = flightRepository;
         this.passengerRepository = passengerRepository;
         this.countryRepository = countryRepository;
     }
@@ -126,8 +129,21 @@ let SeatReservationsService = class SeatReservationsService {
             passengerPhone = passenger.contact;
         }
         const bookingReference = this.generateBookingReference();
+        let flightId = null;
+        if (createSeatReservationDto.reservation_date) {
+            const dateStr = String(createSeatReservationDto.reservation_date).slice(0, 10);
+            const matchingFlight = await this.flightRepository.findOne({
+                where: {
+                    series_id: createSeatReservationDto.flight_series_id,
+                    flight_date: dateStr,
+                },
+            });
+            flightId = matchingFlight?.id ?? null;
+            console.log(`✈️ [SeatReservationsService] flight_id lookup: series=${createSeatReservationDto.flight_series_id} date=${dateStr} → flight_id=${flightId}`);
+        }
         const reservation = this.seatReservationRepository.create({
             flight_series_id: createSeatReservationDto.flight_series_id,
+            flight_id: flightId,
             passenger_id: passengerId,
             agent_id: createSeatReservationDto.agent_id ?? null,
             country_id: createSeatReservationDto.country_id ?? null,
@@ -352,9 +368,11 @@ exports.SeatReservationsService = SeatReservationsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(seat_reservation_entity_1.SeatReservation)),
     __param(1, (0, typeorm_1.InjectRepository)(flight_series_entity_1.FlightSeries)),
-    __param(2, (0, typeorm_1.InjectRepository)(passenger_entity_1.Passenger)),
-    __param(3, (0, typeorm_1.InjectRepository)(country_entity_1.Country)),
+    __param(2, (0, typeorm_1.InjectRepository)(flight_entity_1.Flight)),
+    __param(3, (0, typeorm_1.InjectRepository)(passenger_entity_1.Passenger)),
+    __param(4, (0, typeorm_1.InjectRepository)(country_entity_1.Country)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository])

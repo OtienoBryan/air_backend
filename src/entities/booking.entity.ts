@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { FlightSeries } from './flight-series.entity';
+import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { BookingPassenger } from './booking-passenger.entity';
 
@@ -17,6 +18,13 @@ export class Booking {
   @ManyToOne(() => FlightSeries)
   @JoinColumn({ name: 'flight_series_id' })
   flightSeries?: FlightSeries;
+
+  @Column({ name: 'flight_id', type: 'int', nullable: true })
+  flight_id: number | null;
+
+  @ManyToOne(() => Flight, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'flight_id' })
+  flight?: Flight | null;
 
   @Column({ name: 'passenger_id', type: 'int', nullable: true })
   passenger_id: number | null;

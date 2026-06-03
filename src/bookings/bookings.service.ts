@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Like } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
 import { FlightSeries } from '../entities/flight-series.entity';
+import { Flight } from '../entities/flight.entity';
 import { Passenger } from '../entities/passenger.entity';
 import { BookingPassenger } from '../entities/booking-passenger.entity';
 import { SeatReservation } from '../entities/seat-reservation.entity';
@@ -21,6 +22,8 @@ export class BookingsService {
     private bookingRepository: Repository<Booking>,
     @InjectRepository(FlightSeries)
     private flightSeriesRepository: Repository<FlightSeries>,
+    @InjectRepository(Flight)
+    private flightRepository: Repository<Flight>,
     @InjectRepository(Passenger)
     private passengerRepository: Repository<Passenger>,
     @InjectRepository(BookingPassenger)
@@ -132,6 +135,7 @@ export class BookingsService {
       is_return_trip: isReturnTrip,
       return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
       return_flight_series_id: isReturnTrip ? (createBookingDto.return_flight_series_id ?? null) : null,
+      flight_id: createBookingDto.flight_id ?? null,
     });
     
     const savedBooking = await this.bookingRepository.save(booking);
@@ -142,6 +146,24 @@ export class BookingsService {
     const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null
     const returnDate   = isReturnTrip ? (createBookingDto.return_date ?? null) : null
     const returnFsId   = isReturnTrip ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id) : null
+
+    // Use provided flight_id if available, otherwise look up from the flights table
+    const lookupFlightId = async (seriesId: number | null, date: string | null): Promise<number | null> => {
+      if (!seriesId || !date) return null
+      try {
+        const f = await this.flightRepository.findOne({
+          where: { series_id: seriesId, flight_date: date as any },
+        })
+        return f?.id ?? null
+      } catch { return null }
+    }
+
+    const outboundFlightId = createBookingDto.flight_id
+      ?? await lookupFlightId(createBookingDto.flight_series_id, outboundDate)
+    const returnFlightId = isReturnTrip
+      ? (createBookingDto.return_flight_id ?? await lookupFlightId(returnFsId, returnDate))
+      : null
+    console.log(`✈️ [BookingsService] flight_id: outbound=${outboundFlightId}, return=${returnFlightId}`)
 
     const bookingPassengerRecords: BookingPassenger[] = []
     for (let i = 0; i < createdPassengers.length; i++) {
@@ -169,13 +191,14 @@ export class BookingsService {
 
       // Outbound leg
       const outboundBp = this.bookingPassengerRepository.create({
-        booking_id: savedBooking.id,
-        passenger_id: passenger.id,
+        booking_id:       savedBooking.id,
+        passenger_id:     passenger.id,
         flight_series_id: createBookingDto.flight_series_id,
-        passenger_type: passengerDto.passenger_type,
-        fare_amount: fare,
-        travel_date: outboundDate,
-        leg: 'outbound',
+        flight_id:        outboundFlightId,
+        passenger_type:   passengerDto.passenger_type,
+        fare_amount:      fare,
+        travel_date:      outboundDate,
+        leg:              'outbound',
       })
       try {
         const saved = await this.bookingPassengerRepository.save(outboundBp)
@@ -192,13 +215,14 @@ export class BookingsService {
         const retFsId = returnFsId ?? createBookingDto.flight_series_id
         console.log(`🔁 [BookingsService] Saving return booking_passenger: booking=${savedBooking.id}, pax=${passenger.id}, fs=${retFsId}, date=${returnDate ?? 'null'}`)
         const returnBp = this.bookingPassengerRepository.create({
-          booking_id: savedBooking.id,
-          passenger_id: passenger.id,
+          booking_id:       savedBooking.id,
+          passenger_id:     passenger.id,
           flight_series_id: retFsId,
-          passenger_type: passengerDto.passenger_type,
-          fare_amount: fare,
-          travel_date: returnDate,
-          leg: 'return',
+          flight_id:        returnFlightId,
+          passenger_type:   passengerDto.passenger_type,
+          fare_amount:      fare,
+          travel_date:      returnDate,
+          leg:              'return',
         })
         try {
           const saved = await this.bookingPassengerRepository.save(returnBp)

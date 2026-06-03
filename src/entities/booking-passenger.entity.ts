@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Jo
 import { Booking } from './booking.entity';
 import { Passenger } from './passenger.entity';
 import { FlightSeries } from './flight-series.entity';
+import { Flight } from './flight.entity';
 
 @Entity('booking_passengers')
 @Unique(['booking_id', 'passenger_id', 'leg'])
@@ -23,6 +24,13 @@ export class BookingPassenger {
   @JoinColumn({ name: 'flight_series_id' })
   flightSeries?: FlightSeries;
 
+  @Column({ name: 'flight_id', type: 'int', nullable: true })
+  flight_id: number | null;
+
+  @ManyToOne(() => Flight, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'flight_id' })
+  flight?: Flight | null;
+
   @Column({ name: 'passenger_id', type: 'int' })
   passenger_id: number;
 
@@ -31,7 +39,7 @@ export class BookingPassenger {
   passenger?: Passenger;
 
   @Column({ name: 'passenger_type', type: 'varchar', length: 20 })
-  passenger_type: string; // 'adult', 'child', 'infant'
+  passenger_type: string; // 'adult' | 'child' | 'infant'
 
   @Column({ name: 'fare_amount', type: 'decimal', precision: 10, scale: 2 })
   fare_amount: number;
@@ -39,13 +47,29 @@ export class BookingPassenger {
   @Column({ name: 'travel_date', type: 'date', nullable: true })
   travel_date: string | null;
 
-  // 'outbound' or 'return' — each leg is a separate row
   @Column({ name: 'leg', type: 'varchar', length: 20, default: 'outbound' })
-  leg: string;
+  leg: string; // 'outbound' | 'return'
 
-  // Ticket check-in / boarding status: 'Boarded' | 'CHECK IN' | 'No Show' | null
-  @Column({ name: 'ticket_status', type: 'varchar', length: 50, nullable: true })
-  ticket_status: string | null;
+  @Column({ name: 'return_travel_date', type: 'date', nullable: true })
+  return_travel_date: string | null;
+
+  @Column({ name: 'return_flight_series_id', type: 'int', nullable: true })
+  return_flight_series_id: number | null;
+
+  @Column({ name: 'ticket_number', type: 'varchar', length: 20, nullable: true, unique: true })
+  ticket_number: string | null;
+
+  @Column({
+    name: 'ticket_status',
+    type: 'enum',
+    enum: ['OPEN', 'USED', 'VOID', 'REFUNDED'],
+    nullable: true,
+    default: 'OPEN',
+  })
+  ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | null;
+
+  @Column({ name: 'issued_at', type: 'timestamp', nullable: true })
+  issued_at: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;

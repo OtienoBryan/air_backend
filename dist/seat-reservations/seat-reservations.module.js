@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const seat_reservation_entity_1 = require("../entities/seat-reservation.entity");
 const flight_series_entity_1 = require("../entities/flight-series.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 const passenger_entity_1 = require("../entities/passenger.entity");
 const agent_entity_1 = require("../entities/agent.entity");
 const country_entity_1 = require("../entities/country.entity");
@@ -21,7 +22,7 @@ let SeatReservationsModule = class SeatReservationsModule {
 exports.SeatReservationsModule = SeatReservationsModule;
 exports.SeatReservationsModule = SeatReservationsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([seat_reservation_entity_1.SeatReservation, flight_series_entity_1.FlightSeries, passenger_entity_1.Passenger, agent_entity_1.Agent, country_entity_1.Country])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([seat_reservation_entity_1.SeatReservation, flight_series_entity_1.FlightSeries, flight_entity_1.Flight, passenger_entity_1.Passenger, agent_entity_1.Agent, country_entity_1.Country])],
         providers: [seat_reservations_service_1.SeatReservationsService],
         controllers: [seat_reservations_controller_1.SeatReservationsController],
         exports: [seat_reservations_service_1.SeatReservationsService]

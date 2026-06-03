@@ -1,6 +1,7 @@
 import { Repository, DataSource } from 'typeorm';
 import { Booking } from '../entities/booking.entity';
 import { FlightSeries } from '../entities/flight-series.entity';
+import { Flight } from '../entities/flight.entity';
 import { Passenger } from '../entities/passenger.entity';
 import { BookingPassenger } from '../entities/booking-passenger.entity';
 import { SeatReservation } from '../entities/seat-reservation.entity';
@@ -14,6 +15,7 @@ import { PassengersService } from '../passengers/passengers.service';
 export declare class BookingsService {
     private bookingRepository;
     private flightSeriesRepository;
+    private flightRepository;
     private passengerRepository;
     private bookingPassengerRepository;
     private seatReservationRepository;
@@ -24,7 +26,7 @@ export declare class BookingsService {
     private chartOfAccountRepository;
     private passengersService;
     private dataSource;
-    constructor(bookingRepository: Repository<Booking>, flightSeriesRepository: Repository<FlightSeries>, passengerRepository: Repository<Passenger>, bookingPassengerRepository: Repository<BookingPassenger>, seatReservationRepository: Repository<SeatReservation>, agencyRepository: Repository<Agency>, agencyLedgerRepository: Repository<AgencyLedger>, journalEntryRepository: Repository<JournalEntry>, journalEntryLineRepository: Repository<JournalEntryLine>, chartOfAccountRepository: Repository<ChartOfAccount>, passengersService: PassengersService, dataSource: DataSource);
+    constructor(bookingRepository: Repository<Booking>, flightSeriesRepository: Repository<FlightSeries>, flightRepository: Repository<Flight>, passengerRepository: Repository<Passenger>, bookingPassengerRepository: Repository<BookingPassenger>, seatReservationRepository: Repository<SeatReservation>, agencyRepository: Repository<Agency>, agencyLedgerRepository: Repository<AgencyLedger>, journalEntryRepository: Repository<JournalEntry>, journalEntryLineRepository: Repository<JournalEntryLine>, chartOfAccountRepository: Repository<ChartOfAccount>, passengersService: PassengersService, dataSource: DataSource);
     create(createBookingDto: CreateBookingDto): Promise<Booking>;
     private generateEntryNumber;
     private createJournalEntryForBooking;
@@ -33,6 +35,7 @@ export declare class BookingsService {
         total: number;
     }>;
     findOne(id: number): Promise<Booking>;
+    getPassengersByFlight(flightSeriesId: number): Promise<any[]>;
     getBookedSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     private generateBookingReference;
 }

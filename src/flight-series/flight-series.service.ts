@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FlightSeries } from '../entities/flight-series.entity';
+import { Flight } from '../entities/flight.entity';
 import { Aircraft } from '../entities/aircraft.entity';
 import { Destination } from '../entities/destination.entity';
 import { FlightCrew } from '../entities/flight-crew.entity';
@@ -9,11 +10,15 @@ import { Crew } from '../entities/crew.entity';
 import { CreateFlightSeriesDto } from './dto/create-flight-series.dto';
 import { UpdateFlightSeriesDto } from './dto/update-flight-series.dto';
 
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
 @Injectable()
 export class FlightSeriesService {
   constructor(
     @InjectRepository(FlightSeries)
     private flightSeriesRepository: Repository<FlightSeries>,
+    @InjectRepository(Flight)
+    private flightRepository: Repository<Flight>,
     @InjectRepository(Aircraft)
     private aircraftRepository: Repository<Aircraft>,
     @InjectRepository(FlightCrew)
@@ -21,6 +26,55 @@ export class FlightSeriesService {
     @InjectRepository(Crew)
     private crewRepository: Repository<Crew>,
   ) {}
+
+  // Convert a Date object or date string safely to "YYYY-MM-DD"
+  private toDateStr(d: Date | string): string {
+    if (d instanceof Date) return d.toISOString().slice(0, 10)
+    // Handle MySQL "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss.sssZ"
+    return String(d).slice(0, 10)
+  }
+
+  // Generate individual flight instances for a series
+  async generateFlightInstances(series: FlightSeries): Promise<number> {
+    const start = new Date(this.toDateStr(series.start_date) + 'T12:00:00Z')
+    const end   = new Date(this.toDateStr(series.end_date)   + 'T12:00:00Z')
+    console.log(`✈️ [generateFlightInstances] series=${series.id} flt=${series.flt} start=${this.toDateStr(series.start_date)} end=${this.toDateStr(series.end_date)} recurring=${series.is_recurring} days=${series.days_of_week}`)
+
+    const allowedDays: Set<string> = series.is_recurring && series.days_of_week
+      ? new Set(series.days_of_week.split(',').map(d => d.trim()))
+      : new Set(DAY_NAMES) // non-recurring: every day
+
+    const instances: Partial<Flight>[] = []
+    const cur = new Date(start)
+    while (cur <= end) {
+      const dayName = DAY_NAMES[cur.getUTCDay()]
+      if (allowedDays.has(dayName)) {
+        const dateStr = cur.toISOString().slice(0, 10)
+        instances.push({
+          series_id:        series.id,
+          aircraft_id:      series.aircraft_id ?? null,
+          aircraft_capacity: (series as any).aircraft?.capacity ?? null,
+          flight_no:        series.flt,
+          flight_date:      dateStr,
+          std:              series.std ?? null,
+          sta:              series.sta ?? null,
+          status:           'scheduled',
+        })
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1)
+    }
+
+    if (instances.length > 0) {
+      // Save in batches of 200 — TypeORM save() handles null values cleanly
+      const batchSize = 200
+      for (let i = 0; i < instances.length; i += batchSize) {
+        const entities = instances.slice(i, i + batchSize).map(d => this.flightRepository.create(d))
+        await this.flightRepository.save(entities)
+      }
+      console.log(`✅ [FlightSeriesService] Generated ${instances.length} flight instances for series ${series.id} (${series.flt})`)
+    }
+    return instances.length
+  }
 
   async findAll(page: number = 1, limit: number = 50): Promise<{ flightSeries: FlightSeries[], total: number }> {
     console.log('✈️ [FlightSeriesService] Finding all flight series');
@@ -87,13 +141,18 @@ export class FlightSeriesService {
       
       const savedFlightSeries = await this.flightSeriesRepository.save(flightSeries);
       console.log(`✅ [FlightSeriesService] Flight series created with ID: ${savedFlightSeries.id}`);
-      
-      // Reload with all relations
+
+      // Reload with all relations — this gives us clean date strings from MySQL
       const flightSeriesWithRelations = await this.flightSeriesRepository.findOne({
         where: { id: savedFlightSeries.id },
         relations: ['aircraft', 'fromDestination', 'viaDestination', 'toDestination', 'flightCrew', 'flightCrew.crew']
       });
-      
+
+      // Generate flight instances using the reloaded entity so dates are proper strings
+      const seriesForGen = flightSeriesWithRelations ?? savedFlightSeries
+      const count = await this.generateFlightInstances(seriesForGen)
+      console.log(`✅ [FlightSeriesService] Created ${count} flight instances for series ${savedFlightSeries.id}`)
+
       if (flightSeriesWithRelations) {
         return flightSeriesWithRelations;
       }
@@ -241,13 +300,32 @@ export class FlightSeriesService {
 
   async getCrewAssignments(flightSeriesId: number): Promise<FlightCrew[]> {
     console.log(`✈️ [FlightSeriesService] Getting crew assignments for flight series ${flightSeriesId}`);
-    
+
     const flightCrew = await this.flightCrewRepository.find({
       where: { flight_series_id: flightSeriesId },
       relations: ['crew']
     });
-    
+
     return flightCrew;
+  }
+
+  // Return individual flight instances for a series, optionally filtered by date range
+  async getFlightInstances(seriesId: number, from?: string, to?: string): Promise<Flight[]> {
+    const qb = this.flightRepository
+      .createQueryBuilder('f')
+      .where('f.series_id = :seriesId', { seriesId })
+      .orderBy('f.flight_date', 'ASC')
+    if (from) qb.andWhere('f.flight_date >= :from', { from })
+    if (to)   qb.andWhere('f.flight_date <= :to',   { to })
+    return qb.getMany()
+  }
+
+  // Delete existing instances and re-generate (use after editing a series)
+  async regenerateFlightInstances(seriesId: number): Promise<number> {
+    const series = await this.findOne(seriesId) // findOne returns dates as MySQL strings
+    const deleted = await this.flightRepository.delete({ series_id: seriesId })
+    console.log(`🗑️ [FlightSeriesService] Deleted ${(deleted.affected ?? 0)} existing instances for series ${seriesId}`)
+    return this.generateFlightInstances(series)
   }
 }
 

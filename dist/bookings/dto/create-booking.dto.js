@@ -79,6 +79,8 @@ class CreateBookingDto {
     travel_date;
     return_date;
     return_flight_series_id;
+    flight_id;
+    return_flight_id;
     payment_method;
     payment_status;
     override_total_amount;
@@ -130,6 +132,18 @@ __decorate([
     (0, class_validator_1.IsInt)(),
     __metadata("design:type", Object)
 ], CreateBookingDto.prototype, "return_flight_series_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "flight_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "return_flight_id", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

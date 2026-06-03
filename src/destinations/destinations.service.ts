@@ -94,9 +94,12 @@ export class DestinationsService {
       country_id: destination.country_id
     });
     
-    // Handle country_id explicitly - allow null values
+    // Handle country_id explicitly - allow null values.
+    // IMPORTANT: also clear the loaded `country` relation so TypeORM uses country_id
+    // as the authoritative FK value rather than the old relation object's id.
     if (updateDestinationDto.country_id !== undefined) {
       destination.country_id = updateDestinationDto.country_id;
+      (destination as any).country = undefined;
       console.log(`🌍 [DestinationsService] Setting country_id to:`, updateDestinationDto.country_id);
     }
     

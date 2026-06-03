@@ -17,6 +17,8 @@ export declare class CreateBookingDto {
     travel_date?: string | null;
     return_date?: string | null;
     return_flight_series_id?: number | null;
+    flight_id?: number | null;
+    return_flight_id?: number | null;
     payment_method: string;
     payment_status?: string;
     override_total_amount?: number;

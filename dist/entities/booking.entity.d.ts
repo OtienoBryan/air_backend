@@ -1,4 +1,5 @@
 import { FlightSeries } from './flight-series.entity';
+import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { BookingPassenger } from './booking-passenger.entity';
 export declare class Booking {
@@ -6,6 +7,8 @@ export declare class Booking {
     booking_reference: string;
     flight_series_id: number;
     flightSeries?: FlightSeries;
+    flight_id: number | null;
+    flight?: Flight | null;
     passenger_id: number | null;
     passenger?: Passenger;
     bookingPassengers?: BookingPassenger[];

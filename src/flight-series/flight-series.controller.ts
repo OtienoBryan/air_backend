@@ -92,5 +92,22 @@ export class FlightSeriesController {
     console.log(`✈️ [FlightSeriesController] GET /admin/flight-series/${id}/crew`);
     return this.flightSeriesService.getCrewAssignments(id);
   }
+
+  // Returns all individual flight instances for a series
+  @Get(':id/flights')
+  async getFlightInstances(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.flightSeriesService.getFlightInstances(id, from, to);
+  }
+
+  // Regenerate flight instances for a series (e.g. after editing the series)
+  @Post(':id/flights/regenerate')
+  async regenerateFlightInstances(@Param('id', ParseIntPipe) id: number) {
+    const count = await this.flightSeriesService.regenerateFlightInstances(id);
+    return { message: `Generated ${count} flight instances`, count };
+  }
 }
 

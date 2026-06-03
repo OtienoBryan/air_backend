@@ -92,6 +92,7 @@ let DestinationsService = class DestinationsService {
         });
         if (updateDestinationDto.country_id !== undefined) {
             destination.country_id = updateDestinationDto.country_id;
+            destination.country = undefined;
             console.log(`🌍 [DestinationsService] Setting country_id to:`, updateDestinationDto.country_id);
         }
         if (updateDestinationDto.code !== undefined)

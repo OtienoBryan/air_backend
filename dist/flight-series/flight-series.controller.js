@@ -68,6 +68,13 @@ let FlightSeriesController = class FlightSeriesController {
         console.log(`✈️ [FlightSeriesController] GET /admin/flight-series/${id}/crew`);
         return this.flightSeriesService.getCrewAssignments(id);
     }
+    async getFlightInstances(id, from, to) {
+        return this.flightSeriesService.getFlightInstances(id, from, to);
+    }
+    async regenerateFlightInstances(id) {
+        const count = await this.flightSeriesService.regenerateFlightInstances(id);
+        return { message: `Generated ${count} flight instances`, count };
+    }
 };
 exports.FlightSeriesController = FlightSeriesController;
 __decorate([
@@ -130,6 +137,22 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], FlightSeriesController.prototype, "getCrewAssignments", null);
+__decorate([
+    (0, common_1.Get)(':id/flights'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Query)('from')),
+    __param(2, (0, common_1.Query)('to')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, String, String]),
+    __metadata("design:returntype", Promise)
+], FlightSeriesController.prototype, "getFlightInstances", null);
+__decorate([
+    (0, common_1.Post)(':id/flights/regenerate'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], FlightSeriesController.prototype, "regenerateFlightInstances", null);
 exports.FlightSeriesController = FlightSeriesController = __decorate([
     (0, common_1.Controller)('admin/flight-series'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

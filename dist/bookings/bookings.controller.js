@@ -42,6 +42,9 @@ let BookingsController = class BookingsController {
     async getSeatCounts(flightSeriesId) {
         return this.bookingsService.getBookedSeatCounts(Number(flightSeriesId));
     }
+    async getPassengersByFlight(flightSeriesId) {
+        return this.bookingsService.getPassengersByFlight(Number(flightSeriesId));
+    }
     async findOne(id) {
         console.log(`🎫 [BookingsController] GET /admin/bookings/${id}`);
         return this.bookingsService.findOne(id);
@@ -70,6 +73,13 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "getSeatCounts", null);
+__decorate([
+    (0, common_1.Get)('passengers-by-flight'),
+    __param(0, (0, common_1.Query)('flightSeriesId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "getPassengersByFlight", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

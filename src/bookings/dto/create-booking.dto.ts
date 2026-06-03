@@ -75,6 +75,16 @@ export class CreateBookingDto {
   @IsInt()
   return_flight_series_id?: number | null;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  flight_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  return_flight_id?: number | null;
+
   @IsString()
   @IsNotEmpty()
   @IsIn(['cash', 'card', 'bank_transfer', 'online', 'mobile_payment', 'agency_balance', 'other'])

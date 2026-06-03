@@ -10,5 +10,6 @@ export declare class BookingsController {
         total: number;
     }>;
     getSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
+    getPassengersByFlight(flightSeriesId: number): Promise<any[]>;
     findOne(id: number): Promise<Booking>;
 }

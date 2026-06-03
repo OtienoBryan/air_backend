@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Booking } from '../entities/booking.entity';
 import { FlightSeries } from '../entities/flight-series.entity';
+import { Flight } from '../entities/flight.entity';
 import { Passenger } from '../entities/passenger.entity';
 import { BookingPassenger } from '../entities/booking-passenger.entity';
 import { SeatReservation } from '../entities/seat-reservation.entity';
@@ -16,7 +17,7 @@ import { PassengersModule } from '../passengers/passengers.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, FlightSeries, Passenger, BookingPassenger, SeatReservation, Agency, AgencyLedger, JournalEntry, JournalEntryLine, ChartOfAccount]),
+    TypeOrmModule.forFeature([Booking, FlightSeries, Flight, Passenger, BookingPassenger, SeatReservation, Agency, AgencyLedger, JournalEntry, JournalEntryLine, ChartOfAccount]),
     PassengersModule
   ],
   providers: [BookingsService],
