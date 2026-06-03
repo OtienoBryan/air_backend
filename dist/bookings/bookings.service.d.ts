@@ -36,6 +36,7 @@ export declare class BookingsService {
     }>;
     findOne(id: number): Promise<Booking>;
     getPassengersByFlight(flightSeriesId: number): Promise<any[]>;
+    getPassengersByFlightId(flightId: number): Promise<any[]>;
     getBookedSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     private generateBookingReference;
 }

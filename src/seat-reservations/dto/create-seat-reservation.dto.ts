@@ -22,6 +22,10 @@ export class CreateSeatReservationDto {
   passenger_name: string;
 
   @IsOptional()
+  @IsString()
+  passenger_title?: string | null;
+
+  @IsOptional()
   @IsEmail()
   passenger_email?: string;
 

@@ -86,6 +86,8 @@ class CreateBookingDto {
     override_total_amount;
     booking_date;
     notes;
+    payment_reference;
+    payment_account;
     agency_id;
     account_id;
     deduct_from_account;
@@ -172,6 +174,18 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateIf)((o, v) => v !== null && v !== undefined),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "payment_reference", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateIf)((o, v) => v !== null && v !== undefined),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "payment_account", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),

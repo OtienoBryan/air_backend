@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsIn, IsDateString, IsNumber, IsArray, ValidateNested, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsIn, IsDateString, IsNumber, IsArray, ValidateNested, IsBoolean, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PassengerDto {
@@ -107,6 +107,16 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @ValidateIf((o, v) => v !== null && v !== undefined)
+  @IsString()
+  payment_reference?: string | null;
+
+  @IsOptional()
+  @ValidateIf((o, v) => v !== null && v !== undefined)
+  @IsString()
+  payment_account?: string | null;
 
   @IsOptional()
   @Type(() => Number)

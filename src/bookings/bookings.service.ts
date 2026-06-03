@@ -91,20 +91,45 @@ export class BookingsService {
       totalAmount += fare
       farePerPassenger = fare
 
-      // Create passenger (PNR will be auto-generated)
-      const passenger = await this.passengersService.create({
-        name: passengerDto.name,
-        email: passengerDto.email || null,
-        contact: passengerDto.contact || null,
-        nationality: passengerDto.nationality || null,
-        id_type: passengerDto.id_type || null,
-        identification: passengerDto.identification || null,
-        age: passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
-        title: passengerDto.title || null
-      })
-      
+      // Check if passenger already exists by id_type + identification before creating
+      let passenger: Passenger | null = null
+
+      if (passengerDto.id_type && passengerDto.identification) {
+        passenger = await this.passengerRepository.findOne({
+          where: {
+            id_type:        passengerDto.id_type,
+            identification: passengerDto.identification,
+          },
+        })
+        if (passenger) {
+          console.log(`♻️ [BookingsService] Reusing existing passenger id=${passenger.id} (${passenger.pnr}) matched by ${passengerDto.id_type}/${passengerDto.identification}`)
+          // Update name/contact in case details changed
+          passenger.name          = passengerDto.name          || passenger.name
+          passenger.email         = passengerDto.email         || passenger.email
+          passenger.contact       = passengerDto.contact       || passenger.contact
+          passenger.nationality   = passengerDto.nationality   || passenger.nationality
+          if (passengerDto.title) passenger.title = passengerDto.title as any
+          passenger = await this.passengerRepository.save(passenger)
+        }
+      }
+
+      if (!passenger) {
+        // No match — create a new passenger record
+        passenger = await this.passengersService.create({
+          name:           passengerDto.name,
+          email:          passengerDto.email          || null,
+          contact:        passengerDto.contact        || null,
+          nationality:    passengerDto.nationality    || null,
+          id_type:        passengerDto.id_type        || null,
+          identification: passengerDto.identification || null,
+          age:            passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
+          title:          passengerDto.title          || null,
+        })
+        console.log(`✅ [BookingsService] Created new passenger ${passenger.id} with PNR: ${passenger.pnr}`)
+      }
+
       createdPassengers.push(passenger)
-      console.log(`✅ [BookingsService] Created passenger ${passenger.id} with PNR: ${passenger.pnr}`)
+      console.log(`✅ [BookingsService] Using passenger ${passenger.id} (${passenger.pnr}) for booking`)
     }
 
     // Use first passenger as primary passenger for booking record
@@ -130,7 +155,9 @@ export class BookingsService {
         ? 'paid'
         : (createBookingDto.payment_status || 'pending'),
       booking_date: new Date(createBookingDto.booking_date),
-      notes: createBookingDto.notes ?? null,
+      notes:              createBookingDto.notes              ?? null,
+      payment_reference:  createBookingDto.payment_reference  ?? null,
+      payment_account:    createBookingDto.payment_account    ?? null,
       agency_id: createBookingDto.agency_id ?? null,
       is_return_trip: isReturnTrip,
       return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
@@ -138,8 +165,9 @@ export class BookingsService {
       flight_id: createBookingDto.flight_id ?? null,
     });
     
+    console.log(`💳 [BookingsService] Saving booking — method=${createBookingDto.payment_method} ref=${createBookingDto.payment_reference ?? 'null'} account=${createBookingDto.payment_account ?? 'null'}`)
     const savedBooking = await this.bookingRepository.save(booking);
-    console.log(`✅ [BookingsService] Booking created: id=${savedBooking.id}, ref=${savedBooking.booking_reference}, payment_status=${savedBooking.payment_status}, method=${savedBooking.payment_method}`);
+    console.log(`✅ [BookingsService] Booking saved: id=${savedBooking.id} ref=${savedBooking.booking_reference} payment_ref=${savedBooking.payment_reference ?? 'null'} payment_acc=${savedBooking.payment_account ?? 'null'}`);
     console.log(`✅ [BookingsService] Created ${createdPassengers.length} passengers for booking`);
     
     // Create booking_passengers records — one row per passenger per leg
@@ -191,14 +219,16 @@ export class BookingsService {
 
       // Outbound leg
       const outboundBp = this.bookingPassengerRepository.create({
-        booking_id:       savedBooking.id,
-        passenger_id:     passenger.id,
-        flight_series_id: createBookingDto.flight_series_id,
-        flight_id:        outboundFlightId,
-        passenger_type:   passengerDto.passenger_type,
-        fare_amount:      fare,
-        travel_date:      outboundDate,
-        leg:              'outbound',
+        booking_id:        savedBooking.id,
+        passenger_id:      passenger.id,
+        flight_series_id:  createBookingDto.flight_series_id,
+        flight_id:         outboundFlightId,
+        passenger_type:    passengerDto.passenger_type,
+        fare_amount:       fare,
+        travel_date:       outboundDate,
+        leg:               'outbound',
+        payment_reference: createBookingDto.payment_reference ?? null,
+        payment_account:   createBookingDto.payment_account   ?? null,
       })
       try {
         const saved = await this.bookingPassengerRepository.save(outboundBp)
@@ -215,14 +245,16 @@ export class BookingsService {
         const retFsId = returnFsId ?? createBookingDto.flight_series_id
         console.log(`🔁 [BookingsService] Saving return booking_passenger: booking=${savedBooking.id}, pax=${passenger.id}, fs=${retFsId}, date=${returnDate ?? 'null'}`)
         const returnBp = this.bookingPassengerRepository.create({
-          booking_id:       savedBooking.id,
-          passenger_id:     passenger.id,
-          flight_series_id: retFsId,
-          flight_id:        returnFlightId,
-          passenger_type:   passengerDto.passenger_type,
-          fare_amount:      fare,
-          travel_date:      returnDate,
-          leg:              'return',
+          booking_id:        savedBooking.id,
+          passenger_id:      passenger.id,
+          flight_series_id:  retFsId,
+          flight_id:         returnFlightId,
+          passenger_type:    passengerDto.passenger_type,
+          fare_amount:       fare,
+          travel_date:       returnDate,
+          leg:               'return',
+          payment_reference: createBookingDto.payment_reference ?? null,
+          payment_account:   createBookingDto.payment_account   ?? null,
         })
         try {
           const saved = await this.bookingPassengerRepository.save(returnBp)
@@ -947,6 +979,43 @@ export class BookingsService {
       travel_date:    bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
       leg:            bp.leg,
       ticket_status:  bp.ticket_status ?? null,
+      passenger: bp.passenger ? {
+        id:             bp.passenger.id,
+        pnr:            bp.passenger.pnr,
+        name:           bp.passenger.name,
+        title:          (bp.passenger as any).title ?? null,
+        email:          bp.passenger.email,
+        contact:        bp.passenger.contact,
+        nationality:    bp.passenger.nationality,
+        id_type:        bp.passenger.id_type,
+        identification: bp.passenger.identification,
+        booking_status: (bp.passenger as any).booking_status ?? null,
+      } : null,
+    }))
+  }
+
+  async getPassengersByFlightId(flightId: number): Promise<any[]> {
+    const rows = await this.bookingPassengerRepository.find({
+      where: { flight_id: flightId },
+      relations: ['passenger', 'booking', 'booking.flightSeries',
+                  'booking.flightSeries.fromDestination', 'booking.flightSeries.toDestination'],
+      order: { travel_date: 'ASC' },
+    })
+    return rows.map(bp => ({
+      id:                bp.id,
+      booking_id:        bp.booking_id,
+      booking_reference: (bp as any).booking?.booking_reference ?? null,
+      payment_status:    (bp as any).booking?.payment_status    ?? null,
+      flight_series_id:  bp.flight_series_id,
+      flight_id:         bp.flight_id,
+      passenger_id:      bp.passenger_id,
+      passenger_type:    bp.passenger_type,
+      fare_amount:       Number(bp.fare_amount ?? 0),
+      travel_date:       bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
+      leg:               bp.leg,
+      ticket_status:     bp.ticket_status ?? null,
+      payment_reference: bp.payment_reference ?? null,
+      payment_account:   bp.payment_account   ?? null,
       passenger: bp.passenger ? {
         id:             bp.passenger.id,
         pnr:            bp.passenger.pnr,

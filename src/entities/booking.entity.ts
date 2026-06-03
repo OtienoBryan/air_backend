@@ -61,7 +61,13 @@ export class Booking {
   payment_method: string; // 'cash', 'card', 'bank_transfer', 'online', etc.
 
   @Column({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' })
-  payment_status: string; // 'pending', 'paid', 'failed', 'refunded'
+  payment_status: string;
+
+  @Column({ name: 'payment_reference', type: 'varchar', length: 100, nullable: true })
+  payment_reference: string | null;
+
+  @Column({ name: 'payment_account', type: 'varchar', length: 100, nullable: true })
+  payment_account: string | null; // 'pending', 'paid', 'failed', 'refunded'
 
   @Column({ name: 'booking_date', type: 'date' })
   booking_date: Date;

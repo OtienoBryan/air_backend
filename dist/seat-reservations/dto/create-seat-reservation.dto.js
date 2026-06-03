@@ -17,6 +17,7 @@ class CreateSeatReservationDto {
     number_of_seats;
     passenger_id;
     passenger_name;
+    passenger_title;
     passenger_email;
     passenger_phone;
     status;
@@ -59,6 +60,11 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateSeatReservationDto.prototype, "passenger_name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateSeatReservationDto.prototype, "passenger_title", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEmail)(),

@@ -153,6 +153,7 @@ let SeatReservationsService = class SeatReservationsService {
             id_issued_by: createSeatReservationDto.id_issued_by ?? null,
             number_of_seats: createSeatReservationDto.number_of_seats,
             passenger_name: passengerName,
+            passenger_title: createSeatReservationDto.passenger_title ?? null,
             passenger_email: passengerEmail,
             passenger_phone: passengerPhone,
             booking_reference: bookingReference,

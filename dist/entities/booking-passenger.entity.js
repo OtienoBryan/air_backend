@@ -34,6 +34,8 @@ let BookingPassenger = class BookingPassenger {
     ticket_number;
     ticket_status;
     issued_at;
+    payment_reference;
+    payment_account;
     created_at;
 };
 exports.BookingPassenger = BookingPassenger;
@@ -119,6 +121,14 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'issued_at', type: 'timestamp', nullable: true }),
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "issued_at", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_reference', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "payment_reference", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_account', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "payment_account", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

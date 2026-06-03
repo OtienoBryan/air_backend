@@ -71,6 +71,12 @@ export class BookingPassenger {
   @Column({ name: 'issued_at', type: 'timestamp', nullable: true })
   issued_at: Date | null;
 
+  @Column({ name: 'payment_reference', type: 'varchar', length: 100, nullable: true })
+  payment_reference: string | null;
+
+  @Column({ name: 'payment_account', type: 'varchar', length: 100, nullable: true })
+  payment_account: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 }

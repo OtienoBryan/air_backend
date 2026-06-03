@@ -34,6 +34,8 @@ let Booking = class Booking {
     total_amount;
     payment_method;
     payment_status;
+    payment_reference;
+    payment_account;
     booking_date;
     notes;
     agency_id;
@@ -120,6 +122,14 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' }),
     __metadata("design:type", String)
 ], Booking.prototype, "payment_status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_reference', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], Booking.prototype, "payment_reference", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_account', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], Booking.prototype, "payment_account", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'booking_date', type: 'date' }),
     __metadata("design:type", Date)

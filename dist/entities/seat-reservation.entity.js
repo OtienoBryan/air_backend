@@ -26,6 +26,7 @@ let SeatReservation = class SeatReservation {
     passenger;
     number_of_seats;
     passenger_name;
+    passenger_title;
     passenger_email;
     passenger_phone;
     booking_reference;
@@ -89,6 +90,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'passenger_name', type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], SeatReservation.prototype, "passenger_name", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'passenger_title', type: 'varchar', length: 20, nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "passenger_title", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'passenger_email', type: 'varchar', length: 255, nullable: true }),
     __metadata("design:type", Object)

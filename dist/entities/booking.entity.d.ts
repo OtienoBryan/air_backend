@@ -21,6 +21,8 @@ export declare class Booking {
     total_amount: number;
     payment_method: string;
     payment_status: string;
+    payment_reference: string | null;
+    payment_account: string | null;
     booking_date: Date;
     notes: string | null;
     agency_id: number | null;

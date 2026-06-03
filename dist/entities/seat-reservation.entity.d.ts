@@ -13,6 +13,7 @@ export declare class SeatReservation {
     passenger?: Passenger;
     number_of_seats: number;
     passenger_name: string;
+    passenger_title: string | null;
     passenger_email: string | null;
     passenger_phone: string | null;
     booking_reference: string;

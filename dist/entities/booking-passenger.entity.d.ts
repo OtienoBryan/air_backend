@@ -21,5 +21,7 @@ export declare class BookingPassenger {
     ticket_number: string | null;
     ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | null;
     issued_at: Date | null;
+    payment_reference: string | null;
+    payment_account: string | null;
     created_at: Date;
 }

@@ -37,6 +37,9 @@ export class SeatReservation {
   @Column({ name: 'passenger_name', type: 'varchar', length: 255 })
   passenger_name: string;
 
+  @Column({ name: 'passenger_title', type: 'varchar', length: 20, nullable: true })
+  passenger_title: string | null;
+
   @Column({ name: 'passenger_email', type: 'varchar', length: 255, nullable: true })
   passenger_email: string | null;
 
