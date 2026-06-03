@@ -13,4 +13,13 @@ export declare class CargoBookingsService {
     }>;
     findOne(id: number): Promise<CargoBooking>;
     assignFlight(id: number, flightSeriesId: number | null): Promise<CargoBooking>;
+    recordPayment(id: number, data: {
+        amount_paid: number;
+        payment_reference?: string;
+        payment_account?: string;
+        payment_account_id?: number | null;
+        payment_date: string;
+        payment_status?: string;
+        payment_confirmed_by?: string;
+    }): Promise<CargoBooking>;
 }

@@ -11,4 +11,13 @@ export declare class CargoBookingsController {
         total: number;
     }>;
     assignFlight(id: number, dto: AssignCargoFlightDto): Promise<CargoBooking>;
+    recordPayment(id: number, body: {
+        amount_paid: number;
+        payment_reference?: string;
+        payment_account?: string;
+        payment_account_id?: number | null;
+        payment_date: string;
+        payment_status?: string;
+        payment_confirmed_by?: string;
+    }): Promise<CargoBooking>;
 }

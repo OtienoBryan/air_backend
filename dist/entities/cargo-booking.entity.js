@@ -38,6 +38,13 @@ let CargoBooking = class CargoBooking {
     booking_date;
     status;
     remarks;
+    payment_status;
+    amount_paid;
+    payment_reference;
+    payment_account;
+    payment_account_id;
+    payment_date;
+    payment_confirmed_by;
     created_at;
     updated_at;
 };
@@ -143,6 +150,34 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'remarks', type: 'text', nullable: true }),
     __metadata("design:type", Object)
 ], CargoBooking.prototype, "remarks", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_status', type: 'varchar', length: 20, default: 'unpaid', nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "payment_status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'amount_paid', type: 'decimal', precision: 15, scale: 2, default: 0, nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "amount_paid", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_reference', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "payment_reference", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_account', type: 'varchar', length: 150, nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "payment_account", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_account_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "payment_account_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_date', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "payment_date", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_confirmed_by', type: 'varchar', length: 150, nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "payment_confirmed_by", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

@@ -35,5 +35,22 @@ export class CargoBookingsController {
     console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/assign-flight`, dto);
     return this.cargoBookingsService.assignFlight(id, dto.flight_series_id ?? null);
   }
+
+  @Patch(':id/payment')
+  async recordPayment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: {
+      amount_paid: number;
+      payment_reference?: string;
+      payment_account?: string;
+      payment_account_id?: number | null;
+      payment_date: string;
+      payment_status?: string;
+      payment_confirmed_by?: string;
+    },
+  ): Promise<CargoBooking> {
+    console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/payment`, body);
+    return this.cargoBookingsService.recordPayment(id, body);
+  }
 }
 

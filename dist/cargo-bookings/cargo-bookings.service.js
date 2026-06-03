@@ -99,6 +99,25 @@ let CargoBookingsService = class CargoBookingsService {
         await this.cargoBookingRepository.save(cargo);
         return this.findOne(id);
     }
+    async recordPayment(id, data) {
+        const cargo = await this.findOne(id);
+        cargo.amount_paid = data.amount_paid;
+        cargo.payment_reference = data.payment_reference ?? null;
+        cargo.payment_account = data.payment_account ?? null;
+        cargo.payment_account_id = data.payment_account_id ?? null;
+        cargo.payment_date = data.payment_date;
+        cargo.payment_confirmed_by = data.payment_confirmed_by ?? null;
+        if (data.payment_status) {
+            cargo.payment_status = data.payment_status;
+        }
+        else {
+            const total = Number(cargo.total_charges) || 0;
+            const paid = Number(data.amount_paid) || 0;
+            cargo.payment_status = paid <= 0 ? 'unpaid' : paid >= total ? 'paid' : 'partial';
+        }
+        await this.cargoBookingRepository.save(cargo);
+        return this.findOne(id);
+    }
 };
 exports.CargoBookingsService = CargoBookingsService;
 exports.CargoBookingsService = CargoBookingsService = __decorate([

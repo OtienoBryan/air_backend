@@ -25,6 +25,13 @@ export declare class CargoBooking {
     booking_date: Date;
     status: string;
     remarks: string | null;
+    payment_status: string | null;
+    amount_paid: number | null;
+    payment_reference: string | null;
+    payment_account: string | null;
+    payment_account_id: number | null;
+    payment_date: string | null;
+    payment_confirmed_by: string | null;
     created_at: Date;
     updated_at: Date;
 }

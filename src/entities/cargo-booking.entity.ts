@@ -88,6 +88,27 @@ export class CargoBooking {
   @Column({ name: 'remarks', type: 'text', nullable: true })
   remarks: string | null;
 
+  @Column({ name: 'payment_status', type: 'varchar', length: 20, default: 'unpaid', nullable: true })
+  payment_status: string | null;
+
+  @Column({ name: 'amount_paid', type: 'decimal', precision: 15, scale: 2, default: 0, nullable: true })
+  amount_paid: number | null;
+
+  @Column({ name: 'payment_reference', type: 'varchar', length: 100, nullable: true })
+  payment_reference: string | null;
+
+  @Column({ name: 'payment_account', type: 'varchar', length: 150, nullable: true })
+  payment_account: string | null;
+
+  @Column({ name: 'payment_account_id', type: 'int', nullable: true })
+  payment_account_id: number | null;
+
+  @Column({ name: 'payment_date', type: 'date', nullable: true })
+  payment_date: string | null;
+
+  @Column({ name: 'payment_confirmed_by', type: 'varchar', length: 150, nullable: true })
+  payment_confirmed_by: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

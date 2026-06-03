@@ -36,6 +36,10 @@ let CargoBookingsController = class CargoBookingsController {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/assign-flight`, dto);
         return this.cargoBookingsService.assignFlight(id, dto.flight_series_id ?? null);
     }
+    async recordPayment(id, body) {
+        console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/payment`, body);
+        return this.cargoBookingsService.recordPayment(id, body);
+    }
 };
 exports.CargoBookingsController = CargoBookingsController;
 __decorate([
@@ -62,6 +66,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, assign_cargo_flight_dto_1.AssignCargoFlightDto]),
     __metadata("design:returntype", Promise)
 ], CargoBookingsController.prototype, "assignFlight", null);
+__decorate([
+    (0, common_1.Patch)(':id/payment'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], CargoBookingsController.prototype, "recordPayment", null);
 exports.CargoBookingsController = CargoBookingsController = __decorate([
     (0, common_1.Controller)('admin/cargo-bookings'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
