@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Flight } from '../entities/flight.entity';
@@ -6,6 +6,8 @@ import { FlightException } from '../entities/flight-exception.entity';
 import { ExceptionType } from '../entities/exception-type.entity';
 import { PassengerDisruption } from '../entities/passenger-disruption.entity';
 import { BookingPassenger } from '../entities/booking-passenger.entity';
+import { CrewAssignment } from '../entities/crew-assignment.entity';
+import { Crew } from '../entities/crew.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin/flights')
@@ -22,6 +24,10 @@ export class FlightsController {
     private readonly disruptionRepository: Repository<PassengerDisruption>,
     @InjectRepository(BookingPassenger)
     private readonly bookingPassengerRepository: Repository<BookingPassenger>,
+    @InjectRepository(CrewAssignment)
+    private readonly crewAssignmentRepository: Repository<CrewAssignment>,
+    @InjectRepository(Crew)
+    private readonly crewRepository: Repository<Crew>,
   ) {}
 
   // ── Flights ────────────────────────────────────────────────────────────────
@@ -233,6 +239,49 @@ export class FlightsController {
       where: { id: saved.id },
       relations: ['exceptionType'],
     })
+  }
+
+  // ── Crew Assignments ──────────────────────────────────────────────────────
+
+  @Get(':id/crew')
+  async getCrewAssignments(@Param('id', ParseIntPipe) id: number) {
+    return this.crewAssignmentRepository.find({
+      where: { flight_id: id },
+      relations: ['crew'],
+      order: { created_at: 'ASC' },
+    })
+  }
+
+  @Post(':id/crew')
+  async assignCrew(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { crew_id: number; role?: string; notes?: string },
+  ) {
+    const assignment = this.crewAssignmentRepository.create({
+      flight_id: id,
+      crew_id:   body.crew_id,
+      role:      body.role  ?? null,
+      notes:     body.notes ?? null,
+    })
+    const saved = await this.crewAssignmentRepository.save(assignment)
+    return this.crewAssignmentRepository.findOne({
+      where: { id: saved.id },
+      relations: ['crew'],
+    })
+  }
+
+  @Delete(':flightId/crew/:assignmentId')
+  async removeCrewAssignment(
+    @Param('flightId',    ParseIntPipe) flightId: number,
+    @Param('assignmentId', ParseIntPipe) assignmentId: number,
+  ) {
+    await this.crewAssignmentRepository.delete({ id: assignmentId, flight_id: flightId })
+    return { message: 'Removed' }
+  }
+
+  @Get('crew/list')
+  async getAllCrew() {
+    return this.crewRepository.find({ order: { name: 'ASC' } })
   }
 
   // ── Exception Types ────────────────────────────────────────────────────────

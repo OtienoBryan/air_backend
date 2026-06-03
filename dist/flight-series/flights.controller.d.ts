@@ -4,13 +4,17 @@ import { FlightException } from '../entities/flight-exception.entity';
 import { ExceptionType } from '../entities/exception-type.entity';
 import { PassengerDisruption } from '../entities/passenger-disruption.entity';
 import { BookingPassenger } from '../entities/booking-passenger.entity';
+import { CrewAssignment } from '../entities/crew-assignment.entity';
+import { Crew } from '../entities/crew.entity';
 export declare class FlightsController {
     private readonly flightRepository;
     private readonly exceptionRepository;
     private readonly exceptionTypeRepository;
     private readonly disruptionRepository;
     private readonly bookingPassengerRepository;
-    constructor(flightRepository: Repository<Flight>, exceptionRepository: Repository<FlightException>, exceptionTypeRepository: Repository<ExceptionType>, disruptionRepository: Repository<PassengerDisruption>, bookingPassengerRepository: Repository<BookingPassenger>);
+    private readonly crewAssignmentRepository;
+    private readonly crewRepository;
+    constructor(flightRepository: Repository<Flight>, exceptionRepository: Repository<FlightException>, exceptionTypeRepository: Repository<ExceptionType>, disruptionRepository: Repository<PassengerDisruption>, bookingPassengerRepository: Repository<BookingPassenger>, crewAssignmentRepository: Repository<CrewAssignment>, crewRepository: Repository<Crew>);
     findAll(page?: number, limit?: number, from?: string, to?: string, search?: string, status?: string, seriesId?: number): Promise<{
         flights: {
             booked_count: number;
@@ -70,5 +74,15 @@ export declare class FlightsController {
         created_by?: string;
         action_taken?: string;
     }): Promise<FlightException | null>;
+    getCrewAssignments(id: number): Promise<CrewAssignment[]>;
+    assignCrew(id: number, body: {
+        crew_id: number;
+        role?: string;
+        notes?: string;
+    }): Promise<CrewAssignment | null>;
+    removeCrewAssignment(flightId: number, assignmentId: number): Promise<{
+        message: string;
+    }>;
+    getAllCrew(): Promise<Crew[]>;
     getExceptionTypes(): Promise<ExceptionType[]>;
 }

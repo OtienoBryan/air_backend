@@ -15,10 +15,11 @@ const flight_exception_entity_1 = require("../entities/flight-exception.entity")
 const exception_type_entity_1 = require("../entities/exception-type.entity");
 const passenger_disruption_entity_1 = require("../entities/passenger-disruption.entity");
 const booking_passenger_entity_1 = require("../entities/booking-passenger.entity");
+const crew_assignment_entity_1 = require("../entities/crew-assignment.entity");
+const crew_entity_1 = require("../entities/crew.entity");
 const aircraft_entity_1 = require("../entities/aircraft.entity");
 const destination_entity_1 = require("../entities/destination.entity");
 const flight_crew_entity_1 = require("../entities/flight-crew.entity");
-const crew_entity_1 = require("../entities/crew.entity");
 const flight_series_service_1 = require("./flight-series.service");
 const flight_series_controller_1 = require("./flight-series.controller");
 const flights_controller_1 = require("./flights.controller");
@@ -28,7 +29,7 @@ let FlightSeriesModule = class FlightSeriesModule {
 exports.FlightSeriesModule = FlightSeriesModule;
 exports.FlightSeriesModule = FlightSeriesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([flight_series_entity_1.FlightSeries, flight_entity_1.Flight, flight_exception_entity_1.FlightException, exception_type_entity_1.ExceptionType, passenger_disruption_entity_1.PassengerDisruption, booking_passenger_entity_1.BookingPassenger, aircraft_entity_1.Aircraft, destination_entity_1.Destination, flight_crew_entity_1.FlightCrew, crew_entity_1.Crew])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([flight_series_entity_1.FlightSeries, flight_entity_1.Flight, flight_exception_entity_1.FlightException, exception_type_entity_1.ExceptionType, passenger_disruption_entity_1.PassengerDisruption, crew_assignment_entity_1.CrewAssignment, booking_passenger_entity_1.BookingPassenger, aircraft_entity_1.Aircraft, destination_entity_1.Destination, flight_crew_entity_1.FlightCrew, crew_entity_1.Crew])],
         providers: [flight_series_service_1.FlightSeriesService],
         controllers: [flight_series_controller_1.FlightSeriesController, flights_controller_1.FlightsController, exception_types_controller_1.ExceptionTypesController],
         exports: [flight_series_service_1.FlightSeriesService]

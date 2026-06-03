@@ -21,6 +21,8 @@ const flight_exception_entity_1 = require("../entities/flight-exception.entity")
 const exception_type_entity_1 = require("../entities/exception-type.entity");
 const passenger_disruption_entity_1 = require("../entities/passenger-disruption.entity");
 const booking_passenger_entity_1 = require("../entities/booking-passenger.entity");
+const crew_assignment_entity_1 = require("../entities/crew-assignment.entity");
+const crew_entity_1 = require("../entities/crew.entity");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 let FlightsController = class FlightsController {
     flightRepository;
@@ -28,12 +30,16 @@ let FlightsController = class FlightsController {
     exceptionTypeRepository;
     disruptionRepository;
     bookingPassengerRepository;
-    constructor(flightRepository, exceptionRepository, exceptionTypeRepository, disruptionRepository, bookingPassengerRepository) {
+    crewAssignmentRepository;
+    crewRepository;
+    constructor(flightRepository, exceptionRepository, exceptionTypeRepository, disruptionRepository, bookingPassengerRepository, crewAssignmentRepository, crewRepository) {
         this.flightRepository = flightRepository;
         this.exceptionRepository = exceptionRepository;
         this.exceptionTypeRepository = exceptionTypeRepository;
         this.disruptionRepository = disruptionRepository;
         this.bookingPassengerRepository = bookingPassengerRepository;
+        this.crewAssignmentRepository = crewAssignmentRepository;
+        this.crewRepository = crewRepository;
     }
     async findAll(page = 1, limit = 50, from, to, search, status, seriesId) {
         const qb = this.flightRepository
@@ -193,6 +199,33 @@ let FlightsController = class FlightsController {
             relations: ['exceptionType'],
         });
     }
+    async getCrewAssignments(id) {
+        return this.crewAssignmentRepository.find({
+            where: { flight_id: id },
+            relations: ['crew'],
+            order: { created_at: 'ASC' },
+        });
+    }
+    async assignCrew(id, body) {
+        const assignment = this.crewAssignmentRepository.create({
+            flight_id: id,
+            crew_id: body.crew_id,
+            role: body.role ?? null,
+            notes: body.notes ?? null,
+        });
+        const saved = await this.crewAssignmentRepository.save(assignment);
+        return this.crewAssignmentRepository.findOne({
+            where: { id: saved.id },
+            relations: ['crew'],
+        });
+    }
+    async removeCrewAssignment(flightId, assignmentId) {
+        await this.crewAssignmentRepository.delete({ id: assignmentId, flight_id: flightId });
+        return { message: 'Removed' };
+    }
+    async getAllCrew() {
+        return this.crewRepository.find({ order: { name: 'ASC' } });
+    }
     async getExceptionTypes() {
         return this.exceptionTypeRepository.find({ order: { name: 'ASC' } });
     }
@@ -250,6 +283,35 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], FlightsController.prototype, "addException", null);
 __decorate([
+    (0, common_1.Get)(':id/crew'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], FlightsController.prototype, "getCrewAssignments", null);
+__decorate([
+    (0, common_1.Post)(':id/crew'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], FlightsController.prototype, "assignCrew", null);
+__decorate([
+    (0, common_1.Delete)(':flightId/crew/:assignmentId'),
+    __param(0, (0, common_1.Param)('flightId', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('assignmentId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", Promise)
+], FlightsController.prototype, "removeCrewAssignment", null);
+__decorate([
+    (0, common_1.Get)('crew/list'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], FlightsController.prototype, "getAllCrew", null);
+__decorate([
     (0, common_1.Get)('exception-types/list'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -263,7 +325,11 @@ exports.FlightsController = FlightsController = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(exception_type_entity_1.ExceptionType)),
     __param(3, (0, typeorm_1.InjectRepository)(passenger_disruption_entity_1.PassengerDisruption)),
     __param(4, (0, typeorm_1.InjectRepository)(booking_passenger_entity_1.BookingPassenger)),
+    __param(5, (0, typeorm_1.InjectRepository)(crew_assignment_entity_1.CrewAssignment)),
+    __param(6, (0, typeorm_1.InjectRepository)(crew_entity_1.Crew)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
