@@ -119,6 +119,38 @@ let FlightsController = class FlightsController {
         });
         return this.flightRepository.save(extra);
     }
+    async getPassengers(id) {
+        const rows = await this.bookingPassengerRepository.find({
+            where: { flight_id: id },
+            relations: ['passenger', 'booking', 'booking.flightSeries',
+                'booking.flightSeries.fromDestination',
+                'booking.flightSeries.toDestination'],
+            order: { created_at: 'ASC' },
+        });
+        return rows.map(bp => ({
+            id: bp.id,
+            booking_id: bp.booking_id,
+            booking_reference: bp.booking?.booking_reference ?? null,
+            payment_status: bp.booking?.payment_status ?? null,
+            passenger_type: bp.passenger_type,
+            fare_amount: Number(bp.fare_amount ?? 0),
+            travel_date: bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
+            leg: bp.leg,
+            ticket_status: bp.ticket_status ?? null,
+            ticket_number: bp.ticket_number ?? null,
+            passenger: bp.passenger ? {
+                id: bp.passenger.id,
+                pnr: bp.passenger.pnr,
+                name: bp.passenger.name,
+                title: bp.passenger.title ?? null,
+                email: bp.passenger.email,
+                contact: bp.passenger.contact,
+                nationality: bp.passenger.nationality,
+                id_type: bp.passenger.id_type,
+                identification: bp.passenger.identification,
+            } : null,
+        }));
+    }
     async getExceptions(id) {
         return this.exceptionRepository.find({
             where: { flight_id: id },
@@ -195,6 +227,13 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], FlightsController.prototype, "addExtraFlight", null);
+__decorate([
+    (0, common_1.Get)(':id/passengers'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], FlightsController.prototype, "getPassengers", null);
 __decorate([
     (0, common_1.Get)(':id/exceptions'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

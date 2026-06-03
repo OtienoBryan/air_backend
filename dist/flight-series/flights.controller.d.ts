@@ -38,6 +38,29 @@ export declare class FlightsController {
         aircraft_id: number;
         notes?: string;
     }): Promise<Flight>;
+    getPassengers(id: number): Promise<{
+        id: number;
+        booking_id: number;
+        booking_reference: any;
+        payment_status: any;
+        passenger_type: string;
+        fare_amount: number;
+        travel_date: string | null;
+        leg: string;
+        ticket_status: "OPEN" | "USED" | "VOID" | "REFUNDED" | null;
+        ticket_number: string | null;
+        passenger: {
+            id: number;
+            pnr: string;
+            name: string;
+            title: any;
+            email: string | null;
+            contact: string | null;
+            nationality: string | null;
+            id_type: string | null;
+            identification: string | null;
+        } | null;
+    }[]>;
     getExceptions(id: number): Promise<FlightException[]>;
     addException(flightId: number, body: {
         exception_type: number;

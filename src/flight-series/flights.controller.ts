@@ -137,6 +137,41 @@ export class FlightsController {
 
   // ── Flight Exceptions ──────────────────────────────────────────────────────
 
+  // Passenger bookings for a specific flight — from booking_passengers WHERE flight_id = :id
+  @Get(':id/passengers')
+  async getPassengers(@Param('id', ParseIntPipe) id: number) {
+    const rows = await this.bookingPassengerRepository.find({
+      where: { flight_id: id },
+      relations: ['passenger', 'booking', 'booking.flightSeries',
+                  'booking.flightSeries.fromDestination',
+                  'booking.flightSeries.toDestination'],
+      order: { created_at: 'ASC' },
+    })
+    return rows.map(bp => ({
+      id:              bp.id,
+      booking_id:      bp.booking_id,
+      booking_reference: (bp as any).booking?.booking_reference ?? null,
+      payment_status:  (bp as any).booking?.payment_status ?? null,
+      passenger_type:  bp.passenger_type,
+      fare_amount:     Number(bp.fare_amount ?? 0),
+      travel_date:     bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
+      leg:             bp.leg,
+      ticket_status:   bp.ticket_status ?? null,
+      ticket_number:   bp.ticket_number ?? null,
+      passenger: bp.passenger ? {
+        id:             bp.passenger.id,
+        pnr:            bp.passenger.pnr,
+        name:           bp.passenger.name,
+        title:          (bp.passenger as any).title ?? null,
+        email:          bp.passenger.email,
+        contact:        bp.passenger.contact,
+        nationality:    bp.passenger.nationality,
+        id_type:        bp.passenger.id_type,
+        identification: bp.passenger.identification,
+      } : null,
+    }))
+  }
+
   @Get(':id/exceptions')
   async getExceptions(@Param('id', ParseIntPipe) id: number) {
     return this.exceptionRepository.find({
