@@ -31,6 +31,7 @@ let BookingPassenger = class BookingPassenger {
     leg;
     return_travel_date;
     return_flight_series_id;
+    status;
     ticket_number;
     ticket_status;
     issued_at;
@@ -103,6 +104,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'return_flight_series_id', type: 'int', nullable: true }),
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "return_flight_series_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status', type: 'varchar', length: 30, nullable: true, default: 'confirmed' }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'ticket_number', type: 'varchar', length: 20, nullable: true, unique: true }),
     __metadata("design:type", Object)

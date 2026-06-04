@@ -60,6 +60,9 @@ export class Booking {
   @Column({ name: 'payment_method', type: 'varchar', length: 50 })
   payment_method: string; // 'cash', 'card', 'bank_transfer', 'online', etc.
 
+  @Column({ name: 'status', type: 'varchar', length: 30, nullable: true, default: 'confirmed' })
+  status: string | null;
+
   @Column({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' })
   payment_status: string;
 

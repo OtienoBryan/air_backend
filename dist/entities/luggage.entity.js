@@ -20,8 +20,11 @@ let Luggage = class Luggage {
     passenger;
     flight_series_id;
     flightSeries;
+    flight_id;
     booking_id;
     booking;
+    booking_reference;
+    staff_id;
     tag_number;
     weight;
     created_at;
@@ -51,6 +54,10 @@ __decorate([
     __metadata("design:type", Object)
 ], Luggage.prototype, "flightSeries", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'flight_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Luggage.prototype, "flight_id", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'booking_id', type: 'int', nullable: true }),
     __metadata("design:type", Object)
 ], Luggage.prototype, "booking_id", void 0);
@@ -59,6 +66,14 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'booking_id' }),
     __metadata("design:type", Object)
 ], Luggage.prototype, "booking", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'booking_reference', type: 'varchar', length: 50, nullable: true }),
+    __metadata("design:type", Object)
+], Luggage.prototype, "booking_reference", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'staff_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Luggage.prototype, "staff_id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: true }),
     __metadata("design:type", Object)

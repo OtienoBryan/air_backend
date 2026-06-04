@@ -56,6 +56,9 @@ export class BookingPassenger {
   @Column({ name: 'return_flight_series_id', type: 'int', nullable: true })
   return_flight_series_id: number | null;
 
+  @Column({ name: 'status', type: 'varchar', length: 30, nullable: true, default: 'confirmed' })
+  status: string | null;
+
   @Column({ name: 'ticket_number', type: 'varchar', length: 20, nullable: true, unique: true })
   ticket_number: string | null;
 

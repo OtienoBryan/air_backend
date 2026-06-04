@@ -22,14 +22,22 @@ let PassengersService = class PassengersService {
     constructor(passengerRepository) {
         this.passengerRepository = passengerRepository;
     }
-    async findAll(page = 1, limit = 50) {
-        console.log('👤 [PassengersService] Finding all passengers');
+    async findAll(page = 1, limit = 50, search) {
+        const where = search
+            ? [
+                { name: (0, typeorm_2.Like)(`%${search}%`) },
+                { email: (0, typeorm_2.Like)(`%${search}%`) },
+                { contact: (0, typeorm_2.Like)(`%${search}%`) },
+                { identification: (0, typeorm_2.Like)(`%${search}%`) },
+                { pnr: (0, typeorm_2.Like)(`%${search}%`) },
+            ]
+            : undefined;
         const [passengers, total] = await this.passengerRepository.findAndCount({
+            where,
             order: { created_at: 'DESC' },
             skip: (page - 1) * limit,
             take: limit,
         });
-        console.log(`✅ [PassengersService] Found ${passengers.length} passengers`);
         return { passengers, total };
     }
     async findOne(id) {

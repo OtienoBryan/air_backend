@@ -22,12 +22,21 @@ export class Luggage {
   @JoinColumn({ name: 'flight_series_id' })
   flightSeries?: FlightSeries | null;
 
+  @Column({ name: 'flight_id', type: 'int', nullable: true })
+  flight_id: number | null;
+
   @Column({ name: 'booking_id', type: 'int', nullable: true })
   booking_id: number | null;
 
   @ManyToOne(() => Booking)
   @JoinColumn({ name: 'booking_id' })
   booking?: Booking | null;
+
+  @Column({ name: 'booking_reference', type: 'varchar', length: 50, nullable: true })
+  booking_reference: string | null;
+
+  @Column({ name: 'staff_id', type: 'int', nullable: true })
+  staff_id: number | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   tag_number: string | null;

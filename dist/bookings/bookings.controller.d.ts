@@ -12,4 +12,7 @@ export declare class BookingsController {
     getSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     getPassengersByFlight(flightSeriesId: number): Promise<any[]>;
     findOne(id: number): Promise<Booking>;
+    updateBookingPassengerStatus(id: number, body: {
+        status: string;
+    }): Promise<any>;
 }

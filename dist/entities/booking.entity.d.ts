@@ -20,6 +20,7 @@ export declare class Booking {
     fare_per_passenger: number;
     total_amount: number;
     payment_method: string;
+    status: string | null;
     payment_status: string;
     payment_reference: string | null;
     payment_account: string | null;

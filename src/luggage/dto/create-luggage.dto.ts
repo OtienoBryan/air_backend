@@ -9,12 +9,26 @@ export class CreateLuggageDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  flight_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   flight_series_id?: number | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   booking_id?: number | null;
+
+  @IsOptional()
+  @IsString()
+  booking_reference?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  staff_id?: number | null;
 
   @IsOptional()
   @IsString()

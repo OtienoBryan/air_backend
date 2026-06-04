@@ -14,8 +14,11 @@ const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 class CreateLuggageDto {
     passenger_id;
+    flight_id;
     flight_series_id;
     booking_id;
+    booking_reference;
+    staff_id;
     tag_number;
     weight;
 }
@@ -30,6 +33,12 @@ __decorate([
     (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsInt)(),
     __metadata("design:type", Object)
+], CreateLuggageDto.prototype, "flight_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
 ], CreateLuggageDto.prototype, "flight_series_id", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
@@ -37,6 +46,17 @@ __decorate([
     (0, class_validator_1.IsInt)(),
     __metadata("design:type", Object)
 ], CreateLuggageDto.prototype, "booking_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateLuggageDto.prototype, "booking_reference", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateLuggageDto.prototype, "staff_id", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

@@ -23,9 +23,8 @@ let PassengersController = class PassengersController {
     constructor(passengersService) {
         this.passengersService = passengersService;
     }
-    async findAll(page = 1, limit = 50) {
-        console.log('👤 [PassengersController] GET /admin/passengers', { page, limit });
-        return this.passengersService.findAll(page, limit);
+    async findAll(page = 1, limit = 50, search) {
+        return this.passengersService.findAll(Number(page), Number(limit), search);
     }
     async findOne(id) {
         console.log(`👤 [PassengersController] GET /admin/passengers/${id}`);
@@ -60,8 +59,9 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:paramtypes", [Number, Number, String]),
     __metadata("design:returntype", Promise)
 ], PassengersController.prototype, "findAll", null);
 __decorate([

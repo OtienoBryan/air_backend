@@ -97,6 +97,8 @@ let FlightsController = class FlightsController {
     }
     async update(id, body) {
         const flight = await this.flightRepository.findOneOrFail({ where: { id } });
+        if (body.flight_no !== undefined)
+            flight.flight_no = body.flight_no;
         if (body.std !== undefined)
             flight.std = body.std ?? null;
         if (body.sta !== undefined)
@@ -128,15 +130,19 @@ let FlightsController = class FlightsController {
     async getPassengers(id) {
         const rows = await this.bookingPassengerRepository.find({
             where: { flight_id: id },
-            relations: ['passenger', 'booking', 'booking.flightSeries',
-                'booking.flightSeries.fromDestination',
-                'booking.flightSeries.toDestination'],
+            relations: [
+                'passenger', 'booking',
+                'flight', 'flight.series',
+                'flight.series.fromDestination', 'flight.series.toDestination',
+                'flight.series.viaDestination', 'flight.aircraft',
+            ],
             order: { created_at: 'ASC' },
         });
         return rows.map(bp => ({
             id: bp.id,
             booking_id: bp.booking_id,
             booking_reference: bp.booking?.booking_reference ?? null,
+            booking_date: bp.booking?.booking_date ? String(bp.booking.booking_date).slice(0, 10) : null,
             payment_status: bp.booking?.payment_status ?? null,
             passenger_type: bp.passenger_type,
             fare_amount: Number(bp.fare_amount ?? 0),
@@ -144,6 +150,24 @@ let FlightsController = class FlightsController {
             leg: bp.leg,
             ticket_status: bp.ticket_status ?? null,
             ticket_number: bp.ticket_number ?? null,
+            flight: bp.flight ? {
+                id: bp.flight.id,
+                flight_no: bp.flight.flight_no,
+                flight_date: bp.flight.flight_date ? String(bp.flight.flight_date).slice(0, 10) : null,
+                std: bp.flight.std ?? null,
+                sta: bp.flight.sta ?? null,
+                status: bp.flight.status,
+                aircraft: bp.flight.aircraft ?? null,
+                series: bp.flight.series ? {
+                    id: bp.flight.series.id,
+                    flt: bp.flight.series.flt,
+                    std: bp.flight.series.std ?? null,
+                    sta: bp.flight.series.sta ?? null,
+                    fromDestination: bp.flight.series.fromDestination ?? null,
+                    toDestination: bp.flight.series.toDestination ?? null,
+                    viaDestination: bp.flight.series.viaDestination ?? null,
+                } : null,
+            } : null,
             passenger: bp.passenger ? {
                 id: bp.passenger.id,
                 pnr: bp.passenger.pnr,
@@ -154,6 +178,7 @@ let FlightsController = class FlightsController {
                 nationality: bp.passenger.nationality,
                 id_type: bp.passenger.id_type,
                 identification: bp.passenger.identification,
+                booking_status: bp.passenger.booking_status ?? null,
             } : null,
         }));
     }

@@ -33,6 +33,7 @@ let Booking = class Booking {
     fare_per_passenger;
     total_amount;
     payment_method;
+    status;
     payment_status;
     payment_reference;
     payment_account;
@@ -118,6 +119,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'payment_method', type: 'varchar', length: 50 }),
     __metadata("design:type", String)
 ], Booking.prototype, "payment_method", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status', type: 'varchar', length: 30, nullable: true, default: 'confirmed' }),
+    __metadata("design:type", Object)
+], Booking.prototype, "status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' }),
     __metadata("design:type", String)

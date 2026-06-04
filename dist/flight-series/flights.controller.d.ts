@@ -37,7 +37,7 @@ export declare class FlightsController {
         }[];
         total: number;
     }>;
-    update(id: number, body: Partial<Pick<Flight, 'std' | 'sta' | 'status' | 'notes'>>): Promise<Flight>;
+    update(id: number, body: Partial<Pick<Flight, 'flight_no' | 'std' | 'sta' | 'status' | 'notes'>>): Promise<Flight>;
     addExtraFlight(flightId: number, body: {
         aircraft_id: number;
         notes?: string;
@@ -46,6 +46,7 @@ export declare class FlightsController {
         id: number;
         booking_id: number;
         booking_reference: any;
+        booking_date: string | null;
         payment_status: any;
         passenger_type: string;
         fare_amount: number;
@@ -53,6 +54,24 @@ export declare class FlightsController {
         leg: string;
         ticket_status: "OPEN" | "USED" | "VOID" | "REFUNDED" | null;
         ticket_number: string | null;
+        flight: {
+            id: number;
+            flight_no: string;
+            flight_date: string | null;
+            std: string | null;
+            sta: string | null;
+            status: string;
+            aircraft: import("../entities").Aircraft | null;
+            series: {
+                id: number;
+                flt: string;
+                std: string | null;
+                sta: string | null;
+                fromDestination: import("../entities").Destination | null;
+                toDestination: import("../entities").Destination | null;
+                viaDestination: import("../entities").Destination | null;
+            } | null;
+        } | null;
         passenger: {
             id: number;
             pnr: string;
@@ -63,6 +82,7 @@ export declare class FlightsController {
             nationality: string | null;
             id_type: string | null;
             identification: string | null;
+            booking_status: any;
         } | null;
     }[]>;
     getExceptions(id: number): Promise<FlightException[]>;

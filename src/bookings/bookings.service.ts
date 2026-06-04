@@ -1061,5 +1061,11 @@ export class BookingsService {
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     return `${prefix}${timestamp}${random}`;
   }
+
+  async updateBookingPassengerStatus(id: number, status: string): Promise<any> {
+    const bp = await this.bookingPassengerRepository.findOneOrFail({ where: { id } });
+    (bp as any).status = status;
+    return this.bookingPassengerRepository.save(bp);
+  }
 }
 

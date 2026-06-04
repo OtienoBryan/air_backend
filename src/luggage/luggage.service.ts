@@ -141,7 +141,7 @@ export class LuggageService {
     const enrichedLuggages = luggages.map((luggage) => {
       return {
         ...luggage,
-        booking_reference: luggage.booking?.booking_reference || null,
+        booking_reference: (luggage as any).booking_reference || luggage.booking?.booking_reference || null,
         flight_series_id: luggage.flight_series_id || null,
         flightSeries: luggage.flightSeries || null,
       };

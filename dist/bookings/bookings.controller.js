@@ -49,6 +49,9 @@ let BookingsController = class BookingsController {
         console.log(`🎫 [BookingsController] GET /admin/bookings/${id}`);
         return this.bookingsService.findOne(id);
     }
+    async updateBookingPassengerStatus(id, body) {
+        return this.bookingsService.updateBookingPassengerStatus(id, body.status);
+    }
 };
 exports.BookingsController = BookingsController;
 __decorate([
@@ -87,6 +90,14 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Patch)('booking-passengers/:id/status'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "updateBookingPassengerStatus", null);
 exports.BookingsController = BookingsController = __decorate([
     (0, common_1.Controller)('admin/bookings'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

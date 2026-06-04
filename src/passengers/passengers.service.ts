@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Passenger } from '../entities/passenger.entity';
 import { CreatePassengerDto } from './dto/create-passenger.dto';
 import { UpdatePassengerDto } from './dto/update-passenger.dto';
@@ -12,17 +12,24 @@ export class PassengersService {
     private passengerRepository: Repository<Passenger>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 50): Promise<{ passengers: Passenger[], total: number }> {
-    console.log('👤 [PassengersService] Finding all passengers');
-    
+  async findAll(page: number = 1, limit: number = 50, search?: string): Promise<{ passengers: Passenger[], total: number }> {
+    const where = search
+      ? [
+          { name:           Like(`%${search}%`) },
+          { email:          Like(`%${search}%`) },
+          { contact:        Like(`%${search}%`) },
+          { identification: Like(`%${search}%`) },
+          { pnr:            Like(`%${search}%`) },
+        ]
+      : undefined
+
     const [passengers, total] = await this.passengerRepository.findAndCount({
+      where,
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
-    });
-    
-    console.log(`✅ [PassengersService] Found ${passengers.length} passengers`);
-    return { passengers, total };
+    })
+    return { passengers, total }
   }
 
   async findOne(id: number): Promise<Passenger> {

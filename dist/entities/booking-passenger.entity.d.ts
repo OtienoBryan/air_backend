@@ -18,6 +18,7 @@ export declare class BookingPassenger {
     leg: string;
     return_travel_date: string | null;
     return_flight_series_id: number | null;
+    status: string | null;
     ticket_number: string | null;
     ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | null;
     issued_at: Date | null;

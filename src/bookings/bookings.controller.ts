@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { Booking } from '../entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -51,6 +51,14 @@ export class BookingsController {
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<Booking> {
     console.log(`🎫 [BookingsController] GET /admin/bookings/${id}`);
     return this.bookingsService.findOne(id);
+  }
+
+  @Patch('booking-passengers/:id/status')
+  async updateBookingPassengerStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { status: string },
+  ) {
+    return this.bookingsService.updateBookingPassengerStatus(id, body.status);
   }
 }
 

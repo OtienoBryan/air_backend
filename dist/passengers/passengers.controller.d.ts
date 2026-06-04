@@ -5,7 +5,7 @@ import { UpdatePassengerDto } from './dto/update-passenger.dto';
 export declare class PassengersController {
     private readonly passengersService;
     constructor(passengersService: PassengersService);
-    findAll(page?: number, limit?: number): Promise<{
+    findAll(page?: number, limit?: number, search?: string): Promise<{
         passengers: Passenger[];
         total: number;
     }>;

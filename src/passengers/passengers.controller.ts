@@ -23,11 +23,11 @@ export class PassengersController {
 
   @Get()
   async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 50,
+    @Query('page')   page:   number = 1,
+    @Query('limit')  limit:  number = 50,
+    @Query('search') search?: string,
   ): Promise<{ passengers: Passenger[], total: number }> {
-    console.log('👤 [PassengersController] GET /admin/passengers', { page, limit });
-    return this.passengersService.findAll(page, limit);
+    return this.passengersService.findAll(Number(page), Number(limit), search);
   }
 
   @Get(':id')
