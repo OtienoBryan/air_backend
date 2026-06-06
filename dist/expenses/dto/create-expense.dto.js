@@ -21,6 +21,12 @@ class CreateExpenseDto {
     reference;
     is_paid;
     supplier_id;
+    expense_type_id;
+    linked_to;
+    route_id;
+    aircraft_id;
+    flight_id;
+    cost_center;
 }
 exports.CreateExpenseDto = CreateExpenseDto;
 __decorate([
@@ -69,4 +75,38 @@ __decorate([
     (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Number)
 ], CreateExpenseDto.prototype, "supplier_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Object)
+], CreateExpenseDto.prototype, "expense_type_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateExpenseDto.prototype, "linked_to", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Object)
+], CreateExpenseDto.prototype, "route_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Object)
+], CreateExpenseDto.prototype, "aircraft_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Object)
+], CreateExpenseDto.prototype, "flight_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", Object)
+], CreateExpenseDto.prototype, "cost_center", void 0);
 //# sourceMappingURL=create-expense.dto.js.map

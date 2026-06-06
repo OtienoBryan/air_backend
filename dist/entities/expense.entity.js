@@ -13,14 +13,28 @@ exports.Expense = void 0;
 const typeorm_1 = require("typeorm");
 const journal_entry_entity_1 = require("./journal-entry.entity");
 const supplier_entity_1 = require("./supplier.entity");
+const expense_type_entity_1 = require("./expense-type.entity");
+const flight_route_entity_1 = require("./flight-route.entity");
+const aircraft_entity_1 = require("./aircraft.entity");
+const flight_entity_1 = require("./flight.entity");
 let Expense = class Expense {
     id;
     journal_entry_id;
     supplier_id;
+    expense_type_id;
+    expense_type;
     amount_paid;
     balance;
+    linked_to;
+    route_id;
+    aircraft_id;
+    flight_id;
+    cost_center;
     journal_entry;
     supplier;
+    route;
+    aircraft;
+    flight;
     created_at;
 };
 exports.Expense = Expense;
@@ -37,6 +51,15 @@ __decorate([
     __metadata("design:type", Object)
 ], Expense.prototype, "supplier_id", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'expense_type_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "expense_type_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => expense_type_entity_1.ExpenseType, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'expense_type_id' }),
+    __metadata("design:type", Object)
+], Expense.prototype, "expense_type", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'amount_paid', type: 'decimal', precision: 15, scale: 2, default: 0.00 }),
     __metadata("design:type", Number)
 ], Expense.prototype, "amount_paid", void 0);
@@ -44,6 +67,26 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'balance', type: 'decimal', precision: 15, scale: 2, default: 0.00 }),
     __metadata("design:type", Number)
 ], Expense.prototype, "balance", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'linked_to', type: 'varchar', length: 20, nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "linked_to", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'route_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "route_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'aircraft_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "aircraft_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'flight_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "flight_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'cost_center', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "cost_center", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => journal_entry_entity_1.JournalEntry),
     (0, typeorm_1.JoinColumn)({ name: 'journal_entry_id' }),
@@ -54,6 +97,21 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'supplier_id' }),
     __metadata("design:type", supplier_entity_1.Supplier)
 ], Expense.prototype, "supplier", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => flight_route_entity_1.FlightRoute, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'route_id' }),
+    __metadata("design:type", Object)
+], Expense.prototype, "route", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => aircraft_entity_1.Aircraft, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'aircraft_id' }),
+    __metadata("design:type", Object)
+], Expense.prototype, "aircraft", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => flight_entity_1.Flight, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'flight_id' }),
+    __metadata("design:type", Object)
+], Expense.prototype, "flight", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

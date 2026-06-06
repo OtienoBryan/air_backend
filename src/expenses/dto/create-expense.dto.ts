@@ -39,4 +39,33 @@ export class CreateExpenseDto {
   @IsInt()
   @Type(() => Number)
   supplier_id?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  expense_type_id?: number | null;
+
+  // Expense linkage
+  @IsOptional()
+  @IsString()
+  linked_to?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  route_id?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  aircraft_id?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  flight_id?: number | null;
+
+  @IsOptional()
+  @IsString()
+  cost_center?: string | null;
 }

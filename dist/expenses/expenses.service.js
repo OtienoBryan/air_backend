@@ -43,7 +43,7 @@ let ExpensesService = class ExpensesService {
         console.log('💰 [ExpensesService] Finding all expenses');
         console.log(`💰 [ExpensesService] Page: ${page}, Limit: ${limit}`);
         const [expenses, total] = await this.expenseRepository.findAndCount({
-            relations: ['journal_entry', 'journal_entry.lines', 'journal_entry.lines.account', 'supplier'],
+            relations: ['journal_entry', 'journal_entry.lines', 'journal_entry.lines.account', 'supplier', 'expense_type', 'expense_type.category', 'route', 'route.fromDestination', 'route.toDestination', 'aircraft', 'flight', 'flight.series'],
             order: { created_at: 'DESC' },
             skip: (page - 1) * limit,
             take: limit,
@@ -58,7 +58,7 @@ let ExpensesService = class ExpensesService {
         console.log(`💰 [ExpensesService] Finding expense by ID: ${id}`);
         const expense = await this.expenseRepository.findOne({
             where: { id },
-            relations: ['journal_entry', 'journal_entry.lines', 'journal_entry.lines.account', 'supplier'],
+            relations: ['journal_entry', 'journal_entry.lines', 'journal_entry.lines.account', 'supplier', 'expense_type', 'expense_type.category', 'route', 'route.fromDestination', 'route.toDestination', 'aircraft', 'flight', 'flight.series'],
         });
         if (!expense) {
             console.log(`❌ [ExpensesService] Expense with ID ${id} not found`);
@@ -145,8 +145,14 @@ let ExpensesService = class ExpensesService {
             const expense = queryRunner.manager.create(expense_entity_1.Expense, {
                 journal_entry_id: journalEntry.id,
                 supplier_id: createExpenseDto.supplier_id || null,
+                expense_type_id: createExpenseDto.expense_type_id || null,
                 amount_paid: amountPaid,
                 balance: balance,
+                linked_to: createExpenseDto.linked_to || null,
+                route_id: createExpenseDto.route_id || null,
+                aircraft_id: createExpenseDto.aircraft_id || null,
+                flight_id: createExpenseDto.flight_id || null,
+                cost_center: createExpenseDto.cost_center || null,
             });
             const savedExpense = await queryRunner.manager.save(expense_entity_1.Expense, expense);
             console.log(`✅ [ExpensesService] Expense created with ID: ${savedExpense.id}`);
@@ -365,12 +371,85 @@ let ExpensesService = class ExpensesService {
         console.log(`✅ [ExpensesService] Payment journal entry lines created`);
         const newAmountPaid = currentAmountPaid + paymentAmount;
         const newBalance = currentBalance - paymentAmount;
-        expense.amount_paid = newAmountPaid;
-        expense.balance = newBalance;
-        await this.expenseRepository.save(expense);
+        await this.expenseRepository.update(id, {
+            amount_paid: newAmountPaid,
+            balance: newBalance,
+        });
         console.log(`✅ [ExpensesService] Expense updated: Amount Paid: ${newAmountPaid}, Balance: ${newBalance}`);
         console.log('💰 [ExpensesService] ==========================================');
         return this.findOne(id);
+    }
+    async getReport(groupBy, from, to) {
+        const qb = this.expenseRepository.createQueryBuilder('expense')
+            .leftJoinAndSelect('expense.journal_entry', 'je')
+            .leftJoinAndSelect('je.lines', 'lines')
+            .leftJoinAndSelect('lines.account', 'account')
+            .leftJoinAndSelect('expense.expense_type', 'expense_type')
+            .leftJoinAndSelect('expense_type.category', 'expense_type_category')
+            .leftJoinAndSelect('expense.supplier', 'supplier');
+        if (from)
+            qb.andWhere('DATE(je.entry_date) >= :from', { from });
+        if (to)
+            qb.andWhere('DATE(je.entry_date) <= :to', { to });
+        if (groupBy === 'route') {
+            qb.andWhere('expense.linked_to = :lt', { lt: 'route' })
+                .leftJoinAndSelect('expense.route', 'route')
+                .leftJoinAndSelect('route.fromDestination', 'fromDest')
+                .leftJoinAndSelect('route.toDestination', 'toDest');
+        }
+        else if (groupBy === 'aircraft') {
+            qb.andWhere('expense.linked_to = :lt', { lt: 'aircraft' })
+                .leftJoinAndSelect('expense.aircraft', 'aircraft');
+        }
+        else if (groupBy === 'flight') {
+            qb.andWhere('expense.linked_to = :lt', { lt: 'flight' })
+                .leftJoinAndSelect('expense.flight', 'flight')
+                .leftJoinAndSelect('flight.series', 'series');
+        }
+        qb.orderBy('je.entry_date', 'DESC');
+        const expenses = await qb.getMany();
+        const groupsMap = new Map();
+        for (const expense of expenses) {
+            let key;
+            let label;
+            let meta;
+            if (groupBy === 'route') {
+                key = expense.route_id ?? 'none';
+                const r = expense.route;
+                label = r
+                    ? `${r.fromDestination?.name ?? r.from_destination_id} → ${r.toDestination?.name ?? r.to_destination_id}`
+                    : 'Unknown Route';
+                meta = r;
+            }
+            else if (groupBy === 'aircraft') {
+                key = expense.aircraft_id ?? 'none';
+                const a = expense.aircraft;
+                label = a ? `${a.name} · ${a.registration}` : 'Unknown Aircraft';
+                meta = a;
+            }
+            else if (groupBy === 'flight') {
+                key = expense.flight_id ?? 'none';
+                const f = expense.flight;
+                label = f ? `${f.flight_no} · ${f.flight_date}` : 'Unknown Flight';
+                meta = f;
+            }
+            else {
+                key = expense.expense_type_id ?? 0;
+                const t = expense.expense_type;
+                label = t ? t.name : 'Uncategorized';
+                meta = t;
+            }
+            if (!groupsMap.has(key)) {
+                groupsMap.set(key, { id: key, label, meta, total_amount: 0, total_paid: 0, balance: 0, count: 0, expenses: [] });
+            }
+            const g = groupsMap.get(key);
+            g.total_amount += Number(expense.journal_entry?.total_debit ?? 0);
+            g.total_paid += Number(expense.amount_paid ?? 0);
+            g.balance += Number(expense.balance ?? 0);
+            g.count++;
+            g.expenses.push(expense);
+        }
+        return Array.from(groupsMap.values()).sort((a, b) => b.total_amount - a.total_amount);
     }
     async getPaymentHistory(id) {
         console.log('💰 [ExpensesService] ==========================================');

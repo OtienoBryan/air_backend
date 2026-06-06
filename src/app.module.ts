@@ -42,6 +42,7 @@ import { CargoBookingsModule } from './cargo-bookings/cargo-bookings.module';
 import { CargoSettingsModule } from './cargo-settings/cargo-settings.module';
 import { CurrenciesModule } from './currencies/currencies.module';
 import { FlightRoutesModule } from './flight-routes/flight-routes.module';
+import { ReportsModule } from './reports/reports.module';
 import { GlobalAuthGuard } from './auth/global-auth.guard';
 
 @Module({
@@ -97,6 +98,7 @@ import { GlobalAuthGuard } from './auth/global-auth.guard';
     CargoSettingsModule,
     CurrenciesModule,
     FlightRoutesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

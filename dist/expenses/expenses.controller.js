@@ -12,10 +12,12 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ChartOfAccountsController = exports.ExpensesController = void 0;
+exports.ExpenseTypesController = exports.ExpenseCategoriesController = exports.ChartOfAccountsController = exports.ExpensesController = void 0;
 const common_1 = require("@nestjs/common");
 const expenses_service_1 = require("./expenses.service");
 const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
+const expense_category_entity_1 = require("../entities/expense-category.entity");
+const expense_type_entity_1 = require("../entities/expense-type.entity");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const create_expense_dto_1 = require("./dto/create-expense.dto");
 const update_expense_dto_1 = require("./dto/update-expense.dto");
@@ -24,9 +26,13 @@ const typeorm_2 = require("typeorm");
 let ExpensesController = class ExpensesController {
     expensesService;
     chartOfAccountRepository;
-    constructor(expensesService, chartOfAccountRepository) {
+    categoryRepository;
+    typeRepository;
+    constructor(expensesService, chartOfAccountRepository, categoryRepository, typeRepository) {
         this.expensesService = expensesService;
         this.chartOfAccountRepository = chartOfAccountRepository;
+        this.categoryRepository = categoryRepository;
+        this.typeRepository = typeRepository;
     }
     async findAll(page = 1, limit = 50) {
         console.log('💰 [ExpensesController] GET /admin/expenses', { page, limit });
@@ -59,6 +65,10 @@ let ExpensesController = class ExpensesController {
             console.error('❌ [ExpensesController] Error in updatePayment:', error);
             throw error;
         }
+    }
+    async getReport(groupBy = 'expense_type', from, to) {
+        console.log(`💰 [ExpensesController] GET /admin/expenses/report`, { groupBy, from, to });
+        return this.expensesService.getReport(groupBy, from, to);
     }
     async getPaymentHistory(id) {
         console.log(`💰 [ExpensesController] GET /admin/expenses/${id}/payment-history`);
@@ -99,6 +109,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ExpensesController.prototype, "updatePayment", null);
 __decorate([
+    (0, common_1.Get)('report'),
+    __param(0, (0, common_1.Query)('groupBy')),
+    __param(1, (0, common_1.Query)('from')),
+    __param(2, (0, common_1.Query)('to')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], ExpensesController.prototype, "getReport", null);
+__decorate([
     (0, common_1.Get)(':id/payment-history'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
@@ -109,7 +128,11 @@ exports.ExpensesController = ExpensesController = __decorate([
     (0, common_1.Controller)('admin/expenses'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(1, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
+    __param(2, (0, typeorm_1.InjectRepository)(expense_category_entity_1.ExpenseCategory)),
+    __param(3, (0, typeorm_1.InjectRepository)(expense_type_entity_1.ExpenseType)),
     __metadata("design:paramtypes", [expenses_service_1.ExpensesService,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository])
 ], ExpensesController);
 let ChartOfAccountsController = class ChartOfAccountsController {
@@ -127,10 +150,7 @@ let ChartOfAccountsController = class ChartOfAccountsController {
             console.log(`✅ [ChartOfAccountsController] Found ${accounts.length} accounts with type ${accountType}`);
             return accounts;
         }
-        const allAccounts = await this.chartOfAccountRepository.find({
-            order: { name: 'ASC' },
-        });
-        console.log(`✅ [ChartOfAccountsController] Found ${allAccounts.length} accounts`);
+        const allAccounts = await this.chartOfAccountRepository.find({ order: { name: 'ASC' } });
         return allAccounts;
     }
 };
@@ -148,4 +168,124 @@ exports.ChartOfAccountsController = ChartOfAccountsController = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
     __metadata("design:paramtypes", [typeorm_2.Repository])
 ], ChartOfAccountsController);
+let ExpenseCategoriesController = class ExpenseCategoriesController {
+    repo;
+    constructor(repo) {
+        this.repo = repo;
+    }
+    findAll() { return this.repo.find({ order: { name: 'ASC' } }); }
+    create(body) {
+        return this.repo.save(this.repo.create({ name: body.name, description: body.description ?? null }));
+    }
+    async update(id, body) {
+        const rec = await this.repo.findOneOrFail({ where: { id } });
+        if (body.name !== undefined)
+            rec.name = body.name;
+        if (body.description !== undefined)
+            rec.description = body.description ?? null;
+        if (body.is_active !== undefined)
+            rec.is_active = body.is_active;
+        return this.repo.save(rec);
+    }
+    async remove(id) {
+        await this.repo.delete(id);
+        return { message: 'Deleted' };
+    }
+};
+exports.ExpenseCategoriesController = ExpenseCategoriesController;
+__decorate([
+    (0, common_1.Get)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ExpenseCategoriesController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ExpenseCategoriesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], ExpenseCategoriesController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], ExpenseCategoriesController.prototype, "remove", null);
+exports.ExpenseCategoriesController = ExpenseCategoriesController = __decorate([
+    (0, common_1.Controller)('admin/expense-categories'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, typeorm_1.InjectRepository)(expense_category_entity_1.ExpenseCategory)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
+], ExpenseCategoriesController);
+let ExpenseTypesController = class ExpenseTypesController {
+    repo;
+    constructor(repo) {
+        this.repo = repo;
+    }
+    findAll() { return this.repo.find({ relations: ['category'], order: { name: 'ASC' } }); }
+    create(body) {
+        return this.repo.save(this.repo.create({ name: body.name, category_id: body.category_id ?? null, description: body.description ?? null }));
+    }
+    async update(id, body) {
+        const rec = await this.repo.findOneOrFail({ where: { id } });
+        if (body.name !== undefined)
+            rec.name = body.name;
+        if (body.category_id !== undefined)
+            rec.category_id = body.category_id ?? null;
+        if (body.description !== undefined)
+            rec.description = body.description ?? null;
+        if (body.is_active !== undefined)
+            rec.is_active = body.is_active;
+        return this.repo.save(rec);
+    }
+    async remove(id) {
+        await this.repo.delete(id);
+        return { message: 'Deleted' };
+    }
+};
+exports.ExpenseTypesController = ExpenseTypesController;
+__decorate([
+    (0, common_1.Get)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ExpenseTypesController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ExpenseTypesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], ExpenseTypesController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], ExpenseTypesController.prototype, "remove", null);
+exports.ExpenseTypesController = ExpenseTypesController = __decorate([
+    (0, common_1.Controller)('admin/expense-types'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, typeorm_1.InjectRepository)(expense_type_entity_1.ExpenseType)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
+], ExpenseTypesController);
 //# sourceMappingURL=expenses.controller.js.map

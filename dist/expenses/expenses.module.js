@@ -18,13 +18,18 @@ const journal_entry_entity_1 = require("../entities/journal-entry.entity");
 const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
 const supplier_entity_1 = require("../entities/supplier.entity");
 const supplier_ledger_entity_1 = require("../entities/supplier-ledger.entity");
+const expense_category_entity_1 = require("../entities/expense-category.entity");
+const expense_type_entity_1 = require("../entities/expense-type.entity");
+const flight_route_entity_1 = require("../entities/flight-route.entity");
+const aircraft_entity_1 = require("../entities/aircraft.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 let ExpensesModule = class ExpensesModule {
 };
 exports.ExpensesModule = ExpensesModule;
 exports.ExpensesModule = ExpensesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([expense_entity_1.Expense, chart_of_account_entity_1.ChartOfAccount, account_entity_1.Account, journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine, supplier_entity_1.Supplier, supplier_ledger_entity_1.SupplierLedger])],
-        controllers: [expenses_controller_1.ExpensesController, expenses_controller_1.ChartOfAccountsController],
+        imports: [typeorm_1.TypeOrmModule.forFeature([expense_entity_1.Expense, chart_of_account_entity_1.ChartOfAccount, account_entity_1.Account, journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine, supplier_entity_1.Supplier, supplier_ledger_entity_1.SupplierLedger, expense_category_entity_1.ExpenseCategory, expense_type_entity_1.ExpenseType, flight_route_entity_1.FlightRoute, aircraft_entity_1.Aircraft, flight_entity_1.Flight])],
+        controllers: [expenses_controller_1.ExpensesController, expenses_controller_1.ChartOfAccountsController, expenses_controller_1.ExpenseCategoriesController, expenses_controller_1.ExpenseTypesController],
         providers: [expenses_service_1.ExpensesService],
         exports: [expenses_service_1.ExpensesService],
     })

@@ -26,5 +26,6 @@ export declare class ExpensesService {
     private createJournalEntry;
     private createJournalEntryWithTransaction;
     updatePayment(id: number, updateExpenseDto: UpdateExpenseDto): Promise<Expense>;
+    getReport(groupBy: 'route' | 'aircraft' | 'flight' | 'expense_type', from?: string, to?: string): Promise<any[]>;
     getPaymentHistory(id: number): Promise<JournalEntry[]>;
 }

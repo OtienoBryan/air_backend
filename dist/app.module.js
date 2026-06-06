@@ -51,6 +51,7 @@ const cargo_bookings_module_1 = require("./cargo-bookings/cargo-bookings.module"
 const cargo_settings_module_1 = require("./cargo-settings/cargo-settings.module");
 const currencies_module_1 = require("./currencies/currencies.module");
 const flight_routes_module_1 = require("./flight-routes/flight-routes.module");
+const reports_module_1 = require("./reports/reports.module");
 const global_auth_guard_1 = require("./auth/global-auth.guard");
 let AppModule = class AppModule {
 };
@@ -109,6 +110,7 @@ exports.AppModule = AppModule = __decorate([
             cargo_settings_module_1.CargoSettingsModule,
             currencies_module_1.CurrenciesModule,
             flight_routes_module_1.FlightRoutesModule,
+            reports_module_1.ReportsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [
