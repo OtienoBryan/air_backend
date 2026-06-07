@@ -9,6 +9,7 @@ export declare class AgentsController {
         agents: Agent[];
         total: number;
     }>;
+    findMe(req: any): Promise<Agent>;
     findOne(id: number): Promise<Agent>;
     create(createAgentDto: CreateAgentDto): Promise<Agent>;
     update(id: number, updateAgentDto: UpdateAgentDto): Promise<Agent>;

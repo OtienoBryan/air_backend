@@ -24,6 +24,12 @@ let ReportsController = class ReportsController {
     getProfitReport(groupBy = 'route', from, to) {
         return this.reportsService.getProfitReport(groupBy, from, to);
     }
+    getRevenueDetail(groupBy, id, from, to) {
+        return this.reportsService.getRevenueDetail(groupBy, Number(id), from, to);
+    }
+    getExpenseDetail(groupBy, id, from, to) {
+        return this.reportsService.getExpenseDetail(groupBy, Number(id), from, to);
+    }
 };
 exports.ReportsController = ReportsController;
 __decorate([
@@ -35,6 +41,26 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], ReportsController.prototype, "getProfitReport", null);
+__decorate([
+    (0, common_1.Get)('profit/revenue-detail'),
+    __param(0, (0, common_1.Query)('groupBy')),
+    __param(1, (0, common_1.Query)('id')),
+    __param(2, (0, common_1.Query)('from')),
+    __param(3, (0, common_1.Query)('to')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], ReportsController.prototype, "getRevenueDetail", null);
+__decorate([
+    (0, common_1.Get)('profit/expense-detail'),
+    __param(0, (0, common_1.Query)('groupBy')),
+    __param(1, (0, common_1.Query)('id')),
+    __param(2, (0, common_1.Query)('from')),
+    __param(3, (0, common_1.Query)('to')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], ReportsController.prototype, "getExpenseDetail", null);
 exports.ReportsController = ReportsController = __decorate([
     (0, common_1.Controller)('admin/reports'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

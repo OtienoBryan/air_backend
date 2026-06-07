@@ -23,9 +23,13 @@ let SeatReservationsController = class SeatReservationsController {
     constructor(seatReservationsService) {
         this.seatReservationsService = seatReservationsService;
     }
-    async findAll(page = 1, limit = 50, flightSeriesId) {
-        console.log('🎫 [SeatReservationsController] GET /admin/seat-reservations', { page, limit, flightSeriesId });
-        return this.seatReservationsService.findAll(page, limit, flightSeriesId);
+    async findAll(page = '1', limit = '50', flightSeriesId, agentId, status) {
+        const parsedPage = parseInt(page, 10) || 1;
+        const parsedLimit = parseInt(limit, 10) || 50;
+        const parsedFlightSeriesId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
+        const parsedAgentId = agentId ? parseInt(agentId, 10) : undefined;
+        console.log('🎫 [SeatReservationsController] GET /admin/seat-reservations', { page: parsedPage, limit: parsedLimit, flightSeriesId: parsedFlightSeriesId, agentId: parsedAgentId, status });
+        return this.seatReservationsService.findAll(parsedPage, parsedLimit, parsedFlightSeriesId, parsedAgentId, status);
     }
     async findByFlightSeries(flightSeriesId) {
         console.log(`🎫 [SeatReservationsController] GET /admin/seat-reservations/flight-series/${flightSeriesId}`);
@@ -65,8 +69,10 @@ __decorate([
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('flightSeriesId')),
+    __param(3, (0, common_1.Query)('agentId')),
+    __param(4, (0, common_1.Query)('status')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number, Number]),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], SeatReservationsController.prototype, "findAll", null);
 __decorate([

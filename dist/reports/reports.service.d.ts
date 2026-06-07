@@ -6,5 +6,7 @@ export declare class ReportsService {
     private routeReport;
     private aircraftReport;
     private flightReport;
+    getRevenueDetail(groupBy: 'route' | 'aircraft' | 'flight', id: number, from?: string, to?: string): Promise<any[]>;
+    getExpenseDetail(groupBy: 'route' | 'aircraft' | 'flight', id: number, from?: string, to?: string): Promise<any[]>;
     private buildRow;
 }

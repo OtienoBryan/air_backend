@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, UseGuards, Req } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { Agent } from '../entities/agent.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -17,6 +17,13 @@ export class AgentsController {
   ): Promise<{ agents: Agent[], total: number }> {
     console.log('👤 [AgentsController] GET /admin/agents', { page, limit });
     return this.agentsService.findAll(page, limit);
+  }
+
+  @Get('me')
+  async findMe(@Req() req: any): Promise<Agent> {
+    const id = req.user?.sub;
+    console.log(`👤 [AgentsController] GET /admin/agents/me (agent id=${id})`);
+    return this.agentsService.findOne(id);
   }
 
   @Get(':id')

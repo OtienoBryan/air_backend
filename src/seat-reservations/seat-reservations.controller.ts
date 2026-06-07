@@ -23,12 +23,18 @@ export class SeatReservationsController {
 
   @Get()
   async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 50,
-    @Query('flightSeriesId') flightSeriesId?: number,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50',
+    @Query('flightSeriesId') flightSeriesId?: string,
+    @Query('agentId') agentId?: string,
+    @Query('status') status?: string,
   ): Promise<{ reservations: SeatReservation[], total: number }> {
-    console.log('🎫 [SeatReservationsController] GET /admin/seat-reservations', { page, limit, flightSeriesId });
-    return this.seatReservationsService.findAll(page, limit, flightSeriesId);
+    const parsedPage = parseInt(page, 10) || 1;
+    const parsedLimit = parseInt(limit, 10) || 50;
+    const parsedFlightSeriesId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
+    const parsedAgentId = agentId ? parseInt(agentId, 10) : undefined;
+    console.log('🎫 [SeatReservationsController] GET /admin/seat-reservations', { page: parsedPage, limit: parsedLimit, flightSeriesId: parsedFlightSeriesId, agentId: parsedAgentId, status });
+    return this.seatReservationsService.findAll(parsedPage, parsedLimit, parsedFlightSeriesId, parsedAgentId, status);
   }
 
   @Get('flight-series/:flightSeriesId')

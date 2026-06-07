@@ -25,9 +25,9 @@ export class SeatReservationsService {
     private countryRepository: Repository<Country>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 50, flightSeriesId?: number): Promise<{ reservations: SeatReservation[], total: number }> {
+  async findAll(page: number = 1, limit: number = 50, flightSeriesId?: number, agentId?: number, status?: string): Promise<{ reservations: SeatReservation[], total: number }> {
     console.log('🎫 [SeatReservationsService] Finding all seat reservations');
-    
+
     const queryBuilder = this.seatReservationRepository.createQueryBuilder('reservation')
       .leftJoinAndSelect('reservation.flightSeries', 'flightSeries')
       .leftJoinAndSelect('flightSeries.fromDestination', 'fromDestination')
@@ -37,11 +37,19 @@ export class SeatReservationsService {
       .leftJoinAndSelect('reservation.agent', 'agent')
       .leftJoinAndSelect('agent.agency', 'agency')
       .leftJoinAndSelect('reservation.country', 'country')
-      .orderBy('reservation.reservation_date', 'DESC')
-      .addOrderBy('reservation.booking_reference', 'ASC');
+      .where('1 = 1')
+      .orderBy('reservation.id', 'DESC');
 
     if (flightSeriesId) {
-      queryBuilder.where('reservation.flight_series_id = :flightSeriesId', { flightSeriesId });
+      queryBuilder.andWhere('reservation.flight_series_id = :flightSeriesId', { flightSeriesId });
+    }
+
+    if (agentId) {
+      queryBuilder.andWhere('reservation.agent_id = :agentId', { agentId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('reservation.status = :status', { status });
     }
 
     const [reservations, total] = await queryBuilder

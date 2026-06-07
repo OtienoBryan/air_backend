@@ -27,6 +27,11 @@ let AgentsController = class AgentsController {
         console.log('👤 [AgentsController] GET /admin/agents', { page, limit });
         return this.agentsService.findAll(page, limit);
     }
+    async findMe(req) {
+        const id = req.user?.sub;
+        console.log(`👤 [AgentsController] GET /admin/agents/me (agent id=${id})`);
+        return this.agentsService.findOne(id);
+    }
     async findOne(id) {
         console.log(`👤 [AgentsController] GET /admin/agents/${id}`);
         return this.agentsService.findOne(id);
@@ -64,6 +69,13 @@ __decorate([
     __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", Promise)
 ], AgentsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('me'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AgentsController.prototype, "findMe", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

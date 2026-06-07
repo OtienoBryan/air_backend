@@ -27,7 +27,17 @@ let ReportsService = class ReportsService {
         return [];
     }
     async routeReport(from, to) {
-        let revSql = `
+        let bkSql = 'SELECT id, flight_series_id, total_amount, number_of_passengers FROM bookings WHERE 1=1';
+        const revParams = [];
+        if (from) {
+            bkSql += ' AND DATE(booking_date) >= ?';
+            revParams.push(from);
+        }
+        if (to) {
+            bkSql += ' AND DATE(booking_date) <= ?';
+            revParams.push(to);
+        }
+        const revSql = `
       SELECT
         fr.id                                         AS route_id,
         d_from.name                                   AS from_name,
@@ -42,21 +52,9 @@ let ReportsService = class ReportsService {
       LEFT JOIN flight_series fs
              ON fs.from_destination_id = fr.from_destination_id
             AND fs.to_destination_id   = fr.to_destination_id
-      LEFT JOIN bookings b ON b.flight_series_id = fs.id
+      LEFT JOIN (${bkSql}) b ON b.flight_series_id = fs.id
+      GROUP BY fr.id, d_from.name, d_to.name, fr.route_type
     `;
-        const revParams = [];
-        const revConds = [];
-        if (from) {
-            revConds.push('DATE(b.booking_date) >= ?');
-            revParams.push(from);
-        }
-        if (to) {
-            revConds.push('DATE(b.booking_date) <= ?');
-            revParams.push(to);
-        }
-        if (revConds.length)
-            revSql += ' WHERE ' + revConds.join(' AND ');
-        revSql += ' GROUP BY fr.id, d_from.name, d_to.name, fr.route_type';
         let expSql = `
       SELECT
         e.route_id,
@@ -89,7 +87,17 @@ let ReportsService = class ReportsService {
             .sort((a, b) => b.revenue - a.revenue);
     }
     async aircraftReport(from, to) {
-        let revSql = `
+        let flSql = 'SELECT id, series_id, aircraft_id, flight_date FROM flights WHERE 1=1';
+        const revParams = [];
+        if (from) {
+            flSql += ' AND DATE(flight_date) >= ?';
+            revParams.push(from);
+        }
+        if (to) {
+            flSql += ' AND DATE(flight_date) <= ?';
+            revParams.push(to);
+        }
+        const revSql = `
       SELECT
         a.id                                          AS aircraft_id,
         a.name                                        AS aircraft_name,
@@ -99,24 +107,12 @@ let ReportsService = class ReportsService {
         COALESCE(SUM(b.number_of_passengers), 0)      AS passengers,
         COUNT(DISTINCT b.id)                          AS booking_count
       FROM aircrafts a
-      LEFT JOIN flights f ON f.aircraft_id = a.id
+      LEFT JOIN (${flSql}) f ON f.aircraft_id = a.id
       LEFT JOIN bookings b
              ON b.flight_series_id = f.series_id
             AND DATE(b.booking_date) = DATE(f.flight_date)
+      GROUP BY a.id, a.name, a.registration, a.status
     `;
-        const revParams = [];
-        const revConds = [];
-        if (from) {
-            revConds.push('DATE(f.flight_date) >= ?');
-            revParams.push(from);
-        }
-        if (to) {
-            revConds.push('DATE(f.flight_date) <= ?');
-            revParams.push(to);
-        }
-        if (revConds.length)
-            revSql += ' WHERE ' + revConds.join(' AND ');
-        revSql += ' GROUP BY a.id, a.name, a.registration, a.status';
         let expSql = `
       SELECT
         e.aircraft_id,
@@ -209,6 +205,120 @@ let ReportsService = class ReportsService {
         return revRows
             .filter((r) => Number(r.revenue) > 0 || expMap.has(Number(r.flight_id)))
             .map((r) => this.buildRow(r.flight_id, `${r.flight_no} · ${r.from_name ?? '?'} → ${r.to_name ?? '?'}`, { flight_date: r.flight_date, status: r.flight_status }, r, expMap.get(Number(r.flight_id))));
+    }
+    async getRevenueDetail(groupBy, id, from, to) {
+        if (groupBy === 'route') {
+            let sql = `
+        SELECT
+          DATE(b.booking_date)                     AS flight_date,
+          f.flight_no,
+          f.status,
+          a.name AS aircraft_name, a.registration,
+          d_from.name AS from_name, d_to.name AS to_name,
+          COALESCE(SUM(b.total_amount), 0)         AS revenue,
+          COALESCE(SUM(b.number_of_passengers), 0) AS passengers,
+          COUNT(DISTINCT b.id)                     AS booking_count
+        FROM bookings b
+        JOIN flight_series fs    ON fs.id = b.flight_series_id
+        JOIN flight_routes fr    ON fs.from_destination_id = fr.from_destination_id
+                                AND fs.to_destination_id   = fr.to_destination_id
+        LEFT JOIN destinations d_from ON d_from.id = fs.from_destination_id
+        LEFT JOIN destinations d_to   ON d_to.id   = fs.to_destination_id
+        LEFT JOIN flights f      ON f.series_id = b.flight_series_id
+                                AND DATE(f.flight_date) = DATE(b.booking_date)
+        LEFT JOIN aircrafts a    ON a.id = f.aircraft_id
+        WHERE fr.id = ?
+      `;
+            const params = [id];
+            if (from) {
+                sql += ' AND DATE(b.booking_date) >= ?';
+                params.push(from);
+            }
+            if (to) {
+                sql += ' AND DATE(b.booking_date) <= ?';
+                params.push(to);
+            }
+            sql += ' GROUP BY DATE(b.booking_date), f.flight_no, f.status, a.name, a.registration, d_from.name, d_to.name ORDER BY flight_date';
+            return this.dataSource.query(sql, params);
+        }
+        if (groupBy === 'aircraft') {
+            let sql = `
+        SELECT
+          f.id AS flight_id, f.flight_no, f.flight_date, f.status,
+          d_from.name AS from_name, d_to.name AS to_name,
+          COALESCE(SUM(b.total_amount), 0)         AS revenue,
+          COALESCE(SUM(b.number_of_passengers), 0) AS passengers,
+          COUNT(DISTINCT b.id)                     AS booking_count
+        FROM flights f
+        LEFT JOIN flight_series fs   ON fs.id = f.series_id
+        LEFT JOIN destinations d_from ON d_from.id = fs.from_destination_id
+        LEFT JOIN destinations d_to   ON d_to.id   = fs.to_destination_id
+        LEFT JOIN bookings b          ON b.flight_series_id = f.series_id
+                                    AND DATE(b.booking_date) = DATE(f.flight_date)
+        WHERE f.aircraft_id = ?
+      `;
+            const params = [id];
+            if (from) {
+                sql += ' AND DATE(f.flight_date) >= ?';
+                params.push(from);
+            }
+            if (to) {
+                sql += ' AND DATE(f.flight_date) <= ?';
+                params.push(to);
+            }
+            sql += ' GROUP BY f.id, f.flight_no, f.flight_date, f.status, d_from.name, d_to.name ORDER BY f.flight_date';
+            return this.dataSource.query(sql, params);
+        }
+        if (groupBy === 'flight') {
+            const sql = `
+        SELECT
+          b.id AS booking_id, b.booking_reference, b.booking_date, b.status,
+          b.number_of_passengers AS passengers, b.total_amount AS revenue,
+          CONCAT(COALESCE(p.first_name,''), ' ', COALESCE(p.last_name,'')) AS passenger_name
+        FROM bookings b
+        JOIN flights f ON f.series_id = b.flight_series_id
+                      AND DATE(b.booking_date) = DATE(f.flight_date)
+        LEFT JOIN passengers p ON p.id = b.passenger_id
+        WHERE f.id = ?
+        ORDER BY b.booking_date
+      `;
+            return this.dataSource.query(sql, [id]);
+        }
+        return [];
+    }
+    async getExpenseDetail(groupBy, id, from, to) {
+        const colMap = {
+            route: 'e.route_id',
+            aircraft: 'e.aircraft_id',
+            flight: 'e.flight_id',
+        };
+        const col = colMap[groupBy];
+        if (!col)
+            return [];
+        let sql = `
+      SELECT
+        e.id, je.entry_date AS expense_date, je.description,
+        je.total_debit AS amount, e.amount_paid, e.balance,
+        et.name AS expense_type,
+        s.company_name AS supplier,
+        je.reference
+      FROM expenses e
+      JOIN journal_entries je ON je.id = e.journal_entry_id
+      LEFT JOIN expense_types et ON et.id = e.expense_type_id
+      LEFT JOIN suppliers s ON s.id = e.supplier_id
+      WHERE e.linked_to = ? AND ${col} = ?
+    `;
+        const params = [groupBy, id];
+        if (from) {
+            sql += ' AND DATE(je.entry_date) >= ?';
+            params.push(from);
+        }
+        if (to) {
+            sql += ' AND DATE(je.entry_date) <= ?';
+            params.push(to);
+        }
+        sql += ' ORDER BY je.entry_date';
+        return this.dataSource.query(sql, params);
     }
     buildRow(id, label, meta, rev, exp) {
         const revenue = Number(rev.revenue ?? 0);

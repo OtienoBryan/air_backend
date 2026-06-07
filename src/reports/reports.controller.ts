@@ -15,4 +15,24 @@ export class ReportsController {
   ): Promise<any[]> {
     return this.reportsService.getProfitReport(groupBy, from, to);
   }
+
+  @Get('profit/revenue-detail')
+  getRevenueDetail(
+    @Query('groupBy') groupBy: 'route' | 'aircraft' | 'flight',
+    @Query('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ): Promise<any[]> {
+    return this.reportsService.getRevenueDetail(groupBy, Number(id), from, to);
+  }
+
+  @Get('profit/expense-detail')
+  getExpenseDetail(
+    @Query('groupBy') groupBy: 'route' | 'aircraft' | 'flight',
+    @Query('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ): Promise<any[]> {
+    return this.reportsService.getExpenseDetail(groupBy, Number(id), from, to);
+  }
 }
