@@ -42,7 +42,13 @@ export class Luggage {
   tag_number: string | null;
 
   @Column({ type: 'decimal', precision: 8, scale: 2, nullable: true })
-  weight: number | null; // Weight in kg
+  weight: number | null;
+
+  @Column({ name: 'excess_kg', type: 'decimal', precision: 6, scale: 2, default: 0 })
+  excess_kg: number;
+
+  @Column({ name: 'excess_charge', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  excess_charge: number;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;

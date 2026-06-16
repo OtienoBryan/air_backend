@@ -13,12 +13,15 @@ const flight_routes_service_1 = require("./flight-routes.service");
 const flight_routes_controller_1 = require("./flight-routes.controller");
 const flight_route_entity_1 = require("../entities/flight-route.entity");
 const fare_history_entity_1 = require("../entities/fare-history.entity");
+const route_fare_charge_entity_1 = require("../entities/route-fare-charge.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
+const route_luggage_setting_entity_1 = require("../entities/route-luggage-setting.entity");
 let FlightRoutesModule = class FlightRoutesModule {
 };
 exports.FlightRoutesModule = FlightRoutesModule;
 exports.FlightRoutesModule = FlightRoutesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([flight_route_entity_1.FlightRoute, fare_history_entity_1.FareHistory])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([flight_route_entity_1.FlightRoute, fare_history_entity_1.FareHistory, route_fare_charge_entity_1.RouteFareCharge, chart_of_account_entity_1.ChartOfAccount, route_luggage_setting_entity_1.RouteLuggageSetting])],
         controllers: [flight_routes_controller_1.FlightRoutesController],
         providers: [flight_routes_service_1.FlightRoutesService],
         exports: [flight_routes_service_1.FlightRoutesService],

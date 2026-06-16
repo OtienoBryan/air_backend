@@ -93,6 +93,12 @@ let LuggageService = class LuggageService {
         if (updateLuggageDto.weight !== undefined) {
             luggage.weight = updateLuggageDto.weight ?? null;
         }
+        if (updateLuggageDto.excess_kg !== undefined) {
+            luggage.excess_kg = updateLuggageDto.excess_kg ?? 0;
+        }
+        if (updateLuggageDto.excess_charge !== undefined) {
+            luggage.excess_charge = updateLuggageDto.excess_charge ?? 0;
+        }
         const updatedLuggage = await this.luggageRepository.save(luggage);
         console.log(`✅ [LuggageService] Luggage updated: ${updatedLuggage.id}`);
         return updatedLuggage;

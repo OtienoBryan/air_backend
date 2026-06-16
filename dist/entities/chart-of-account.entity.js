@@ -18,6 +18,7 @@ let ChartOfAccount = class ChartOfAccount {
     code;
     account_type;
     accountType;
+    fare;
     created_at;
     updated_at;
 };
@@ -43,6 +44,10 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'account_type' }),
     __metadata("design:type", account_type_entity_1.AccountType)
 ], ChartOfAccount.prototype, "accountType", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'fare', type: 'tinyint', default: 0 }),
+    __metadata("design:type", Number)
+], ChartOfAccount.prototype, "fare", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

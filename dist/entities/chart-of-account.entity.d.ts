@@ -5,6 +5,7 @@ export declare class ChartOfAccount {
     code: string;
     account_type: number;
     accountType?: AccountType;
+    fare: number;
     created_at: Date;
     updated_at: Date;
 }

@@ -23,4 +23,19 @@ export declare class AdminCountriesController {
     remove(id: number): Promise<{
         message: string;
     }>;
+    getTaxAccounts(): Promise<import("../entities").ChartOfAccount[]>;
+    getTaxes(id: number): Promise<import("../entities/country-tax.entity").CountryTax[]>;
+    addTax(id: number, body: {
+        account_id: number;
+        amount: number;
+        currency: string;
+    }): Promise<import("../entities/country-tax.entity").CountryTax>;
+    updateTax(id: number, taxId: number, body: {
+        account_id?: number;
+        amount?: number;
+        currency?: string;
+    }): Promise<import("../entities/country-tax.entity").CountryTax>;
+    removeTax(id: number, taxId: number): Promise<{
+        message: string;
+    }>;
 }

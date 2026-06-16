@@ -12,12 +12,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const countries_service_1 = require("./countries.service");
 const countries_controller_1 = require("./countries.controller");
 const country_entity_1 = require("../entities/country.entity");
+const country_tax_entity_1 = require("../entities/country-tax.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
 let CountriesModule = class CountriesModule {
 };
 exports.CountriesModule = CountriesModule;
 exports.CountriesModule = CountriesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([country_entity_1.Country])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([country_entity_1.Country, country_tax_entity_1.CountryTax, chart_of_account_entity_1.ChartOfAccount])],
         controllers: [countries_controller_1.CountriesController, countries_controller_1.AdminCountriesController],
         providers: [countries_service_1.CountriesService],
         exports: [countries_service_1.CountriesService],

@@ -101,38 +101,36 @@ export class ChartOfAccountsService {
 
   async update(id: number, updateChartOfAccountDto: UpdateChartOfAccountDto): Promise<ChartOfAccount> {
     console.log(`📊 [ChartOfAccountsService] Updating chart of account ID: ${id}`);
-    
+
     const account = await this.findOne(id);
-    
-    // If account_type is being updated, verify it exists
+
     if (updateChartOfAccountDto.account_type !== undefined) {
       const accountType = await this.accountTypeRepository.findOne({
         where: { id: updateChartOfAccountDto.account_type },
       });
-      
       if (!accountType) {
-        console.log(`❌ [ChartOfAccountsService] Account type with ID ${updateChartOfAccountDto.account_type} not found`);
         throw new NotFoundException(`Account type with ID ${updateChartOfAccountDto.account_type} not found`);
       }
     }
 
-    // If code is being updated, check if it already exists
     if (updateChartOfAccountDto.code && updateChartOfAccountDto.code !== account.code) {
-      const existingAccount = await this.chartOfAccountRepository.findOne({
+      const existing = await this.chartOfAccountRepository.findOne({
         where: { code: updateChartOfAccountDto.code },
       });
-      
-      if (existingAccount) {
-        console.log(`❌ [ChartOfAccountsService] Account code ${updateChartOfAccountDto.code} already exists`);
+      if (existing) {
         throw new NotFoundException(`Account code ${updateChartOfAccountDto.code} already exists`);
       }
     }
-    
-    Object.assign(account, updateChartOfAccountDto);
-    const updatedAccount = await this.chartOfAccountRepository.save(account);
-    
-    console.log(`✅ [ChartOfAccountsService] Chart of account updated: ${updatedAccount.name}`);
-    return this.findOne(updatedAccount.id);
+
+    const patch: Partial<ChartOfAccount> = {};
+    if (updateChartOfAccountDto.name        !== undefined) patch.name         = updateChartOfAccountDto.name;
+    if (updateChartOfAccountDto.code        !== undefined) patch.code         = updateChartOfAccountDto.code;
+    if (updateChartOfAccountDto.account_type !== undefined) patch.account_type = updateChartOfAccountDto.account_type;
+
+    await this.chartOfAccountRepository.update(id, patch);
+
+    console.log(`✅ [ChartOfAccountsService] Chart of account ${id} updated`);
+    return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {

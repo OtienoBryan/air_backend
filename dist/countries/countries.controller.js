@@ -75,6 +75,22 @@ let AdminCountriesController = class AdminCountriesController {
         await this.countriesService.remove(id);
         return { message: 'Country deleted successfully' };
     }
+    async getTaxAccounts() {
+        return this.countriesService.getTaxAccounts();
+    }
+    async getTaxes(id) {
+        return this.countriesService.getTaxes(id);
+    }
+    async addTax(id, body) {
+        return this.countriesService.addTax(id, body);
+    }
+    async updateTax(id, taxId, body) {
+        return this.countriesService.updateTax(id, taxId, body);
+    }
+    async removeTax(id, taxId) {
+        await this.countriesService.removeTax(id, taxId);
+        return { message: 'Tax removed successfully' };
+    }
 };
 exports.AdminCountriesController = AdminCountriesController;
 __decorate([
@@ -105,6 +121,45 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], AdminCountriesController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)('tax-accounts'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "getTaxAccounts", null);
+__decorate([
+    (0, common_1.Get)(':id/taxes'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "getTaxes", null);
+__decorate([
+    (0, common_1.Post)(':id/taxes'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "addTax", null);
+__decorate([
+    (0, common_1.Put)(':id/taxes/:taxId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('taxId', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "updateTax", null);
+__decorate([
+    (0, common_1.Delete)(':id/taxes/:taxId'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('taxId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:returntype", Promise)
+], AdminCountriesController.prototype, "removeTax", null);
 exports.AdminCountriesController = AdminCountriesController = __decorate([
     (0, common_1.Controller)('admin/countries'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

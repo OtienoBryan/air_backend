@@ -37,7 +37,7 @@ export declare class FlightsController {
         }[];
         total: number;
     }>;
-    update(id: number, body: Partial<Pick<Flight, 'flight_no' | 'std' | 'sta' | 'status' | 'notes'>>): Promise<Flight>;
+    update(id: number, body: Partial<Pick<Flight, 'flight_no' | 'flight_date' | 'std' | 'sta' | 'status' | 'notes'>>): Promise<Flight>;
     addExtraFlight(flightId: number, body: {
         aircraft_id: number;
         notes?: string;

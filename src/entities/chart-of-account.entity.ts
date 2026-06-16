@@ -19,6 +19,9 @@ export class ChartOfAccount {
   @JoinColumn({ name: 'account_type' })
   accountType?: AccountType;
 
+  @Column({ name: 'fare', type: 'tinyint', default: 0 })
+  fare: number;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

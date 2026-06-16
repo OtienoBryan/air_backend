@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Country } from '../entities/country.entity';
+import { CountryTax } from '../entities/country-tax.entity';
+import { ChartOfAccount } from '../entities/chart-of-account.entity';
 
 @Injectable()
 export class CountriesService {
@@ -11,6 +13,10 @@ export class CountriesService {
   constructor(
     @InjectRepository(Country)
     private countryRepository: Repository<Country>,
+    @InjectRepository(CountryTax)
+    private countryTaxRepository: Repository<CountryTax>,
+    @InjectRepository(ChartOfAccount)
+    private chartOfAccountRepository: Repository<ChartOfAccount>,
   ) {}
 
   // Simple cache helper methods
@@ -107,5 +113,42 @@ export class CountriesService {
     await this.countryRepository.delete(id);
     this.cache.delete('all_countries');
     this.cache.delete(`country_${id}`);
+  }
+
+  // ── Country Taxes ──────────────────────────────────────────────────────────
+
+  async getTaxes(countryId: number): Promise<CountryTax[]> {
+    return this.countryTaxRepository.find({
+      where: { country_id: countryId },
+      relations: ['account'],
+      order: { id: 'ASC' },
+    });
+  }
+
+  async addTax(countryId: number, data: { account_id: number; amount: number; currency: string }): Promise<CountryTax> {
+    const country = await this.countryRepository.findOne({ where: { id: countryId } });
+    if (!country) throw new NotFoundException('Country not found');
+    const account = await this.chartOfAccountRepository.findOne({ where: { id: data.account_id } });
+    if (!account) throw new NotFoundException('Account not found');
+    const tax = this.countryTaxRepository.create({ country_id: countryId, account_id: data.account_id, amount: data.amount, currency: data.currency });
+    const saved = await this.countryTaxRepository.save(tax);
+    return this.countryTaxRepository.findOne({ where: { id: saved.id }, relations: ['account'] }) as Promise<CountryTax>;
+  }
+
+  async updateTax(countryId: number, taxId: number, data: { account_id?: number; amount?: number; currency?: string }): Promise<CountryTax> {
+    const tax = await this.countryTaxRepository.findOne({ where: { id: taxId, country_id: countryId } });
+    if (!tax) throw new NotFoundException('Tax not found');
+    await this.countryTaxRepository.update(taxId, data);
+    return this.countryTaxRepository.findOne({ where: { id: taxId }, relations: ['account'] }) as Promise<CountryTax>;
+  }
+
+  async removeTax(countryId: number, taxId: number): Promise<void> {
+    const tax = await this.countryTaxRepository.findOne({ where: { id: taxId, country_id: countryId } });
+    if (!tax) throw new NotFoundException('Tax not found');
+    await this.countryTaxRepository.delete(taxId);
+  }
+
+  async getTaxAccounts(): Promise<ChartOfAccount[]> {
+    return this.chartOfAccountRepository.find({ where: { account_type: 16 }, order: { name: 'ASC' } });
   }
 }

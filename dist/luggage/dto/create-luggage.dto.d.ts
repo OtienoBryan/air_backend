@@ -7,4 +7,6 @@ export declare class CreateLuggageDto {
     staff_id?: number | null;
     tag_number?: string | null;
     weight?: number | null;
+    excess_kg?: number;
+    excess_charge?: number;
 }

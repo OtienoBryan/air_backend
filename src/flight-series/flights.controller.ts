@@ -73,12 +73,12 @@ export class FlightsController {
 
     if (flightIds.length > 0) {
       const rows: { flight_id: string; cnt: string }[] = await this.flightRepository.query(
-        `SELECT bp.flight_id,
-                COUNT(bp.id) AS cnt
-         FROM booking_passengers bp
-         WHERE bp.leg = 'outbound'
-           AND bp.flight_id IN (${flightIds.join(',')})
-         GROUP BY bp.flight_id`
+        `SELECT b.flight_id,
+                SUM(b.number_of_passengers) AS cnt
+         FROM bookings b
+         WHERE b.status != 2
+           AND b.flight_id IN (${flightIds.join(',')})
+         GROUP BY b.flight_id`
       )
       console.log('✈️ [FlightsController] booked rows by flight_id:', rows.length, rows.slice(0, 3))
       for (const r of rows) {
@@ -106,14 +106,15 @@ export class FlightsController {
   @Put(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: Partial<Pick<Flight, 'flight_no' | 'std' | 'sta' | 'status' | 'notes'>>,
+    @Body() body: Partial<Pick<Flight, 'flight_no' | 'flight_date' | 'std' | 'sta' | 'status' | 'notes'>>,
   ) {
     const flight = await this.flightRepository.findOneOrFail({ where: { id } })
-    if (body.flight_no !== undefined) flight.flight_no = body.flight_no
-    if (body.std       !== undefined) flight.std       = body.std    ?? null
-    if (body.sta       !== undefined) flight.sta       = body.sta    ?? null
-    if (body.status    !== undefined) flight.status    = body.status
-    if (body.notes     !== undefined) flight.notes     = body.notes  ?? null
+    if (body.flight_no   !== undefined) flight.flight_no   = body.flight_no
+    if (body.flight_date !== undefined) flight.flight_date = body.flight_date
+    if (body.std         !== undefined) flight.std         = body.std  ?? null
+    if (body.sta         !== undefined) flight.sta         = body.sta  ?? null
+    if (body.status      !== undefined) flight.status      = body.status
+    if (body.notes       !== undefined) flight.notes       = body.notes ?? null
     return this.flightRepository.save(flight)
   }
 

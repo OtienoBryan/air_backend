@@ -14,14 +14,19 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LuggageController = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
 const luggage_service_1 = require("./luggage.service");
+const luggage_excess_charge_entity_1 = require("../entities/luggage-excess-charge.entity");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const create_luggage_dto_1 = require("./dto/create-luggage.dto");
 const update_luggage_dto_1 = require("./dto/update-luggage.dto");
 let LuggageController = class LuggageController {
     luggageService;
-    constructor(luggageService) {
+    excessChargeRepository;
+    constructor(luggageService, excessChargeRepository) {
         this.luggageService = luggageService;
+        this.excessChargeRepository = excessChargeRepository;
     }
     async create(createLuggageDto) {
         console.log('🧳 [LuggageController] POST /admin/luggage');
@@ -56,6 +61,43 @@ let LuggageController = class LuggageController {
         console.log(`🧳 [LuggageController] DELETE /admin/luggage/passenger/${passengerId}`);
         await this.luggageService.removeAllByPassenger(passengerId);
         return { message: 'All luggage deleted successfully' };
+    }
+    async postExcessCharge(body) {
+        await this.excessChargeRepository.delete({
+            passenger_id: body.passenger_id,
+            flight_id: body.flight_id ?? undefined,
+        });
+        const record = this.excessChargeRepository.create({
+            passenger_id: body.passenger_id,
+            booking_id: body.booking_id ?? null,
+            flight_id: body.flight_id ?? null,
+            flight_series_id: body.flight_series_id ?? null,
+            route_id: body.route_id ?? null,
+            total_weight: body.total_weight,
+            weight_limit: body.weight_limit,
+            excess_kg: body.excess_kg,
+            charge_per_kg: body.charge_per_kg,
+            total_charge: body.total_charge,
+            currency: body.currency ?? 'USD',
+            notes: body.notes ?? null,
+        });
+        return this.excessChargeRepository.save(record);
+    }
+    async getExcessCharges(flightId, passengerId) {
+        const where = {};
+        if (flightId)
+            where.flight_id = parseInt(flightId, 10);
+        if (passengerId)
+            where.passenger_id = parseInt(passengerId, 10);
+        return this.excessChargeRepository.find({
+            where,
+            relations: ['passenger'],
+            order: { created_at: 'DESC' },
+        });
+    }
+    async deleteExcessCharge(id) {
+        await this.excessChargeRepository.delete(id);
+        return { message: 'Deleted' };
     }
 };
 exports.LuggageController = LuggageController;
@@ -109,9 +151,33 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], LuggageController.prototype, "removeAllByPassenger", null);
+__decorate([
+    (0, common_1.Post)('excess-charges'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], LuggageController.prototype, "postExcessCharge", null);
+__decorate([
+    (0, common_1.Get)('excess-charges'),
+    __param(0, (0, common_1.Query)('flightId')),
+    __param(1, (0, common_1.Query)('passengerId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], LuggageController.prototype, "getExcessCharges", null);
+__decorate([
+    (0, common_1.Delete)('excess-charges/:id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", Promise)
+], LuggageController.prototype, "deleteExcessCharge", null);
 exports.LuggageController = LuggageController = __decorate([
     (0, common_1.Controller)('admin/luggage'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [luggage_service_1.LuggageService])
+    __param(1, (0, typeorm_1.InjectRepository)(luggage_excess_charge_entity_1.LuggageExcessCharge)),
+    __metadata("design:paramtypes", [luggage_service_1.LuggageService,
+        typeorm_2.Repository])
 ], LuggageController);
 //# sourceMappingURL=luggage.controller.js.map

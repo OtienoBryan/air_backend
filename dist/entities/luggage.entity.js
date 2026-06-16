@@ -27,6 +27,8 @@ let Luggage = class Luggage {
     staff_id;
     tag_number;
     weight;
+    excess_kg;
+    excess_charge;
     created_at;
     updated_at;
 };
@@ -82,6 +84,14 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 8, scale: 2, nullable: true }),
     __metadata("design:type", Object)
 ], Luggage.prototype, "weight", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'excess_kg', type: 'decimal', precision: 6, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], Luggage.prototype, "excess_kg", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'excess_charge', type: 'decimal', precision: 10, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], Luggage.prototype, "excess_charge", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

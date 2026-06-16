@@ -71,12 +71,12 @@ let FlightsController = class FlightsController {
         const flightIds = entities.map(f => f.id).filter(Boolean);
         const countMap = new Map();
         if (flightIds.length > 0) {
-            const rows = await this.flightRepository.query(`SELECT bp.flight_id,
-                COUNT(bp.id) AS cnt
-         FROM booking_passengers bp
-         WHERE bp.leg = 'outbound'
-           AND bp.flight_id IN (${flightIds.join(',')})
-         GROUP BY bp.flight_id`);
+            const rows = await this.flightRepository.query(`SELECT b.flight_id,
+                SUM(b.number_of_passengers) AS cnt
+         FROM bookings b
+         WHERE b.status != 2
+           AND b.flight_id IN (${flightIds.join(',')})
+         GROUP BY b.flight_id`);
             console.log('✈️ [FlightsController] booked rows by flight_id:', rows.length, rows.slice(0, 3));
             for (const r of rows) {
                 countMap.set(Number(r.flight_id), Number(r.cnt));
@@ -99,6 +99,8 @@ let FlightsController = class FlightsController {
         const flight = await this.flightRepository.findOneOrFail({ where: { id } });
         if (body.flight_no !== undefined)
             flight.flight_no = body.flight_no;
+        if (body.flight_date !== undefined)
+            flight.flight_date = body.flight_date;
         if (body.std !== undefined)
             flight.std = body.std ?? null;
         if (body.sta !== undefined)

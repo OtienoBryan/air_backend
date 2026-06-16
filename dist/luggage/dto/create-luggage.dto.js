@@ -21,6 +21,8 @@ class CreateLuggageDto {
     staff_id;
     tag_number;
     weight;
+    excess_kg;
+    excess_charge;
 }
 exports.CreateLuggageDto = CreateLuggageDto;
 __decorate([
@@ -70,4 +72,18 @@ __decorate([
     (0, class_validator_1.Max)(1000),
     __metadata("design:type", Object)
 ], CreateLuggageDto.prototype, "weight", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateLuggageDto.prototype, "excess_kg", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateLuggageDto.prototype, "excess_charge", void 0);
 //# sourceMappingURL=create-luggage.dto.js.map

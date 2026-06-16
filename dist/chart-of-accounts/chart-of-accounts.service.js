@@ -97,23 +97,27 @@ let ChartOfAccountsService = class ChartOfAccountsService {
                 where: { id: updateChartOfAccountDto.account_type },
             });
             if (!accountType) {
-                console.log(`❌ [ChartOfAccountsService] Account type with ID ${updateChartOfAccountDto.account_type} not found`);
                 throw new common_1.NotFoundException(`Account type with ID ${updateChartOfAccountDto.account_type} not found`);
             }
         }
         if (updateChartOfAccountDto.code && updateChartOfAccountDto.code !== account.code) {
-            const existingAccount = await this.chartOfAccountRepository.findOne({
+            const existing = await this.chartOfAccountRepository.findOne({
                 where: { code: updateChartOfAccountDto.code },
             });
-            if (existingAccount) {
-                console.log(`❌ [ChartOfAccountsService] Account code ${updateChartOfAccountDto.code} already exists`);
+            if (existing) {
                 throw new common_1.NotFoundException(`Account code ${updateChartOfAccountDto.code} already exists`);
             }
         }
-        Object.assign(account, updateChartOfAccountDto);
-        const updatedAccount = await this.chartOfAccountRepository.save(account);
-        console.log(`✅ [ChartOfAccountsService] Chart of account updated: ${updatedAccount.name}`);
-        return this.findOne(updatedAccount.id);
+        const patch = {};
+        if (updateChartOfAccountDto.name !== undefined)
+            patch.name = updateChartOfAccountDto.name;
+        if (updateChartOfAccountDto.code !== undefined)
+            patch.code = updateChartOfAccountDto.code;
+        if (updateChartOfAccountDto.account_type !== undefined)
+            patch.account_type = updateChartOfAccountDto.account_type;
+        await this.chartOfAccountRepository.update(id, patch);
+        console.log(`✅ [ChartOfAccountsService] Chart of account ${id} updated`);
+        return this.findOne(id);
     }
     async remove(id) {
         console.log(`📊 [ChartOfAccountsService] Deleting chart of account ID: ${id}`);

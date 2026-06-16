@@ -17,12 +17,18 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const country_entity_1 = require("../entities/country.entity");
+const country_tax_entity_1 = require("../entities/country-tax.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
 let CountriesService = class CountriesService {
     countryRepository;
+    countryTaxRepository;
+    chartOfAccountRepository;
     cache = new Map();
     CACHE_TTL = 10 * 60 * 1000;
-    constructor(countryRepository) {
+    constructor(countryRepository, countryTaxRepository, chartOfAccountRepository) {
         this.countryRepository = countryRepository;
+        this.countryTaxRepository = countryTaxRepository;
+        this.chartOfAccountRepository = chartOfAccountRepository;
     }
     getFromCache(key) {
         const cached = this.cache.get(key);
@@ -98,11 +104,49 @@ let CountriesService = class CountriesService {
         this.cache.delete('all_countries');
         this.cache.delete(`country_${id}`);
     }
+    async getTaxes(countryId) {
+        return this.countryTaxRepository.find({
+            where: { country_id: countryId },
+            relations: ['account'],
+            order: { id: 'ASC' },
+        });
+    }
+    async addTax(countryId, data) {
+        const country = await this.countryRepository.findOne({ where: { id: countryId } });
+        if (!country)
+            throw new common_1.NotFoundException('Country not found');
+        const account = await this.chartOfAccountRepository.findOne({ where: { id: data.account_id } });
+        if (!account)
+            throw new common_1.NotFoundException('Account not found');
+        const tax = this.countryTaxRepository.create({ country_id: countryId, account_id: data.account_id, amount: data.amount, currency: data.currency });
+        const saved = await this.countryTaxRepository.save(tax);
+        return this.countryTaxRepository.findOne({ where: { id: saved.id }, relations: ['account'] });
+    }
+    async updateTax(countryId, taxId, data) {
+        const tax = await this.countryTaxRepository.findOne({ where: { id: taxId, country_id: countryId } });
+        if (!tax)
+            throw new common_1.NotFoundException('Tax not found');
+        await this.countryTaxRepository.update(taxId, data);
+        return this.countryTaxRepository.findOne({ where: { id: taxId }, relations: ['account'] });
+    }
+    async removeTax(countryId, taxId) {
+        const tax = await this.countryTaxRepository.findOne({ where: { id: taxId, country_id: countryId } });
+        if (!tax)
+            throw new common_1.NotFoundException('Tax not found');
+        await this.countryTaxRepository.delete(taxId);
+    }
+    async getTaxAccounts() {
+        return this.chartOfAccountRepository.find({ where: { account_type: 16 }, order: { name: 'ASC' } });
+    }
 };
 exports.CountriesService = CountriesService;
 exports.CountriesService = CountriesService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(country_entity_1.Country)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(country_tax_entity_1.CountryTax)),
+    __param(2, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository])
 ], CountriesService);
 //# sourceMappingURL=countries.service.js.map

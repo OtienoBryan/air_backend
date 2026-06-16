@@ -15,6 +15,8 @@ const class_transformer_1 = require("class-transformer");
 class UpdateLuggageDto {
     tag_number;
     weight;
+    excess_kg;
+    excess_charge;
 }
 exports.UpdateLuggageDto = UpdateLuggageDto;
 __decorate([
@@ -30,4 +32,18 @@ __decorate([
     (0, class_validator_1.Max)(1000),
     __metadata("design:type", Object)
 ], UpdateLuggageDto.prototype, "weight", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], UpdateLuggageDto.prototype, "excess_kg", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], UpdateLuggageDto.prototype, "excess_charge", void 0);
 //# sourceMappingURL=update-luggage.dto.js.map
