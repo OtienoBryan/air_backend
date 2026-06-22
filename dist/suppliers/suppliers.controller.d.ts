@@ -6,7 +6,9 @@ export declare class SuppliersController {
     private readonly suppliersService;
     constructor(suppliersService: SuppliersService);
     findAll(page?: number, limit?: number, search?: string, status?: string): Promise<{
-        suppliers: Supplier[];
+        suppliers: (Supplier & {
+            current_balance: number;
+        })[];
         total: number;
     }>;
     getStats(): Promise<SupplierStats>;

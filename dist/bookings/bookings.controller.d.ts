@@ -1,6 +1,7 @@
 import { BookingsService } from './bookings.service';
 import { Booking } from '../entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
 export declare class BookingsController {
     private readonly bookingsService;
     constructor(bookingsService: BookingsService);
@@ -12,7 +13,8 @@ export declare class BookingsController {
     getSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     getPassengersByFlight(flightSeriesId: number): Promise<any[]>;
     findOne(id: number): Promise<Booking>;
+    addPassenger(id: number, addBookingPassengerDto: AddBookingPassengerDto): Promise<Booking>;
     updateBookingPassengerStatus(id: number, body: {
         status: string;
-    }): Promise<any>;
+    }, req: any): Promise<any>;
 }

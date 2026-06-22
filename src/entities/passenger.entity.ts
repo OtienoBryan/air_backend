@@ -35,6 +35,10 @@ export class Passenger {
   @Column({ type: 'varchar', length: 50, nullable: true })
   booking_status: string | null; // 'Boarded', 'CHECK IN', 'No Show'
 
+  // For child/infant passengers added under an adult — the adult passenger's id
+  @Column({ name: 'guardian_passenger_id', type: 'int', nullable: true })
+  guardian_passenger_id: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 

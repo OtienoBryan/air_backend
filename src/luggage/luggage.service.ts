@@ -75,7 +75,7 @@ export class LuggageService {
     return luggage;
   }
 
-  async update(id: number, updateLuggageDto: UpdateLuggageDto): Promise<Luggage> {
+  async update(id: number, updateLuggageDto: UpdateLuggageDto, updatedBy?: number | null): Promise<Luggage> {
     console.log(`🧳 [LuggageService] Updating luggage ID: ${id}`);
     const luggage = await this.findOne(id);
 
@@ -104,6 +104,12 @@ export class LuggageService {
     }
     if (updateLuggageDto.excess_charge !== undefined) {
       luggage.excess_charge = updateLuggageDto.excess_charge ?? 0;
+    }
+    if (updateLuggageDto.collected !== undefined) {
+      luggage.collected = updateLuggageDto.collected;
+    }
+    if (updatedBy !== undefined) {
+      luggage.updated_by = updatedBy ?? null;
     }
 
     const updatedLuggage = await this.luggageRepository.save(luggage);

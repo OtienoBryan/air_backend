@@ -11,6 +11,7 @@ import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalEntryLine } from '../entities/journal-entry-line.entity';
 import { ChartOfAccount } from '../entities/chart-of-account.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
 import { PassengersService } from '../passengers/passengers.service';
 export declare class BookingsService {
     private bookingRepository;
@@ -34,10 +35,11 @@ export declare class BookingsService {
         bookings: Booking[];
         total: number;
     }>;
+    addPassengerToBooking(bookingId: number, dto: AddBookingPassengerDto): Promise<Booking>;
     findOne(id: number): Promise<Booking>;
     getPassengersByFlight(flightSeriesId: number): Promise<any[]>;
     getPassengersByFlightId(flightId: number): Promise<any[]>;
     getBookedSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     private generateBookingReference;
-    updateBookingPassengerStatus(id: number, status: string): Promise<any>;
+    updateBookingPassengerStatus(id: number, status: string, updatedBy?: number | null): Promise<any>;
 }

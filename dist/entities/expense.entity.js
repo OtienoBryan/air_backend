@@ -30,6 +30,7 @@ let Expense = class Expense {
     aircraft_id;
     flight_id;
     cost_center;
+    posted_by;
     journal_entry;
     supplier;
     route;
@@ -87,6 +88,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'cost_center', type: 'varchar', length: 100, nullable: true }),
     __metadata("design:type", Object)
 ], Expense.prototype, "cost_center", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'posted_by', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Expense.prototype, "posted_by", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => journal_entry_entity_1.JournalEntry),
     (0, typeorm_1.JoinColumn)({ name: 'journal_entry_id' }),

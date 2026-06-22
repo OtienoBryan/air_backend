@@ -58,7 +58,9 @@ export declare class SuppliersService {
     private supplierLedgerRepository;
     constructor(supplierRepository: Repository<Supplier>, supplierLedgerRepository: Repository<SupplierLedger>);
     findAll(page?: number, limit?: number, search?: string, status?: string): Promise<{
-        suppliers: Supplier[];
+        suppliers: (Supplier & {
+            current_balance: number;
+        })[];
         total: number;
     }>;
     findOne(id: number): Promise<Supplier>;

@@ -71,12 +71,13 @@ let FlightsController = class FlightsController {
         const flightIds = entities.map(f => f.id).filter(Boolean);
         const countMap = new Map();
         if (flightIds.length > 0) {
-            const rows = await this.flightRepository.query(`SELECT b.flight_id,
-                SUM(b.number_of_passengers) AS cnt
-         FROM bookings b
+            const rows = await this.flightRepository.query(`SELECT bp.flight_id,
+                COUNT(*) AS cnt
+         FROM booking_passengers bp
+         INNER JOIN bookings b ON b.id = bp.booking_id
          WHERE b.status != 2
-           AND b.flight_id IN (${flightIds.join(',')})
-         GROUP BY b.flight_id`);
+           AND bp.flight_id IN (${flightIds.join(',')})
+         GROUP BY bp.flight_id`);
             console.log('✈️ [FlightsController] booked rows by flight_id:', rows.length, rows.slice(0, 3));
             for (const r of rows) {
                 countMap.set(Number(r.flight_id), Number(r.cnt));
@@ -150,6 +151,10 @@ let FlightsController = class FlightsController {
             fare_amount: Number(bp.fare_amount ?? 0),
             travel_date: bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
             leg: bp.leg,
+            status: bp.status ?? null,
+            checked_in_at: bp.checked_in_at ?? null,
+            boarded_at: bp.boarded_at ?? null,
+            checkin_by: bp.checkin_by ?? null,
             ticket_status: bp.ticket_status ?? null,
             ticket_number: bp.ticket_number ?? null,
             flight: bp.flight ? {
@@ -181,6 +186,7 @@ let FlightsController = class FlightsController {
                 id_type: bp.passenger.id_type,
                 identification: bp.passenger.identification,
                 booking_status: bp.passenger.booking_status ?? null,
+                guardian_passenger_id: bp.passenger.guardian_passenger_id ?? null,
             } : null,
         }));
     }
@@ -209,7 +215,7 @@ let FlightsController = class FlightsController {
                 where: { flight_series_id: flight.series_id, travel_date: flight.flight_date },
                 relations: ['booking'],
             });
-            const uniqueBookingIds = [...new Set(affectedBps.map(bp => bp.booking_id))];
+            const uniqueBookingIds = [...new Set(affectedBps.filter(bp => bp.booking).map(bp => bp.booking_id))];
             if (uniqueBookingIds.length > 0) {
                 const disruptions = uniqueBookingIds.map(bookingId => this.disruptionRepository.create({
                     booking_id: bookingId,

@@ -46,6 +46,9 @@ export class Expense {
   @Column({ name: 'cost_center', type: 'varchar', length: 100, nullable: true })
   cost_center: string | null;
 
+  @Column({ name: 'posted_by', type: 'int', nullable: true })
+  posted_by: number | null;
+
   @ManyToOne(() => JournalEntry)
   @JoinColumn({ name: 'journal_entry_id' })
   journal_entry?: JournalEntry;

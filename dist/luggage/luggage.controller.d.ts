@@ -12,7 +12,7 @@ export declare class LuggageController {
     findAllWithDetails(flightSeriesId?: string): Promise<any[]>;
     findAllByPassenger(passengerId: number): Promise<Luggage[]>;
     findOne(id: number): Promise<Luggage>;
-    update(id: number, updateLuggageDto: UpdateLuggageDto): Promise<Luggage>;
+    update(id: number, updateLuggageDto: UpdateLuggageDto, req: any): Promise<Luggage>;
     remove(id: number): Promise<{
         message: string;
     }>;

@@ -73,12 +73,13 @@ export class FlightsController {
 
     if (flightIds.length > 0) {
       const rows: { flight_id: string; cnt: string }[] = await this.flightRepository.query(
-        `SELECT b.flight_id,
-                SUM(b.number_of_passengers) AS cnt
-         FROM bookings b
+        `SELECT bp.flight_id,
+                COUNT(*) AS cnt
+         FROM booking_passengers bp
+         INNER JOIN bookings b ON b.id = bp.booking_id
          WHERE b.status != 2
-           AND b.flight_id IN (${flightIds.join(',')})
-         GROUP BY b.flight_id`
+           AND bp.flight_id IN (${flightIds.join(',')})
+         GROUP BY bp.flight_id`
       )
       console.log('✈️ [FlightsController] booked rows by flight_id:', rows.length, rows.slice(0, 3))
       for (const r of rows) {
@@ -168,6 +169,10 @@ export class FlightsController {
       fare_amount:     Number(bp.fare_amount ?? 0),
       travel_date:     bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
       leg:             bp.leg,
+      status:          bp.status ?? null,
+      checked_in_at:   bp.checked_in_at ?? null,
+      boarded_at:      bp.boarded_at ?? null,
+      checkin_by:      bp.checkin_by ?? null,
       ticket_status:   bp.ticket_status ?? null,
       ticket_number:   bp.ticket_number ?? null,
       flight: bp.flight ? {
@@ -199,6 +204,7 @@ export class FlightsController {
         id_type:        bp.passenger.id_type,
         identification: bp.passenger.identification,
         booking_status: (bp.passenger as any).booking_status ?? null,
+        guardian_passenger_id: (bp.passenger as any).guardian_passenger_id ?? null,
       } : null,
     }))
   }
@@ -245,7 +251,11 @@ export class FlightsController {
         where: { flight_series_id: flight.series_id, travel_date: flight.flight_date as any },
         relations: ['booking'],
       })
-      const uniqueBookingIds = [...new Set(affectedBps.map(bp => bp.booking_id))]
+      // Only keep rows whose booking actually resolved — guards against orphaned/
+      // bad booking_passengers rows (e.g. booking_id = 0) violating the FK on insert.
+      const uniqueBookingIds = [...new Set(
+        affectedBps.filter(bp => bp.booking).map(bp => bp.booking_id)
+      )]
       if (uniqueBookingIds.length > 0) {
         const disruptions = uniqueBookingIds.map(bookingId =>
           this.disruptionRepository.create({

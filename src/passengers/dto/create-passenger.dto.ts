@@ -41,6 +41,12 @@ export class CreatePassengerDto {
   @IsString()
   booking_status?: string | null;
 
+  // For child/infant passengers — the adult passenger's id they're attached to
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  guardian_passenger_id?: number | null;
+
   // pnr is auto-generated, not provided by client
 }
 

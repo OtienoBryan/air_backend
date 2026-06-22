@@ -23,6 +23,7 @@ let Passenger = class Passenger {
     age;
     title;
     booking_status;
+    guardian_passenger_id;
     created_at;
     updated_at;
 };
@@ -71,6 +72,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: true }),
     __metadata("design:type", Object)
 ], Passenger.prototype, "booking_status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'guardian_passenger_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Passenger.prototype, "guardian_passenger_id", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)

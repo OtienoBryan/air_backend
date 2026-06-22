@@ -52,6 +52,10 @@ export declare class FlightsController {
         fare_amount: number;
         travel_date: string | null;
         leg: string;
+        status: string | null;
+        checked_in_at: Date | null;
+        boarded_at: Date | null;
+        checkin_by: number | null;
         ticket_status: "OPEN" | "USED" | "VOID" | "REFUNDED" | null;
         ticket_number: string | null;
         flight: {
@@ -83,6 +87,7 @@ export declare class FlightsController {
             id_type: string | null;
             identification: string | null;
             booking_status: any;
+            guardian_passenger_id: any;
         } | null;
     }[]>;
     getExceptions(id: number): Promise<FlightException[]>;

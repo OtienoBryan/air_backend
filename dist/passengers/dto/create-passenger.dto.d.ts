@@ -8,4 +8,5 @@ export declare class CreatePassengerDto {
     age?: number | null;
     title?: string | null;
     booking_status?: string | null;
+    guardian_passenger_id?: number | null;
 }

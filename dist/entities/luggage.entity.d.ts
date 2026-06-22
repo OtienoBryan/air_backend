@@ -16,6 +16,8 @@ export declare class Luggage {
     weight: number | null;
     excess_kg: number;
     excess_charge: number;
+    collected: boolean;
+    updated_by: number | null;
     created_at: Date;
     updated_at: Date;
 }

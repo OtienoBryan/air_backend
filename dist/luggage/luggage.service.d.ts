@@ -12,7 +12,7 @@ export declare class LuggageService {
     create(createLuggageDto: CreateLuggageDto): Promise<Luggage>;
     findAllByPassenger(passengerId: number): Promise<Luggage[]>;
     findOne(id: number): Promise<Luggage>;
-    update(id: number, updateLuggageDto: UpdateLuggageDto): Promise<Luggage>;
+    update(id: number, updateLuggageDto: UpdateLuggageDto, updatedBy?: number | null): Promise<Luggage>;
     remove(id: number): Promise<void>;
     removeAllByPassenger(passengerId: number): Promise<void>;
     findAllWithDetails(flightSeriesId?: number): Promise<any[]>;

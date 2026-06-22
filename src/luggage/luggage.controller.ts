@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
   DefaultValuePipe,
+  Request,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -65,9 +66,11 @@ export class LuggageController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateLuggageDto: UpdateLuggageDto,
+    @Request() req,
   ): Promise<Luggage> {
     console.log(`🧳 [LuggageController] PUT /admin/luggage/${id}`);
-    return this.luggageService.update(id, updateLuggageDto);
+    const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
+    return this.luggageService.update(id, updateLuggageDto, updatedBy);
   }
 
   @Delete(':id')

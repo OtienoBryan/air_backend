@@ -70,7 +70,7 @@ export class SuppliersService {
     private supplierLedgerRepository: Repository<SupplierLedger>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 10, search?: string, status?: string): Promise<{ suppliers: Supplier[], total: number }> {
+  async findAll(page: number = 1, limit: number = 10, search?: string, status?: string): Promise<{ suppliers: (Supplier & { current_balance: number })[], total: number }> {
     const queryBuilder = this.supplierRepository.createQueryBuilder('supplier');
 
     // Apply search filter
@@ -97,7 +97,32 @@ export class SuppliersService {
 
     const [suppliers, total] = await queryBuilder.getManyAndCount();
 
-    return { suppliers, total };
+    // Attach each supplier's current balance (latest running_balance on their ledger)
+    const supplierIds = suppliers.map(s => s.id);
+    const balanceMap = new Map<number, number>();
+    if (supplierIds.length > 0) {
+      const latestRows: { supplier_id: number; running_balance: string }[] = await this.supplierLedgerRepository.query(
+        `SELECT sl.supplier_id, sl.running_balance
+         FROM supplier_ledger sl
+         WHERE sl.id = (
+           SELECT sl2.id FROM supplier_ledger sl2
+           WHERE sl2.supplier_id = sl.supplier_id
+           ORDER BY sl2.date DESC, sl2.created_at DESC, sl2.id DESC
+           LIMIT 1
+         )
+         AND sl.supplier_id IN (${supplierIds.join(',')})`
+      );
+      for (const row of latestRows) {
+        balanceMap.set(Number(row.supplier_id), Number(row.running_balance));
+      }
+    }
+
+    const suppliersWithBalance = suppliers.map(s => ({
+      ...s,
+      current_balance: balanceMap.get(s.id) ?? 0,
+    }));
+
+    return { suppliers: suppliersWithBalance, total };
   }
 
   async findOne(id: number): Promise<Supplier> {

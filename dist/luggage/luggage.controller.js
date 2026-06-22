@@ -48,9 +48,10 @@ let LuggageController = class LuggageController {
         console.log(`🧳 [LuggageController] GET /admin/luggage/${id}`);
         return this.luggageService.findOne(id);
     }
-    async update(id, updateLuggageDto) {
+    async update(id, updateLuggageDto, req) {
         console.log(`🧳 [LuggageController] PUT /admin/luggage/${id}`);
-        return this.luggageService.update(id, updateLuggageDto);
+        const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
+        return this.luggageService.update(id, updateLuggageDto, updatedBy);
     }
     async remove(id) {
         console.log(`🧳 [LuggageController] DELETE /admin/luggage/${id}`);
@@ -133,8 +134,9 @@ __decorate([
     (0, common_1.Put)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, update_luggage_dto_1.UpdateLuggageDto]),
+    __metadata("design:paramtypes", [Number, update_luggage_dto_1.UpdateLuggageDto, Object]),
     __metadata("design:returntype", Promise)
 ], LuggageController.prototype, "update", null);
 __decorate([

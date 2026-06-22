@@ -131,6 +131,28 @@ let BookingsService = class BookingsService {
         }
         const primaryPassenger = createdPassengers[0];
         const bookingReference = this.generateBookingReference();
+        const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null;
+        const returnDate = isReturnTrip ? (createBookingDto.return_date ?? null) : null;
+        const returnFsId = isReturnTrip ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id) : null;
+        const lookupFlightId = async (seriesId, date) => {
+            if (!seriesId || !date)
+                return null;
+            try {
+                const f = await this.flightRepository.findOne({
+                    where: { series_id: seriesId, flight_date: date },
+                });
+                return f?.id ?? null;
+            }
+            catch {
+                return null;
+            }
+        };
+        const outboundFlightId = createBookingDto.flight_id
+            ?? await lookupFlightId(createBookingDto.flight_series_id, outboundDate);
+        const returnFlightId = isReturnTrip
+            ? (createBookingDto.return_flight_id ?? await lookupFlightId(returnFsId, returnDate))
+            : null;
+        console.log(`✈️ [BookingsService] flight_id: outbound=${outboundFlightId}, return=${returnFlightId}`);
         const booking = this.bookingRepository.create({
             booking_reference: bookingReference,
             flight_series_id: createBookingDto.flight_series_id,
@@ -154,34 +176,12 @@ let BookingsService = class BookingsService {
             is_return_trip: isReturnTrip,
             return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
             return_flight_series_id: isReturnTrip ? (createBookingDto.return_flight_series_id ?? null) : null,
-            flight_id: createBookingDto.flight_id ?? null,
+            flight_id: outboundFlightId,
         });
         console.log(`💳 [BookingsService] Saving booking — method=${createBookingDto.payment_method} ref=${createBookingDto.payment_reference ?? 'null'} account=${createBookingDto.payment_account ?? 'null'}`);
         const savedBooking = await this.bookingRepository.save(booking);
-        console.log(`✅ [BookingsService] Booking saved: id=${savedBooking.id} ref=${savedBooking.booking_reference} payment_ref=${savedBooking.payment_reference ?? 'null'} payment_acc=${savedBooking.payment_account ?? 'null'}`);
+        console.log(`✅ [BookingsService] Booking saved: id=${savedBooking.id} ref=${savedBooking.booking_reference} flight_id=${savedBooking.flight_id ?? 'null'} payment_ref=${savedBooking.payment_reference ?? 'null'} payment_acc=${savedBooking.payment_account ?? 'null'}`);
         console.log(`✅ [BookingsService] Created ${createdPassengers.length} passengers for booking`);
-        const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null;
-        const returnDate = isReturnTrip ? (createBookingDto.return_date ?? null) : null;
-        const returnFsId = isReturnTrip ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id) : null;
-        const lookupFlightId = async (seriesId, date) => {
-            if (!seriesId || !date)
-                return null;
-            try {
-                const f = await this.flightRepository.findOne({
-                    where: { series_id: seriesId, flight_date: date },
-                });
-                return f?.id ?? null;
-            }
-            catch {
-                return null;
-            }
-        };
-        const outboundFlightId = createBookingDto.flight_id
-            ?? await lookupFlightId(createBookingDto.flight_series_id, outboundDate);
-        const returnFlightId = isReturnTrip
-            ? (createBookingDto.return_flight_id ?? await lookupFlightId(returnFsId, returnDate))
-            : null;
-        console.log(`✈️ [BookingsService] flight_id: outbound=${outboundFlightId}, return=${returnFlightId}`);
         const bookingPassengerRecords = [];
         for (let i = 0; i < createdPassengers.length; i++) {
             const passenger = createdPassengers[i];
@@ -818,6 +818,74 @@ let BookingsService = class BookingsService {
         });
         return { bookings, total };
     }
+    async addPassengerToBooking(bookingId, dto) {
+        const booking = await this.bookingRepository.findOne({
+            where: { id: bookingId },
+            relations: ['flightSeries', 'returnFlightSeries', 'bookingPassengers'],
+        });
+        if (!booking) {
+            throw new common_1.NotFoundException(`Booking with ID ${bookingId} not found`);
+        }
+        if (!booking.flightSeries) {
+            throw new common_1.BadRequestException(`Booking ${bookingId} has no flight series`);
+        }
+        let passenger = null;
+        if (dto.id_type && dto.identification) {
+            passenger = await this.passengerRepository.findOne({
+                where: { id_type: dto.id_type, identification: dto.identification },
+            });
+        }
+        if (!passenger) {
+            passenger = await this.passengersService.create({
+                name: dto.name,
+                email: dto.email || null,
+                contact: dto.contact || null,
+                nationality: dto.nationality || null,
+                id_type: dto.id_type || null,
+                identification: dto.identification || null,
+                age: dto.age ?? null,
+                title: dto.title || null,
+                guardian_passenger_id: dto.guardian_passenger_id ?? null,
+            });
+        }
+        else if (dto.guardian_passenger_id !== undefined && passenger.guardian_passenger_id !== dto.guardian_passenger_id) {
+            passenger.guardian_passenger_id = dto.guardian_passenger_id ?? null;
+            passenger = await this.passengerRepository.save(passenger);
+        }
+        const isReturnTrip = !!booking.is_return_trip;
+        const existingOutbound = booking.bookingPassengers?.find(bp => bp.leg === 'outbound');
+        const outboundFare = 0;
+        const outboundBp = this.bookingPassengerRepository.create({
+            booking_id: booking.id,
+            passenger_id: passenger.id,
+            flight_series_id: booking.flight_series_id,
+            flight_id: existingOutbound?.flight_id ?? booking.flight_id ?? null,
+            passenger_type: dto.passenger_type,
+            fare_amount: outboundFare,
+            travel_date: existingOutbound?.travel_date ?? null,
+            leg: 'outbound',
+        });
+        await this.bookingPassengerRepository.save(outboundBp);
+        let returnFare = 0;
+        if (isReturnTrip) {
+            const existingReturn = booking.bookingPassengers?.find(bp => bp.leg === 'return');
+            const returnBp = this.bookingPassengerRepository.create({
+                booking_id: booking.id,
+                passenger_id: passenger.id,
+                flight_series_id: booking.return_flight_series_id ?? booking.flight_series_id,
+                flight_id: existingReturn?.flight_id ?? null,
+                passenger_type: dto.passenger_type,
+                fare_amount: returnFare,
+                travel_date: existingReturn?.travel_date ?? booking.return_date ?? null,
+                leg: 'return',
+            });
+            await this.bookingPassengerRepository.save(returnBp);
+        }
+        booking.number_of_passengers = (booking.number_of_passengers || 0) + 1;
+        booking.total_amount = Number(booking.total_amount) + outboundFare + returnFare;
+        await this.bookingRepository.save(booking);
+        return this.findOne(bookingId);
+    }
     async findOne(id) {
         const booking = await this.bookingRepository.findOne({
             where: { id },
@@ -919,9 +987,18 @@ let BookingsService = class BookingsService {
         const random = Math.random().toString(36).substring(2, 6).toUpperCase();
         return `${prefix}${timestamp}${random}`;
     }
-    async updateBookingPassengerStatus(id, status) {
+    async updateBookingPassengerStatus(id, status, updatedBy) {
         const bp = await this.bookingPassengerRepository.findOneOrFail({ where: { id } });
         bp.status = status;
+        if (status === 'CHECK IN') {
+            bp.checked_in_at = new Date();
+        }
+        if (status === 'Boarded') {
+            bp.boarded_at = new Date();
+        }
+        if (updatedBy !== undefined) {
+            bp.checkin_by = updatedBy ?? null;
+        }
         return this.bookingPassengerRepository.save(bp);
     }
 };

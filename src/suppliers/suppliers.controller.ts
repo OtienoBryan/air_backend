@@ -27,7 +27,7 @@ export class SuppliersController {
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
     @Query('status') status?: string,
-  ): Promise<{ suppliers: Supplier[], total: number }> {
+  ): Promise<{ suppliers: (Supplier & { current_balance: number })[], total: number }> {
     console.log('🔍 [SuppliersController] GET /admin/suppliers', { page, limit, search, status });
     
     const result = await this.suppliersService.findAll(page, limit, search, status);

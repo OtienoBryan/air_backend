@@ -1,10 +1,14 @@
-import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateLuggageDto {
   @IsOptional()
   @IsString()
   tag_number?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  collected?: boolean;
 
   @IsOptional()
   @Type(() => Number)

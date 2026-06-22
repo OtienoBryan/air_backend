@@ -40,7 +40,27 @@ let SuppliersService = class SuppliersService {
         queryBuilder.skip(offset).take(limit);
         queryBuilder.orderBy('supplier.company_name', 'ASC');
         const [suppliers, total] = await queryBuilder.getManyAndCount();
-        return { suppliers, total };
+        const supplierIds = suppliers.map(s => s.id);
+        const balanceMap = new Map();
+        if (supplierIds.length > 0) {
+            const latestRows = await this.supplierLedgerRepository.query(`SELECT sl.supplier_id, sl.running_balance
+         FROM supplier_ledger sl
+         WHERE sl.id = (
+           SELECT sl2.id FROM supplier_ledger sl2
+           WHERE sl2.supplier_id = sl.supplier_id
+           ORDER BY sl2.date DESC, sl2.created_at DESC, sl2.id DESC
+           LIMIT 1
+         )
+         AND sl.supplier_id IN (${supplierIds.join(',')})`);
+            for (const row of latestRows) {
+                balanceMap.set(Number(row.supplier_id), Number(row.running_balance));
+            }
+        }
+        const suppliersWithBalance = suppliers.map(s => ({
+            ...s,
+            current_balance: balanceMap.get(s.id) ?? 0,
+        }));
+        return { suppliers: suppliersWithBalance, total };
     }
     async findOne(id) {
         const supplier = await this.supplierRepository.findOne({ where: { id } });

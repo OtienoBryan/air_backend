@@ -16,6 +16,7 @@ exports.BookingsController = void 0;
 const common_1 = require("@nestjs/common");
 const bookings_service_1 = require("./bookings.service");
 const create_booking_dto_1 = require("./dto/create-booking.dto");
+const add_booking_passenger_dto_1 = require("./dto/add-booking-passenger.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 let BookingsController = class BookingsController {
     bookingsService;
@@ -49,8 +50,13 @@ let BookingsController = class BookingsController {
         console.log(`🎫 [BookingsController] GET /admin/bookings/${id}`);
         return this.bookingsService.findOne(id);
     }
-    async updateBookingPassengerStatus(id, body) {
-        return this.bookingsService.updateBookingPassengerStatus(id, body.status);
+    async addPassenger(id, addBookingPassengerDto) {
+        console.log(`🎫 [BookingsController] POST /admin/bookings/${id}/passengers`);
+        return this.bookingsService.addPassengerToBooking(id, addBookingPassengerDto);
+    }
+    async updateBookingPassengerStatus(id, body, req) {
+        const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
+        return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
     }
 };
 exports.BookingsController = BookingsController;
@@ -91,11 +97,20 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "findOne", null);
 __decorate([
-    (0, common_1.Patch)('booking-passengers/:id/status'),
+    (0, common_1.Post)(':id/passengers'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, add_booking_passenger_dto_1.AddBookingPassengerDto]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "addPassenger", null);
+__decorate([
+    (0, common_1.Patch)('booking-passengers/:id/status'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "updateBookingPassengerStatus", null);
 exports.BookingsController = BookingsController = __decorate([

@@ -17,6 +17,7 @@ export declare class Expense {
     aircraft_id: number | null;
     flight_id: number | null;
     cost_center: string | null;
+    posted_by: number | null;
     journal_entry?: JournalEntry;
     supplier?: Supplier;
     route?: FlightRoute | null;

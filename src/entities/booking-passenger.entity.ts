@@ -59,6 +59,15 @@ export class BookingPassenger {
   @Column({ name: 'status', type: 'varchar', length: 30, nullable: true, default: 'confirmed' })
   status: string | null;
 
+  @Column({ name: 'checked_in_at', type: 'timestamp', nullable: true })
+  checked_in_at: Date | null;
+
+  @Column({ name: 'boarded_at', type: 'timestamp', nullable: true })
+  boarded_at: Date | null;
+
+  @Column({ name: 'checkin_by', type: 'int', nullable: true })
+  checkin_by: number | null;
+
   @Column({ name: 'ticket_number', type: 'varchar', length: 20, nullable: true, unique: true })
   ticket_number: string | null;
 

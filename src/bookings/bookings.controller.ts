@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, Query, UseGuards, Request } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { Booking } from '../entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin/bookings')
@@ -53,12 +54,23 @@ export class BookingsController {
     return this.bookingsService.findOne(id);
   }
 
+  @Post(':id/passengers')
+  async addPassenger(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() addBookingPassengerDto: AddBookingPassengerDto,
+  ): Promise<Booking> {
+    console.log(`🎫 [BookingsController] POST /admin/bookings/${id}/passengers`);
+    return this.bookingsService.addPassengerToBooking(id, addBookingPassengerDto);
+  }
+
   @Patch('booking-passengers/:id/status')
   async updateBookingPassengerStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { status: string },
+    @Request() req,
   ) {
-    return this.bookingsService.updateBookingPassengerStatus(id, body.status);
+    const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
+    return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
   }
 }
 

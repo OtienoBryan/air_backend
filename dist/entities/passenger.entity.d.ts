@@ -10,6 +10,7 @@ export declare class Passenger {
     age: number | null;
     title: string | null;
     booking_status: string | null;
+    guardian_passenger_id: number | null;
     created_at: Date;
     updated_at: Date;
 }

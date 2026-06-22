@@ -153,6 +153,7 @@ let ExpensesService = class ExpensesService {
                 aircraft_id: createExpenseDto.aircraft_id || null,
                 flight_id: createExpenseDto.flight_id || null,
                 cost_center: createExpenseDto.cost_center || null,
+                posted_by: createdBy || null,
             });
             const savedExpense = await queryRunner.manager.save(expense_entity_1.Expense, expense);
             console.log(`✅ [ExpensesService] Expense created with ID: ${savedExpense.id}`);

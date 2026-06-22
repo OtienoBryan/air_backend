@@ -9,10 +9,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreatePassengerDto = void 0;
+exports.AddBookingPassengerDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
-class CreatePassengerDto {
+class AddBookingPassengerDto {
     name;
     email;
     contact;
@@ -21,62 +21,61 @@ class CreatePassengerDto {
     identification;
     age;
     title;
-    booking_status;
+    passenger_type;
     guardian_passenger_id;
 }
-exports.CreatePassengerDto = CreatePassengerDto;
+exports.AddBookingPassengerDto = AddBookingPassengerDto;
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
-], CreatePassengerDto.prototype, "name", void 0);
+], AddBookingPassengerDto.prototype, "name", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEmail)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "email", void 0);
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "contact", void 0);
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "contact", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "nationality", void 0);
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "nationality", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "id_type", void 0);
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "id_type", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "identification", void 0);
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "identification", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsInt)(),
-    (0, class_validator_1.Min)(0),
-    (0, class_validator_1.Max)(150),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "age", void 0);
+    __metadata("design:type", Number)
+], AddBookingPassengerDto.prototype, "age", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "title", void 0);
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "title", void 0);
 __decorate([
-    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "booking_status", void 0);
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsIn)(['child', 'infant']),
+    __metadata("design:type", String)
+], AddBookingPassengerDto.prototype, "passenger_type", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsInt)(),
-    __metadata("design:type", Object)
-], CreatePassengerDto.prototype, "guardian_passenger_id", void 0);
-//# sourceMappingURL=create-passenger.dto.js.map
+    __metadata("design:type", Number)
+], AddBookingPassengerDto.prototype, "guardian_passenger_id", void 0);
+//# sourceMappingURL=add-booking-passenger.dto.js.map

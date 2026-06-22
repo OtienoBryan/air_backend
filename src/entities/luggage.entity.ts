@@ -50,6 +50,12 @@ export class Luggage {
   @Column({ name: 'excess_charge', type: 'decimal', precision: 10, scale: 2, default: 0 })
   excess_charge: number;
 
+  @Column({ type: 'boolean', default: false })
+  collected: boolean;
+
+  @Column({ name: 'updated_by', type: 'int', nullable: true })
+  updated_by: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
 
