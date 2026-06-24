@@ -3,6 +3,8 @@ import { BookingsService } from './bookings.service';
 import { Booking } from '../entities/booking.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
+import { CancelRefundDto } from './dto/cancel-refund.dto';
+import { CancelRescheduleDto } from './dto/cancel-reschedule.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin/bookings')
@@ -71,6 +73,28 @@ export class BookingsController {
   ) {
     const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
     return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
+  }
+
+  @Patch('booking-passengers/:id/cancel-refund')
+  async cancelAndRefund(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() cancelRefundDto: CancelRefundDto,
+    @Request() req,
+  ) {
+    const staffId = req.user?.sub ? Number(req.user.sub) : null;
+    console.log(`🎫 [BookingsController] PATCH /admin/bookings/booking-passengers/${id}/cancel-refund`);
+    return this.bookingsService.cancelAndRefund(id, cancelRefundDto, staffId);
+  }
+
+  @Patch('booking-passengers/:id/cancel-reschedule')
+  async cancelAndReschedule(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() cancelRescheduleDto: CancelRescheduleDto,
+    @Request() req,
+  ) {
+    const staffId = req.user?.sub ? Number(req.user.sub) : null;
+    console.log(`🎫 [BookingsController] PATCH /admin/bookings/booking-passengers/${id}/cancel-reschedule`);
+    return this.bookingsService.cancelAndReschedule(id, cancelRescheduleDto, staffId);
   }
 }
 

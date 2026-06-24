@@ -40,6 +40,12 @@ let BookingPassenger = class BookingPassenger {
     issued_at;
     payment_reference;
     payment_account;
+    refund_amount;
+    reschedule_fee;
+    cancellation_reason;
+    cancelled_at;
+    cancelled_by;
+    rescheduled_to_id;
     created_at;
 };
 exports.BookingPassenger = BookingPassenger;
@@ -131,7 +137,7 @@ __decorate([
     (0, typeorm_1.Column)({
         name: 'ticket_status',
         type: 'enum',
-        enum: ['OPEN', 'USED', 'VOID', 'REFUNDED'],
+        enum: ['OPEN', 'USED', 'VOID', 'REFUNDED', 'RESCHEDULED'],
         nullable: true,
         default: 'OPEN',
     }),
@@ -150,11 +156,34 @@ __decorate([
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "payment_account", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'refund_amount', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "refund_amount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'reschedule_fee', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "reschedule_fee", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'cancellation_reason', type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "cancellation_reason", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'cancelled_at', type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "cancelled_at", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'cancelled_by', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "cancelled_by", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'rescheduled_to_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "rescheduled_to_id", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)({ name: 'created_at' }),
     __metadata("design:type", Date)
 ], BookingPassenger.prototype, "created_at", void 0);
 exports.BookingPassenger = BookingPassenger = __decorate([
-    (0, typeorm_1.Entity)('booking_passengers'),
-    (0, typeorm_1.Unique)(['booking_id', 'passenger_id', 'leg'])
+    (0, typeorm_1.Entity)('booking_passengers')
 ], BookingPassenger);
 //# sourceMappingURL=booking-passenger.entity.js.map

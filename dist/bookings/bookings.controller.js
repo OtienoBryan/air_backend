@@ -17,6 +17,8 @@ const common_1 = require("@nestjs/common");
 const bookings_service_1 = require("./bookings.service");
 const create_booking_dto_1 = require("./dto/create-booking.dto");
 const add_booking_passenger_dto_1 = require("./dto/add-booking-passenger.dto");
+const cancel_refund_dto_1 = require("./dto/cancel-refund.dto");
+const cancel_reschedule_dto_1 = require("./dto/cancel-reschedule.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 let BookingsController = class BookingsController {
     bookingsService;
@@ -57,6 +59,16 @@ let BookingsController = class BookingsController {
     async updateBookingPassengerStatus(id, body, req) {
         const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
         return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
+    }
+    async cancelAndRefund(id, cancelRefundDto, req) {
+        const staffId = req.user?.sub ? Number(req.user.sub) : null;
+        console.log(`🎫 [BookingsController] PATCH /admin/bookings/booking-passengers/${id}/cancel-refund`);
+        return this.bookingsService.cancelAndRefund(id, cancelRefundDto, staffId);
+    }
+    async cancelAndReschedule(id, cancelRescheduleDto, req) {
+        const staffId = req.user?.sub ? Number(req.user.sub) : null;
+        console.log(`🎫 [BookingsController] PATCH /admin/bookings/booking-passengers/${id}/cancel-reschedule`);
+        return this.bookingsService.cancelAndReschedule(id, cancelRescheduleDto, staffId);
     }
 };
 exports.BookingsController = BookingsController;
@@ -113,6 +125,24 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "updateBookingPassengerStatus", null);
+__decorate([
+    (0, common_1.Patch)('booking-passengers/:id/cancel-refund'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, cancel_refund_dto_1.CancelRefundDto, Object]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "cancelAndRefund", null);
+__decorate([
+    (0, common_1.Patch)('booking-passengers/:id/cancel-reschedule'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, cancel_reschedule_dto_1.CancelRescheduleDto, Object]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "cancelAndReschedule", null);
 exports.BookingsController = BookingsController = __decorate([
     (0, common_1.Controller)('admin/bookings'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

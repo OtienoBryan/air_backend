@@ -74,8 +74,7 @@ let FlightsController = class FlightsController {
             const rows = await this.flightRepository.query(`SELECT bp.flight_id,
                 COUNT(*) AS cnt
          FROM booking_passengers bp
-         INNER JOIN bookings b ON b.id = bp.booking_id
-         WHERE b.status != 2
+         WHERE (bp.status IS NULL OR bp.status != 'cancelled')
            AND bp.flight_id IN (${flightIds.join(',')})
          GROUP BY bp.flight_id`);
             console.log('✈️ [FlightsController] booked rows by flight_id:', rows.length, rows.slice(0, 3));
@@ -157,6 +156,11 @@ let FlightsController = class FlightsController {
             checkin_by: bp.checkin_by ?? null,
             ticket_status: bp.ticket_status ?? null,
             ticket_number: bp.ticket_number ?? null,
+            refund_amount: bp.refund_amount ?? null,
+            reschedule_fee: bp.reschedule_fee ?? null,
+            cancellation_reason: bp.cancellation_reason ?? null,
+            cancelled_at: bp.cancelled_at ?? null,
+            rescheduled_to_id: bp.rescheduled_to_id ?? null,
             flight: bp.flight ? {
                 id: bp.flight.id,
                 flight_no: bp.flight.flight_no,

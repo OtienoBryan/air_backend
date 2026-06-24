@@ -48,6 +48,8 @@ async function bootstrap() {
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'http://localhost:8080',
+        'http://admin.royalairsarl.com',
+        'http://agents.royalairsarl.com',
         'https://mc-aviation.vercel.app', // Vercel production domain
         'https://mcaviation.citlogisticssystems.com',
       ];
@@ -80,6 +82,13 @@ async function bootstrap() {
       // Allow citlogisticssystems.com subdomains (e.g. mcaviation.citlogisticssystems.com)
       if (normalizedOrigin && normalizedOrigin.includes('citlogisticssystems.com')) {
         console.log('✅ CORS: Allowing citlogisticssystems.com domain:', normalizedOrigin);
+        return callback(null, true);
+      }
+
+      // Allow royalairsarl.com subdomains over either http or https
+      // (admin.royalairsarl.com, agents.royalairsarl.com, etc.)
+      if (normalizedOrigin && normalizedOrigin.includes('royalairsarl.com')) {
+        console.log('✅ CORS: Allowing royalairsarl.com domain:', normalizedOrigin);
         return callback(null, true);
       }
       

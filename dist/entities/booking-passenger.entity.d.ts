@@ -23,9 +23,15 @@ export declare class BookingPassenger {
     boarded_at: Date | null;
     checkin_by: number | null;
     ticket_number: string | null;
-    ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | null;
+    ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | 'RESCHEDULED' | null;
     issued_at: Date | null;
     payment_reference: string | null;
     payment_account: string | null;
+    refund_amount: number | null;
+    reschedule_fee: number | null;
+    cancellation_reason: string | null;
+    cancelled_at: Date | null;
+    cancelled_by: number | null;
+    rescheduled_to_id: number | null;
     created_at: Date;
 }

@@ -886,6 +886,182 @@ let BookingsService = class BookingsService {
         await this.bookingRepository.save(booking);
         return this.findOne(bookingId);
     }
+    async cancelAndRefund(bpId, dto, staffId) {
+        const bp = await this.bookingPassengerRepository.findOne({
+            where: { id: bpId },
+            relations: ['booking', 'passenger', 'flight'],
+        });
+        if (!bp)
+            throw new common_1.NotFoundException(`Booking passenger ${bpId} not found`);
+        if (bp.ticket_status === 'REFUNDED' || bp.ticket_status === 'RESCHEDULED') {
+            throw new common_1.BadRequestException(`Ticket is already ${bp.ticket_status.toLowerCase()}`);
+        }
+        const originalFare = Number(bp.fare_amount);
+        const refundAmount = Number(dto.refund_amount);
+        if (refundAmount > originalFare) {
+            throw new common_1.BadRequestException(`Refund amount cannot exceed the fare (${originalFare.toFixed(2)})`);
+        }
+        bp.status = 'cancelled';
+        bp.ticket_status = 'REFUNDED';
+        bp.refund_amount = refundAmount;
+        bp.cancellation_reason = dto.reason ?? null;
+        bp.cancelled_at = new Date();
+        bp.cancelled_by = staffId;
+        await this.bookingPassengerRepository.save(bp);
+        const booking = bp.booking;
+        if (booking) {
+            booking.total_amount = Math.max(0, Number(booking.total_amount) - refundAmount);
+            await this.bookingRepository.save(booking);
+            if (booking.agency_id && refundAmount > 0) {
+                await this.creditAgencyBalance(booking.agency_id, refundAmount, `REFUND-BP${bp.id}`, `Ticket refund — ${bp.passenger?.name ?? 'passenger'} (${bp.flight?.flight_no ?? booking.booking_reference})`).catch(err => console.warn(`⚠️ [BookingsService] Agency credit failed for refund bp ${bp.id}:`, err?.message));
+            }
+        }
+        if (refundAmount > 0) {
+            await this.postSimpleJournalEntry(`Ticket refund — ${bp.passenger?.name ?? ''}`.trim(), booking?.payment_account ?? null, refundAmount, 'refund').catch(err => console.warn(`⚠️ [BookingsService] Skipped refund journal entry for bp ${bp.id}:`, err?.message));
+        }
+        return (await this.bookingPassengerRepository.findOne({ where: { id: bp.id }, relations: ['passenger', 'flight', 'booking'] }));
+    }
+    async cancelAndReschedule(bpId, dto, staffId) {
+        const bp = await this.bookingPassengerRepository.findOne({
+            where: { id: bpId },
+            relations: ['booking', 'passenger', 'flight'],
+        });
+        if (!bp)
+            throw new common_1.NotFoundException(`Booking passenger ${bpId} not found`);
+        if (bp.ticket_status === 'REFUNDED' || bp.ticket_status === 'RESCHEDULED') {
+            throw new common_1.BadRequestException(`Ticket is already ${bp.ticket_status.toLowerCase()}`);
+        }
+        const newFlight = await this.flightRepository.findOne({ where: { id: dto.new_flight_id } });
+        if (!newFlight)
+            throw new common_1.NotFoundException(`Flight ${dto.new_flight_id} not found`);
+        const fee = Number(dto.reschedule_fee);
+        const newFare = Number(bp.fare_amount) + fee;
+        bp.status = 'cancelled';
+        bp.ticket_status = 'RESCHEDULED';
+        bp.reschedule_fee = fee;
+        bp.cancellation_reason = dto.reason ?? null;
+        bp.cancelled_at = new Date();
+        bp.cancelled_by = staffId;
+        await this.bookingPassengerRepository.save(bp);
+        const newBp = this.bookingPassengerRepository.create({
+            booking_id: bp.booking_id,
+            passenger_id: bp.passenger_id,
+            flight_series_id: newFlight.series_id,
+            flight_id: newFlight.id,
+            passenger_type: bp.passenger_type,
+            fare_amount: newFare,
+            travel_date: newFlight.flight_date,
+            leg: bp.leg,
+            status: 'confirmed',
+            ticket_status: 'OPEN',
+        });
+        const savedNewBp = await this.bookingPassengerRepository.save(newBp);
+        bp.rescheduled_to_id = savedNewBp.id;
+        await this.bookingPassengerRepository.save(bp);
+        const booking = bp.booking;
+        if (booking) {
+            booking.total_amount = Number(booking.total_amount) + fee;
+            booking.booking_date = newFlight.flight_date;
+            await this.bookingRepository.save(booking);
+            if (booking.agency_id && fee > 0) {
+                await this.debitAgencyBalance(booking.agency_id, fee, `RESCHEDULE-BP${bp.id}`, `Reschedule fee — ${bp.passenger?.name ?? 'passenger'} (${bp.flight?.flight_no ?? booking.booking_reference} → ${newFlight.flight_no})`).catch(err => console.warn(`⚠️ [BookingsService] Agency debit failed for reschedule bp ${bp.id}:`, err?.message));
+            }
+        }
+        if (fee > 0) {
+            await this.postSimpleJournalEntry(`Reschedule fee — ${bp.passenger?.name ?? ''}`.trim(), booking?.payment_account ?? null, fee, 'fee').catch(err => console.warn(`⚠️ [BookingsService] Skipped reschedule journal entry for bp ${bp.id}:`, err?.message));
+        }
+        return (await this.bookingPassengerRepository.findOne({ where: { id: savedNewBp.id }, relations: ['passenger', 'flight', 'booking'] }));
+    }
+    async creditAgencyBalance(agencyId, amount, reference, description) {
+        const agency = await this.agencyRepository.findOne({ where: { id: agencyId } });
+        if (!agency)
+            return;
+        agency.balance = Number(agency.balance) + amount;
+        await this.agencyRepository.save(agency);
+        const latestLedger = await this.agencyLedgerRepository.findOne({
+            where: { agencyId: agency.id },
+            order: { transactionDate: 'DESC', createdAt: 'DESC' },
+        });
+        const ledgerBalance = latestLedger ? Number(latestLedger.balance) : Number(agency.balance) - amount;
+        const entry = this.agencyLedgerRepository.create({
+            agencyId: agency.id,
+            transactionDate: new Date(),
+            description,
+            debit: amount,
+            credit: 0,
+            balance: ledgerBalance + amount,
+            reference,
+        });
+        await this.agencyLedgerRepository.save(entry);
+    }
+    async debitAgencyBalance(agencyId, amount, reference, description) {
+        const agency = await this.agencyRepository.findOne({ where: { id: agencyId } });
+        if (!agency)
+            return;
+        agency.balance = Number(agency.balance) - amount;
+        await this.agencyRepository.save(agency);
+        const latestLedger = await this.agencyLedgerRepository.findOne({
+            where: { agencyId: agency.id },
+            order: { transactionDate: 'DESC', createdAt: 'DESC' },
+        });
+        const ledgerBalance = latestLedger ? Number(latestLedger.balance) : Number(agency.balance) + amount;
+        const entry = this.agencyLedgerRepository.create({
+            agencyId: agency.id,
+            transactionDate: new Date(),
+            description,
+            debit: 0,
+            credit: amount,
+            balance: ledgerBalance - amount,
+            reference,
+        });
+        await this.agencyLedgerRepository.save(entry);
+    }
+    async postSimpleJournalEntry(description, paymentAccountName, amount, kind) {
+        const allAccounts = await this.chartOfAccountRepository.find();
+        const normalize = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+        const revenueAccount = kind === 'refund'
+            ? allAccounts.find(a => a.code === '510017')
+            : allAccounts.find(a => normalize(a.name).includes('passenger revenue')) ?? allAccounts.find(a => normalize(a.name).includes('revenue'));
+        const paymentAccount = paymentAccountName
+            ? allAccounts.find(a => normalize(a.name) === normalize(paymentAccountName))
+            : null;
+        if (!revenueAccount) {
+            console.warn(`⚠️ [BookingsService] Could not resolve ${kind === 'refund' ? 'Passenger Refund account (510017)' : 'Passenger Revenue account'} — skipping ${kind} journal entry`);
+            return;
+        }
+        if (!paymentAccount) {
+            console.warn(`⚠️ [BookingsService] Could not resolve payment account "${paymentAccountName}" — skipping ${kind} journal entry`);
+            return;
+        }
+        const entryNumber = await this.generateEntryNumber();
+        const journalEntry = await this.journalEntryRepository.save(this.journalEntryRepository.create({
+            entry_number: entryNumber,
+            entry_date: new Date(),
+            reference: description,
+            description,
+            total_debit: amount,
+            total_credit: amount,
+            status: 'posted',
+            created_by: 1,
+        }));
+        const revenueIsDebit = kind === 'refund';
+        await this.journalEntryLineRepository.save([
+            this.journalEntryLineRepository.create({
+                journal_entry_id: journalEntry.id,
+                account_id: revenueAccount.id,
+                debit_amount: revenueIsDebit ? amount : 0,
+                credit_amount: revenueIsDebit ? 0 : amount,
+                description,
+            }),
+            this.journalEntryLineRepository.create({
+                journal_entry_id: journalEntry.id,
+                account_id: paymentAccount.id,
+                debit_amount: revenueIsDebit ? 0 : amount,
+                credit_amount: revenueIsDebit ? amount : 0,
+                description,
+            }),
+        ]);
+    }
     async findOne(id) {
         const booking = await this.bookingRepository.findOne({
             where: { id },

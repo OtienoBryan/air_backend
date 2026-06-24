@@ -1,11 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Booking } from './booking.entity';
 import { Passenger } from './passenger.entity';
 import { FlightSeries } from './flight-series.entity';
 import { Flight } from './flight.entity';
 
+// Uniqueness on (booking_id, passenger_id, leg) is enforced at the DB level only for
+// active (non-cancelled) rows, via a generated `active_leg` column + unique index
+// (UQ_bp_booking_pax_active_leg) — see fix-booking-passengers-unique-constraint-for-reschedule.sql.
+// This lets cancelAndReschedule insert a replacement row without colliding with the
+// cancelled original. Not declared here since synchronize is off and TypeORM can't
+// express a generated-column-based unique constraint via @Unique.
 @Entity('booking_passengers')
-@Unique(['booking_id', 'passenger_id', 'leg'])
 export class BookingPassenger {
   @PrimaryGeneratedColumn()
   id: number;
@@ -74,11 +79,11 @@ export class BookingPassenger {
   @Column({
     name: 'ticket_status',
     type: 'enum',
-    enum: ['OPEN', 'USED', 'VOID', 'REFUNDED'],
+    enum: ['OPEN', 'USED', 'VOID', 'REFUNDED', 'RESCHEDULED'],
     nullable: true,
     default: 'OPEN',
   })
-  ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | null;
+  ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | 'RESCHEDULED' | null;
 
   @Column({ name: 'issued_at', type: 'timestamp', nullable: true })
   issued_at: Date | null;
@@ -88,6 +93,26 @@ export class BookingPassenger {
 
   @Column({ name: 'payment_account', type: 'varchar', length: 100, nullable: true })
   payment_account: string | null;
+
+  // Cancellation / refund / reschedule tracking
+  @Column({ name: 'refund_amount', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  refund_amount: number | null;
+
+  @Column({ name: 'reschedule_fee', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  reschedule_fee: number | null;
+
+  @Column({ name: 'cancellation_reason', type: 'varchar', length: 255, nullable: true })
+  cancellation_reason: string | null;
+
+  @Column({ name: 'cancelled_at', type: 'timestamp', nullable: true })
+  cancelled_at: Date | null;
+
+  @Column({ name: 'cancelled_by', type: 'int', nullable: true })
+  cancelled_by: number | null;
+
+  // Points to the new booking_passenger row created for a rescheduled ticket
+  @Column({ name: 'rescheduled_to_id', type: 'int', nullable: true })
+  rescheduled_to_id: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
