@@ -32,6 +32,9 @@ export class Supplier {
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0.00 })
   credit_limit: number;
 
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0.00 })
+  balance: number;
+
   @Column({ type: 'tinyint', default: 1 })
   is_active: boolean;
 

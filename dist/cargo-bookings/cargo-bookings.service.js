@@ -99,6 +99,12 @@ let CargoBookingsService = class CargoBookingsService {
         await this.cargoBookingRepository.save(cargo);
         return this.findOne(id);
     }
+    async updateStatus(id, status) {
+        const cargo = await this.findOne(id);
+        cargo.status = status;
+        await this.cargoBookingRepository.save(cargo);
+        return this.findOne(id);
+    }
     async recordPayment(id, data) {
         const cargo = await this.findOne(id);
         cargo.amount_paid = data.amount_paid;

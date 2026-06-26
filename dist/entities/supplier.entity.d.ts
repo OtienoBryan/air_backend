@@ -9,6 +9,7 @@ export declare class Supplier {
     tax_id: string;
     payment_terms: number;
     credit_limit: number;
+    balance: number;
     is_active: boolean;
     created_at: Date;
     updated_at: Date;

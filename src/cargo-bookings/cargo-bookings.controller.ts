@@ -36,6 +36,15 @@ export class CargoBookingsController {
     return this.cargoBookingsService.assignFlight(id, dto.flight_series_id ?? null);
   }
 
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { status: 'booked' | 'accepted' | 'manifested' | 'flown' | 'delivered' | 'cancelled' },
+  ): Promise<CargoBooking> {
+    console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/status`, body);
+    return this.cargoBookingsService.updateStatus(id, body.status);
+  }
+
   @Patch(':id/payment')
   async recordPayment(
     @Param('id', ParseIntPipe) id: number,

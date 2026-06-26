@@ -42,6 +42,8 @@ async function bootstrap() {
                 'http://localhost:5173',
                 'http://127.0.0.1:5173',
                 'http://localhost:8080',
+                'http://admin.royalairsarl.com',
+                'http://agents.royalairsarl.com',
                 'https://mc-aviation.vercel.app',
                 'https://mcaviation.citlogisticssystems.com',
             ];
@@ -61,6 +63,10 @@ async function bootstrap() {
             }
             if (normalizedOrigin && normalizedOrigin.includes('citlogisticssystems.com')) {
                 console.log('✅ CORS: Allowing citlogisticssystems.com domain:', normalizedOrigin);
+                return callback(null, true);
+            }
+            if (normalizedOrigin && normalizedOrigin.includes('royalairsarl.com')) {
+                console.log('✅ CORS: Allowing royalairsarl.com domain:', normalizedOrigin);
                 return callback(null, true);
             }
             const normalizedAllowedOrigins = allowedOrigins.map(o => o.toLowerCase());

@@ -36,6 +36,10 @@ let CargoBookingsController = class CargoBookingsController {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/assign-flight`, dto);
         return this.cargoBookingsService.assignFlight(id, dto.flight_series_id ?? null);
     }
+    async updateStatus(id, body) {
+        console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/status`, body);
+        return this.cargoBookingsService.updateStatus(id, body.status);
+    }
     async recordPayment(id, body) {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/payment`, body);
         return this.cargoBookingsService.recordPayment(id, body);
@@ -66,6 +70,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, assign_cargo_flight_dto_1.AssignCargoFlightDto]),
     __metadata("design:returntype", Promise)
 ], CargoBookingsController.prototype, "assignFlight", null);
+__decorate([
+    (0, common_1.Patch)(':id/status'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], CargoBookingsController.prototype, "updateStatus", null);
 __decorate([
     (0, common_1.Patch)(':id/payment'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

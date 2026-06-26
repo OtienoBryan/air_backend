@@ -153,6 +153,7 @@ let FlightsController = class FlightsController {
             status: bp.status ?? null,
             checked_in_at: bp.checked_in_at ?? null,
             boarded_at: bp.boarded_at ?? null,
+            seat_number: bp.seat_number ?? null,
             checkin_by: bp.checkin_by ?? null,
             ticket_status: bp.ticket_status ?? null,
             ticket_number: bp.ticket_number ?? null,

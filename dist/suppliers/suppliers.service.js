@@ -18,12 +18,19 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const supplier_entity_1 = require("../entities/supplier.entity");
 const supplier_ledger_entity_1 = require("../entities/supplier-ledger.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
+const journal_entry_entity_1 = require("../entities/journal-entry.entity");
+const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
 let SuppliersService = class SuppliersService {
     supplierRepository;
     supplierLedgerRepository;
-    constructor(supplierRepository, supplierLedgerRepository) {
+    journalEntryRepository;
+    dataSource;
+    constructor(supplierRepository, supplierLedgerRepository, journalEntryRepository, dataSource) {
         this.supplierRepository = supplierRepository;
         this.supplierLedgerRepository = supplierLedgerRepository;
+        this.journalEntryRepository = journalEntryRepository;
+        this.dataSource = dataSource;
     }
     async findAll(page = 1, limit = 10, search, status) {
         const queryBuilder = this.supplierRepository.createQueryBuilder('supplier');
@@ -254,13 +261,114 @@ let SuppliersService = class SuppliersService {
             order: { id: 'DESC' },
         });
     }
+    async generateEntryNumber() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const datePrefix = `${year}${month}${day}`;
+        const latestEntry = await this.journalEntryRepository.findOne({
+            where: { entry_number: (0, typeorm_2.Like)(`JE-${datePrefix}-%`) },
+            order: { entry_number: 'DESC' },
+        });
+        let sequence = 1;
+        if (latestEntry) {
+            const parts = latestEntry.entry_number.split('-');
+            if (parts.length === 3) {
+                sequence = parseInt(parts[2] || '0', 10) + 1;
+            }
+        }
+        return `JE-${datePrefix}-${String(sequence).padStart(4, '0')}`;
+    }
+    async postPayment(supplierId, dto, createdBy = null) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            const supplier = await queryRunner.manager.findOne(supplier_entity_1.Supplier, { where: { id: supplierId } });
+            if (!supplier) {
+                throw new common_1.NotFoundException(`Supplier with ID ${supplierId} not found`);
+            }
+            const paymentAccount = await queryRunner.manager.findOne(chart_of_account_entity_1.ChartOfAccount, {
+                where: { id: dto.payment_account_id, account_type: 9 },
+            });
+            if (!paymentAccount) {
+                throw new common_1.BadRequestException(`Payment account with ID ${dto.payment_account_id} not found or is not a bank/cash account`);
+            }
+            const accountsPayableAccount = await queryRunner.manager.findOne(chart_of_account_entity_1.ChartOfAccount, {
+                where: { account_type: 10 },
+            });
+            if (!accountsPayableAccount) {
+                throw new common_1.BadRequestException('Accounts payable account not found. Please configure an accounts payable account in chart_of_accounts');
+            }
+            const entryDate = dto.payment_date ? new Date(dto.payment_date) : new Date();
+            const entryNumber = await this.generateEntryNumber();
+            const journalEntry = queryRunner.manager.create(journal_entry_entity_1.JournalEntry, {
+                entry_number: entryNumber,
+                entry_date: entryDate,
+                reference: dto.reference || null,
+                description: dto.description || `Payment to supplier: ${supplier.company_name}`,
+                total_debit: dto.amount,
+                total_credit: dto.amount,
+                status: 'posted',
+                created_by: createdBy || 1,
+            });
+            const savedJournalEntry = await queryRunner.manager.save(journal_entry_entity_1.JournalEntry, journalEntry);
+            const debitLine = queryRunner.manager.create(journal_entry_line_entity_1.JournalEntryLine, {
+                journal_entry_id: savedJournalEntry.id,
+                account_id: accountsPayableAccount.id,
+                debit_amount: dto.amount,
+                credit_amount: 0,
+                description: `Payment reducing accounts payable: ${supplier.company_name}`,
+            });
+            const creditLine = queryRunner.manager.create(journal_entry_line_entity_1.JournalEntryLine, {
+                journal_entry_id: savedJournalEntry.id,
+                account_id: paymentAccount.id,
+                debit_amount: 0,
+                credit_amount: dto.amount,
+                description: `Payment via ${paymentAccount.name}`,
+            });
+            await queryRunner.manager.save(journal_entry_line_entity_1.JournalEntryLine, [debitLine, creditLine]);
+            const latestLedger = await queryRunner.manager.findOne(supplier_ledger_entity_1.SupplierLedger, {
+                where: { supplierId },
+                order: { date: 'DESC', createdAt: 'DESC', id: 'DESC' },
+            });
+            const currentBalance = latestLedger ? Number(latestLedger.runningBalance) : Number(supplier.balance || 0);
+            const newBalance = currentBalance - dto.amount;
+            const ledgerEntry = queryRunner.manager.create(supplier_ledger_entity_1.SupplierLedger, {
+                supplierId,
+                date: entryDate,
+                description: dto.description || `Payment - ${entryNumber}`,
+                debit: dto.amount,
+                credit: 0,
+                runningBalance: newBalance,
+                referenceType: 'SUPPLIER_PAYMENT',
+                referenceId: savedJournalEntry.id,
+            });
+            const savedLedgerEntry = await queryRunner.manager.save(supplier_ledger_entity_1.SupplierLedger, ledgerEntry);
+            await queryRunner.manager.update(supplier_entity_1.Supplier, supplierId, { balance: newBalance });
+            await queryRunner.commitTransaction();
+            const updatedSupplier = await this.supplierRepository.findOne({ where: { id: supplierId } });
+            return { supplier: updatedSupplier, ledgerEntry: savedLedgerEntry, journalEntry: savedJournalEntry };
+        }
+        catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        }
+        finally {
+            await queryRunner.release();
+        }
+    }
 };
 exports.SuppliersService = SuppliersService;
 exports.SuppliersService = SuppliersService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(supplier_entity_1.Supplier)),
     __param(1, (0, typeorm_1.InjectRepository)(supplier_ledger_entity_1.SupplierLedger)),
+    __param(2, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.DataSource])
 ], SuppliersService);
 //# sourceMappingURL=suppliers.service.js.map

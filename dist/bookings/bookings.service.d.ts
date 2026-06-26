@@ -49,4 +49,5 @@ export declare class BookingsService {
     getBookedSeatCounts(flightSeriesId: number): Promise<Record<string, number>>;
     private generateBookingReference;
     updateBookingPassengerStatus(id: number, status: string, updatedBy?: number | null): Promise<any>;
+    assignSeat(id: number, seatNumber: string | null): Promise<any>;
 }

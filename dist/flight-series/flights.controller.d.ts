@@ -55,6 +55,7 @@ export declare class FlightsController {
         status: string | null;
         checked_in_at: Date | null;
         boarded_at: Date | null;
+        seat_number: string | null;
         checkin_by: number | null;
         ticket_status: "OPEN" | "USED" | "VOID" | "REFUNDED" | "RESCHEDULED" | null;
         ticket_number: string | null;

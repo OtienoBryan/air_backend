@@ -13,12 +13,15 @@ const suppliers_controller_1 = require("./suppliers.controller");
 const suppliers_service_1 = require("./suppliers.service");
 const supplier_entity_1 = require("../entities/supplier.entity");
 const supplier_ledger_entity_1 = require("../entities/supplier-ledger.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
+const journal_entry_entity_1 = require("../entities/journal-entry.entity");
+const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
 let SuppliersModule = class SuppliersModule {
 };
 exports.SuppliersModule = SuppliersModule;
 exports.SuppliersModule = SuppliersModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([supplier_entity_1.Supplier, supplier_ledger_entity_1.SupplierLedger])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([supplier_entity_1.Supplier, supplier_ledger_entity_1.SupplierLedger, chart_of_account_entity_1.ChartOfAccount, journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine])],
         controllers: [suppliers_controller_1.SuppliersController],
         providers: [suppliers_service_1.SuppliersService],
         exports: [suppliers_service_1.SuppliersService],

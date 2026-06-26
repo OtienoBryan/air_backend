@@ -19,6 +19,9 @@ export declare class BookingsController {
     updateBookingPassengerStatus(id: number, body: {
         status: string;
     }, req: any): Promise<any>;
+    assignSeat(id: number, body: {
+        seat_number: string | null;
+    }): Promise<any>;
     cancelAndRefund(id: number, cancelRefundDto: CancelRefundDto, req: any): Promise<import("../entities").BookingPassenger>;
     cancelAndReschedule(id: number, cancelRescheduleDto: CancelRescheduleDto, req: any): Promise<import("../entities").BookingPassenger>;
 }

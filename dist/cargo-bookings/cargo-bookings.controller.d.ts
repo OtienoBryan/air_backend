@@ -11,6 +11,9 @@ export declare class CargoBookingsController {
         total: number;
     }>;
     assignFlight(id: number, dto: AssignCargoFlightDto): Promise<CargoBooking>;
+    updateStatus(id: number, body: {
+        status: 'booked' | 'accepted' | 'manifested' | 'flown' | 'delivered' | 'cancelled';
+    }): Promise<CargoBooking>;
     recordPayment(id: number, body: {
         amount_paid: number;
         payment_reference?: string;

@@ -75,6 +75,14 @@ export class BookingsController {
     return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
   }
 
+  @Patch('booking-passengers/:id/seat')
+  async assignSeat(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { seat_number: string | null },
+  ) {
+    return this.bookingsService.assignSeat(id, body.seat_number);
+  }
+
   @Patch('booking-passengers/:id/cancel-refund')
   async cancelAndRefund(
     @Param('id', ParseIntPipe) id: number,

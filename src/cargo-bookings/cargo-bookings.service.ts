@@ -105,6 +105,13 @@ export class CargoBookingsService {
     return this.findOne(id);
   }
 
+  async updateStatus(id: number, status: string): Promise<CargoBooking> {
+    const cargo = await this.findOne(id);
+    cargo.status = status as CargoBooking['status'];
+    await this.cargoBookingRepository.save(cargo);
+    return this.findOne(id);
+  }
+
   async recordPayment(id: number, data: {
     amount_paid: number;
     payment_reference?: string;

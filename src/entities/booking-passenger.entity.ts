@@ -70,6 +70,9 @@ export class BookingPassenger {
   @Column({ name: 'boarded_at', type: 'timestamp', nullable: true })
   boarded_at: Date | null;
 
+  @Column({ name: 'seat_number', type: 'varchar', length: 10, nullable: true })
+  seat_number: string | null;
+
   @Column({ name: 'checkin_by', type: 'int', nullable: true })
   checkin_by: number | null;
 

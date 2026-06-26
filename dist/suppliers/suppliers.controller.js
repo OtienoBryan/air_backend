@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SuppliersController = void 0;
 const common_1 = require("@nestjs/common");
 const suppliers_service_1 = require("./suppliers.service");
+const post_supplier_payment_dto_1 = require("./dto/post-supplier-payment.dto");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 let SuppliersController = class SuppliersController {
     suppliersService;
@@ -41,6 +42,13 @@ let SuppliersController = class SuppliersController {
     }
     async getLedger(id) {
         return this.suppliersService.getLedger(id);
+    }
+    async postPayment(id, dto, req) {
+        const createdBy = req.user?.sub ? Number(req.user.sub) : null;
+        console.log(`🔍 [SuppliersController] PATCH /admin/suppliers/${id}/payment`, dto);
+        const result = await this.suppliersService.postPayment(id, dto, createdBy);
+        console.log(`✅ [SuppliersController] Payment posted for supplier ${id}: ${result.journalEntry.entry_number}`);
+        return result;
     }
     async findOne(id) {
         console.log(`🔍 [SuppliersController] GET /admin/suppliers/${id}`);
@@ -110,6 +118,15 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], SuppliersController.prototype, "getLedger", null);
+__decorate([
+    (0, common_1.Patch)(':id/payment'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, post_supplier_payment_dto_1.PostSupplierPaymentDto, Object]),
+    __metadata("design:returntype", Promise)
+], SuppliersController.prototype, "postPayment", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

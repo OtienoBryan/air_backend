@@ -60,6 +60,9 @@ let BookingsController = class BookingsController {
         const updatedBy = req.user?.sub ? Number(req.user.sub) : null;
         return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
     }
+    async assignSeat(id, body) {
+        return this.bookingsService.assignSeat(id, body.seat_number);
+    }
     async cancelAndRefund(id, cancelRefundDto, req) {
         const staffId = req.user?.sub ? Number(req.user.sub) : null;
         console.log(`🎫 [BookingsController] PATCH /admin/bookings/booking-passengers/${id}/cancel-refund`);
@@ -125,6 +128,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "updateBookingPassengerStatus", null);
+__decorate([
+    (0, common_1.Patch)('booking-passengers/:id/seat'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], BookingsController.prototype, "assignSeat", null);
 __decorate([
     (0, common_1.Patch)('booking-passengers/:id/cancel-refund'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

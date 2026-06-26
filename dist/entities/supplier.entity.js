@@ -22,6 +22,7 @@ let Supplier = class Supplier {
     tax_id;
     payment_terms;
     credit_limit;
+    balance;
     is_active;
     created_at;
     updated_at;
@@ -67,6 +68,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 15, scale: 2, default: 0.00 }),
     __metadata("design:type", Number)
 ], Supplier.prototype, "credit_limit", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 15, scale: 2, default: 0.00 }),
+    __metadata("design:type", Number)
+], Supplier.prototype, "balance", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'tinyint', default: 1 }),
     __metadata("design:type", Boolean)

@@ -1404,5 +1404,22 @@ export class BookingsService {
     }
     return this.bookingPassengerRepository.save(bp);
   }
+
+  async assignSeat(id: number, seatNumber: string | null): Promise<any> {
+    const bp = await this.bookingPassengerRepository.findOneOrFail({ where: { id } });
+    const seat = seatNumber?.trim().toUpperCase() || null;
+
+    if (seat && bp.flight_id) {
+      const clash = await this.bookingPassengerRepository.findOne({
+        where: { flight_id: bp.flight_id, seat_number: seat },
+      });
+      if (clash && clash.id !== bp.id && clash.ticket_status !== 'REFUNDED' && clash.ticket_status !== 'RESCHEDULED') {
+        throw new BadRequestException(`Seat ${seat} is already assigned to another passenger on this flight`);
+      }
+    }
+
+    bp.seat_number = seat;
+    return this.bookingPassengerRepository.save(bp);
+  }
 }
 

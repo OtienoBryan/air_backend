@@ -1,19 +1,23 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  ParseIntPipe, 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseIntPipe,
   Query,
-  UseGuards 
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { SuppliersService, SupplierStats, PayablesAgingSummary } from './suppliers.service';
 import type { CreateSupplierDto, UpdateSupplierDto } from './suppliers.service';
 import { Supplier } from '../entities/supplier.entity';
 import { SupplierLedger } from '../entities/supplier-ledger.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { PostSupplierPaymentDto } from './dto/post-supplier-payment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin/suppliers')
@@ -59,6 +63,21 @@ export class SuppliersController {
   @Get(':id/ledger')
   async getLedger(@Param('id', ParseIntPipe) id: number) {
     return this.suppliersService.getLedger(id);
+  }
+
+  @Patch(':id/payment')
+  async postPayment(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: PostSupplierPaymentDto,
+    @Request() req,
+  ): Promise<{ supplier: Supplier; ledgerEntry: SupplierLedger; journalEntry: JournalEntry }> {
+    const createdBy = req.user?.sub ? Number(req.user.sub) : null;
+    console.log(`🔍 [SuppliersController] PATCH /admin/suppliers/${id}/payment`, dto);
+
+    const result = await this.suppliersService.postPayment(id, dto, createdBy);
+
+    console.log(`✅ [SuppliersController] Payment posted for supplier ${id}: ${result.journalEntry.entry_number}`);
+    return result;
   }
 
   @Get(':id')

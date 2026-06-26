@@ -1,6 +1,8 @@
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Supplier } from '../entities/supplier.entity';
 import { SupplierLedger } from '../entities/supplier-ledger.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { PostSupplierPaymentDto } from './dto/post-supplier-payment.dto';
 export interface SupplierStats {
     total: number;
     active: number;
@@ -56,7 +58,9 @@ export interface PayablesAgingSummary {
 export declare class SuppliersService {
     private supplierRepository;
     private supplierLedgerRepository;
-    constructor(supplierRepository: Repository<Supplier>, supplierLedgerRepository: Repository<SupplierLedger>);
+    private journalEntryRepository;
+    private dataSource;
+    constructor(supplierRepository: Repository<Supplier>, supplierLedgerRepository: Repository<SupplierLedger>, journalEntryRepository: Repository<JournalEntry>, dataSource: DataSource);
     findAll(page?: number, limit?: number, search?: string, status?: string): Promise<{
         suppliers: (Supplier & {
             current_balance: number;
@@ -73,4 +77,10 @@ export declare class SuppliersService {
     getPayablesAging(): Promise<PayablesAgingSummary>;
     getSupplierInvoicesByAging(supplierId: number, agingPeriod: 'current' | 'days31_60' | 'days61_90' | 'days91_120' | 'days120_plus'): Promise<SupplierLedger[]>;
     getLedger(supplierId: number): Promise<SupplierLedger[]>;
+    private generateEntryNumber;
+    postPayment(supplierId: number, dto: PostSupplierPaymentDto, createdBy?: number | null): Promise<{
+        supplier: Supplier;
+        ledgerEntry: SupplierLedger;
+        journalEntry: JournalEntry;
+    }>;
 }
