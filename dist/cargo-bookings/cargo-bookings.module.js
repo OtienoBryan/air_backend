@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const cargo_booking_entity_1 = require("../entities/cargo-booking.entity");
 const flight_series_entity_1 = require("../entities/flight-series.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 const cargo_bookings_service_1 = require("./cargo-bookings.service");
 const cargo_bookings_controller_1 = require("./cargo-bookings.controller");
 let CargoBookingsModule = class CargoBookingsModule {
@@ -18,7 +19,7 @@ let CargoBookingsModule = class CargoBookingsModule {
 exports.CargoBookingsModule = CargoBookingsModule;
 exports.CargoBookingsModule = CargoBookingsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([cargo_booking_entity_1.CargoBooking, flight_series_entity_1.FlightSeries])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([cargo_booking_entity_1.CargoBooking, flight_series_entity_1.FlightSeries, flight_entity_1.Flight])],
         providers: [cargo_bookings_service_1.CargoBookingsService],
         controllers: [cargo_bookings_controller_1.CargoBookingsController],
         exports: [cargo_bookings_service_1.CargoBookingsService],

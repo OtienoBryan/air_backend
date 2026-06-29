@@ -6,13 +6,18 @@ export declare class CargoBookingsController {
     private readonly cargoBookingsService;
     constructor(cargoBookingsService: CargoBookingsService);
     create(dto: CreateCargoBookingDto): Promise<CargoBooking>;
-    findAll(page?: number, limit?: number, flightSeriesId?: string): Promise<{
+    findAll(page?: number, limit?: number, flightSeriesId?: string, flightId?: string): Promise<{
         cargoBookings: CargoBooking[];
         total: number;
     }>;
     assignFlight(id: number, dto: AssignCargoFlightDto): Promise<CargoBooking>;
     updateStatus(id: number, body: {
         status: 'booked' | 'accepted' | 'manifested' | 'flown' | 'delivered' | 'cancelled';
+    }): Promise<CargoBooking>;
+    updatePrice(id: number, body: {
+        total_charges: number;
+        currency?: string;
+        rate_per_kg?: number | null;
     }): Promise<CargoBooking>;
     recordPayment(id: number, body: {
         amount_paid: number;

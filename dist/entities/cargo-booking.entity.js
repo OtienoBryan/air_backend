@@ -12,11 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CargoBooking = void 0;
 const typeorm_1 = require("typeorm");
 const flight_series_entity_1 = require("./flight-series.entity");
+const flight_entity_1 = require("./flight.entity");
 let CargoBooking = class CargoBooking {
     id;
     awb_number;
     flight_series_id;
     flightSeries;
+    flight_id;
+    flight;
     origin;
     destination;
     shipper_name;
@@ -66,6 +69,15 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'flight_series_id' }),
     __metadata("design:type", Object)
 ], CargoBooking.prototype, "flightSeries", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'flight_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "flight_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => flight_entity_1.Flight, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'flight_id' }),
+    __metadata("design:type", Object)
+], CargoBooking.prototype, "flight", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'origin', type: 'varchar', length: 3 }),
     __metadata("design:type", String)

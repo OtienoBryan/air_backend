@@ -1,9 +1,12 @@
 import { FlightSeries } from './flight-series.entity';
+import { Flight } from './flight.entity';
 export declare class CargoBooking {
     id: number;
     awb_number: string;
     flight_series_id: number | null;
     flightSeries?: FlightSeries | null;
+    flight_id: number | null;
+    flight?: Flight | null;
     origin: string;
     destination: string;
     shipper_name: string;

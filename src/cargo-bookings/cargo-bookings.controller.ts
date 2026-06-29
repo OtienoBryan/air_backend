@@ -21,10 +21,12 @@ export class CargoBookingsController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 50,
     @Query('flight_series_id') flightSeriesId?: string,
+    @Query('flight_id') flightId?: string,
   ): Promise<{ cargoBookings: CargoBooking[]; total: number }> {
-    console.log('📦 [CargoBookingsController] GET /admin/cargo-bookings', { page, limit, flightSeriesId });
+    console.log('📦 [CargoBookingsController] GET /admin/cargo-bookings', { page, limit, flightSeriesId, flightId });
     const fsId = flightSeriesId ? Number(flightSeriesId) : undefined;
-    return this.cargoBookingsService.findAll(Number(page) || 1, Number(limit) || 50, fsId);
+    const fId  = flightId ? Number(flightId) : undefined;
+    return this.cargoBookingsService.findAll(Number(page) || 1, Number(limit) || 50, fsId, fId);
   }
 
   @Patch(':id/assign-flight')
@@ -43,6 +45,15 @@ export class CargoBookingsController {
   ): Promise<CargoBooking> {
     console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/status`, body);
     return this.cargoBookingsService.updateStatus(id, body.status);
+  }
+
+  @Patch(':id/price')
+  async updatePrice(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { total_charges: number; currency?: string; rate_per_kg?: number | null },
+  ): Promise<CargoBooking> {
+    console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/price`, body);
+    return this.cargoBookingsService.updatePrice(id, body);
   }
 
   @Patch(':id/payment')

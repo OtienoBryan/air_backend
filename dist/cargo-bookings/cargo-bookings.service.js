@@ -18,26 +18,38 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const cargo_booking_entity_1 = require("../entities/cargo-booking.entity");
 const flight_series_entity_1 = require("../entities/flight-series.entity");
+const flight_entity_1 = require("../entities/flight.entity");
 let CargoBookingsService = class CargoBookingsService {
     cargoBookingRepository;
     flightSeriesRepository;
-    constructor(cargoBookingRepository, flightSeriesRepository) {
+    flightRepository;
+    constructor(cargoBookingRepository, flightSeriesRepository, flightRepository) {
         this.cargoBookingRepository = cargoBookingRepository;
         this.flightSeriesRepository = flightSeriesRepository;
+        this.flightRepository = flightRepository;
+    }
+    async resolveFlightId(flightSeries) {
+        const flight = await this.flightRepository.findOne({
+            where: { series_id: flightSeries.id, flight_date: flightSeries.start_date },
+        });
+        return flight?.id ?? null;
     }
     async create(dto) {
         console.log('📦 [CargoBookingsService] Creating cargo booking', { awb_number: dto.awb_number });
         let flightSeries = null;
+        let flightId = null;
         if (dto.flight_series_id) {
             flightSeries = await this.flightSeriesRepository.findOne({ where: { id: dto.flight_series_id } });
             if (!flightSeries) {
                 throw new common_1.NotFoundException(`Flight series with ID ${dto.flight_series_id} not found`);
             }
+            flightId = await this.resolveFlightId(flightSeries);
         }
         const entity = this.cargoBookingRepository.create({
             awb_number: dto.awb_number.trim(),
             flight_series_id: dto.flight_series_id ?? null,
             flightSeries: flightSeries ?? null,
+            flight_id: flightId,
             origin: dto.origin.trim().toUpperCase(),
             destination: dto.destination.trim().toUpperCase(),
             shipper_name: dto.shipper_name.trim(),
@@ -63,13 +75,16 @@ let CargoBookingsService = class CargoBookingsService {
         const saved = await this.cargoBookingRepository.save(entity);
         return this.findOne(saved.id);
     }
-    async findAll(page = 1, limit = 50, flightSeriesId) {
+    async findAll(page = 1, limit = 50, flightSeriesId, flightId) {
         const where = {};
-        if (flightSeriesId !== undefined && !Number.isNaN(flightSeriesId)) {
+        if (flightId !== undefined && !Number.isNaN(flightId)) {
+            where.flight_id = flightId;
+        }
+        else if (flightSeriesId !== undefined && !Number.isNaN(flightSeriesId)) {
             where.flight_series_id = flightSeriesId;
         }
         const [cargoBookings, total] = await this.cargoBookingRepository.findAndCount({
-            relations: ['flightSeries'],
+            relations: ['flightSeries', 'flight'],
             order: { booking_date: 'DESC', created_at: 'DESC' },
             where,
             skip: (page - 1) * limit,
@@ -80,7 +95,7 @@ let CargoBookingsService = class CargoBookingsService {
     async findOne(id) {
         const cargo = await this.cargoBookingRepository.findOne({
             where: { id },
-            relations: ['flightSeries'],
+            relations: ['flightSeries', 'flight'],
         });
         if (!cargo)
             throw new common_1.NotFoundException(`Cargo booking with ID ${id} not found`);
@@ -89,19 +104,32 @@ let CargoBookingsService = class CargoBookingsService {
     async assignFlight(id, flightSeriesId) {
         const cargo = await this.findOne(id);
         let flightSeries = null;
+        let flightId = null;
         if (flightSeriesId) {
             flightSeries = await this.flightSeriesRepository.findOne({ where: { id: flightSeriesId } });
             if (!flightSeries)
                 throw new common_1.NotFoundException(`Flight series with ID ${flightSeriesId} not found`);
+            flightId = await this.resolveFlightId(flightSeries);
         }
         cargo.flight_series_id = flightSeriesId ?? null;
         cargo.flightSeries = flightSeries ?? null;
+        cargo.flight_id = flightId;
         await this.cargoBookingRepository.save(cargo);
         return this.findOne(id);
     }
     async updateStatus(id, status) {
         const cargo = await this.findOne(id);
         cargo.status = status;
+        await this.cargoBookingRepository.save(cargo);
+        return this.findOne(id);
+    }
+    async updatePrice(id, data) {
+        const cargo = await this.findOne(id);
+        cargo.total_charges = data.total_charges;
+        if (data.currency !== undefined)
+            cargo.currency = data.currency;
+        if (data.rate_per_kg !== undefined)
+            cargo.rate_per_kg = data.rate_per_kg;
         await this.cargoBookingRepository.save(cargo);
         return this.findOne(id);
     }
@@ -130,7 +158,9 @@ exports.CargoBookingsService = CargoBookingsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(cargo_booking_entity_1.CargoBooking)),
     __param(1, (0, typeorm_1.InjectRepository)(flight_series_entity_1.FlightSeries)),
+    __param(2, (0, typeorm_1.InjectRepository)(flight_entity_1.Flight)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository])
 ], CargoBookingsService);
 //# sourceMappingURL=cargo-bookings.service.js.map

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CargoBooking } from '../entities/cargo-booking.entity';
 import { FlightSeries } from '../entities/flight-series.entity';
+import { Flight } from '../entities/flight.entity';
 import { CreateCargoBookingDto } from './dto/create-cargo-booking.dto';
 
 @Injectable()
@@ -12,23 +13,38 @@ export class CargoBookingsService {
     private cargoBookingRepository: Repository<CargoBooking>,
     @InjectRepository(FlightSeries)
     private flightSeriesRepository: Repository<FlightSeries>,
+    @InjectRepository(Flight)
+    private flightRepository: Repository<Flight>,
   ) { }
+
+  // A flight_series can have multiple dated flights generated from it — resolve the
+  // one specific occurrence matching the series' own start_date (the common case in
+  // this system, where each series row corresponds to one flight occurrence).
+  private async resolveFlightId(flightSeries: FlightSeries): Promise<number | null> {
+    const flight = await this.flightRepository.findOne({
+      where: { series_id: flightSeries.id, flight_date: flightSeries.start_date as any },
+    });
+    return flight?.id ?? null;
+  }
 
   async create(dto: CreateCargoBookingDto): Promise<CargoBooking> {
     console.log('📦 [CargoBookingsService] Creating cargo booking', { awb_number: dto.awb_number });
 
     let flightSeries: FlightSeries | null = null;
+    let flightId: number | null = null;
     if (dto.flight_series_id) {
       flightSeries = await this.flightSeriesRepository.findOne({ where: { id: dto.flight_series_id } });
       if (!flightSeries) {
         throw new NotFoundException(`Flight series with ID ${dto.flight_series_id} not found`);
       }
+      flightId = await this.resolveFlightId(flightSeries);
     }
 
     const entity = this.cargoBookingRepository.create({
       awb_number: dto.awb_number.trim(),
       flight_series_id: dto.flight_series_id ?? null,
       flightSeries: flightSeries ?? null,
+      flight_id: flightId,
       origin: dto.origin.trim().toUpperCase(),
       destination: dto.destination.trim().toUpperCase(),
 
@@ -65,14 +81,19 @@ export class CargoBookingsService {
     page: number = 1,
     limit: number = 50,
     flightSeriesId?: number,
+    flightId?: number,
   ): Promise<{ cargoBookings: CargoBooking[]; total: number }> {
     const where: any = {};
-    if (flightSeriesId !== undefined && !Number.isNaN(flightSeriesId)) {
+    // flight_id scopes to the specific flight occurrence — preferred over
+    // flight_series_id alone when known, since a series can recur over many dates.
+    if (flightId !== undefined && !Number.isNaN(flightId)) {
+      where.flight_id = flightId;
+    } else if (flightSeriesId !== undefined && !Number.isNaN(flightSeriesId)) {
       where.flight_series_id = flightSeriesId;
     }
 
     const [cargoBookings, total] = await this.cargoBookingRepository.findAndCount({
-      relations: ['flightSeries'],
+      relations: ['flightSeries', 'flight'],
       order: { booking_date: 'DESC', created_at: 'DESC' },
       where,
       skip: (page - 1) * limit,
@@ -84,7 +105,7 @@ export class CargoBookingsService {
   async findOne(id: number): Promise<CargoBooking> {
     const cargo = await this.cargoBookingRepository.findOne({
       where: { id },
-      relations: ['flightSeries'],
+      relations: ['flightSeries', 'flight'],
     });
     if (!cargo) throw new NotFoundException(`Cargo booking with ID ${id} not found`);
     return cargo;
@@ -93,14 +114,17 @@ export class CargoBookingsService {
   async assignFlight(id: number, flightSeriesId: number | null): Promise<CargoBooking> {
     const cargo = await this.findOne(id);
     let flightSeries: FlightSeries | null = null;
+    let flightId: number | null = null;
 
     if (flightSeriesId) {
       flightSeries = await this.flightSeriesRepository.findOne({ where: { id: flightSeriesId } });
       if (!flightSeries) throw new NotFoundException(`Flight series with ID ${flightSeriesId} not found`);
+      flightId = await this.resolveFlightId(flightSeries);
     }
 
     cargo.flight_series_id = flightSeriesId ?? null;
     cargo.flightSeries = flightSeries ?? null;
+    cargo.flight_id = flightId;
     await this.cargoBookingRepository.save(cargo);
     return this.findOne(id);
   }
@@ -108,6 +132,15 @@ export class CargoBookingsService {
   async updateStatus(id: number, status: string): Promise<CargoBooking> {
     const cargo = await this.findOne(id);
     cargo.status = status as CargoBooking['status'];
+    await this.cargoBookingRepository.save(cargo);
+    return this.findOne(id);
+  }
+
+  async updatePrice(id: number, data: { total_charges: number; currency?: string; rate_per_kg?: number | null }): Promise<CargoBooking> {
+    const cargo = await this.findOne(id);
+    cargo.total_charges = data.total_charges;
+    if (data.currency !== undefined) cargo.currency = data.currency;
+    if (data.rate_per_kg !== undefined) cargo.rate_per_kg = data.rate_per_kg;
     await this.cargoBookingRepository.save(cargo);
     return this.findOne(id);
   }

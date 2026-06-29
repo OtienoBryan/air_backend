@@ -8,6 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { FlightSeries } from './flight-series.entity';
+import { Flight } from './flight.entity';
 
 @Entity('cargo_bookings')
 export class CargoBooking {
@@ -23,6 +24,15 @@ export class CargoBooking {
   @ManyToOne(() => FlightSeries, { nullable: true })
   @JoinColumn({ name: 'flight_series_id' })
   flightSeries?: FlightSeries | null;
+
+  // The specific dated flight occurrence (not just the recurring series template) —
+  // resolved when a flight is assigned, by matching series_id + flight_date.
+  @Column({ name: 'flight_id', type: 'int', nullable: true })
+  flight_id: number | null;
+
+  @ManyToOne(() => Flight, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'flight_id' })
+  flight?: Flight | null;
 
   @Column({ name: 'origin', type: 'varchar', length: 3 })
   origin: string;

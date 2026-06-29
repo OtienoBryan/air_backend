@@ -27,10 +27,11 @@ let CargoBookingsController = class CargoBookingsController {
         console.log('📦 [CargoBookingsController] POST /admin/cargo-bookings');
         return this.cargoBookingsService.create(dto);
     }
-    async findAll(page = 1, limit = 50, flightSeriesId) {
-        console.log('📦 [CargoBookingsController] GET /admin/cargo-bookings', { page, limit, flightSeriesId });
+    async findAll(page = 1, limit = 50, flightSeriesId, flightId) {
+        console.log('📦 [CargoBookingsController] GET /admin/cargo-bookings', { page, limit, flightSeriesId, flightId });
         const fsId = flightSeriesId ? Number(flightSeriesId) : undefined;
-        return this.cargoBookingsService.findAll(Number(page) || 1, Number(limit) || 50, fsId);
+        const fId = flightId ? Number(flightId) : undefined;
+        return this.cargoBookingsService.findAll(Number(page) || 1, Number(limit) || 50, fsId, fId);
     }
     async assignFlight(id, dto) {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/assign-flight`, dto);
@@ -39,6 +40,10 @@ let CargoBookingsController = class CargoBookingsController {
     async updateStatus(id, body) {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/status`, body);
         return this.cargoBookingsService.updateStatus(id, body.status);
+    }
+    async updatePrice(id, body) {
+        console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/price`, body);
+        return this.cargoBookingsService.updatePrice(id, body);
     }
     async recordPayment(id, body) {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/payment`, body);
@@ -58,8 +63,9 @@ __decorate([
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('flight_series_id')),
+    __param(3, (0, common_1.Query)('flight_id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number, String]),
+    __metadata("design:paramtypes", [Number, Number, String, String]),
     __metadata("design:returntype", Promise)
 ], CargoBookingsController.prototype, "findAll", null);
 __decorate([
@@ -78,6 +84,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], CargoBookingsController.prototype, "updateStatus", null);
+__decorate([
+    (0, common_1.Patch)(':id/price'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], CargoBookingsController.prototype, "updatePrice", null);
 __decorate([
     (0, common_1.Patch)(':id/payment'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
