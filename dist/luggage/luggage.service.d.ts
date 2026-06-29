@@ -15,5 +15,5 @@ export declare class LuggageService {
     update(id: number, updateLuggageDto: UpdateLuggageDto, updatedBy?: number | null): Promise<Luggage>;
     remove(id: number): Promise<void>;
     removeAllByPassenger(passengerId: number): Promise<void>;
-    findAllWithDetails(flightSeriesId?: number): Promise<any[]>;
+    findAllWithDetails(flightSeriesId?: number, flightId?: number): Promise<any[]>;
 }

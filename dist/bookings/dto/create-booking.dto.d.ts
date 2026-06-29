@@ -6,8 +6,11 @@ export declare class PassengerDto {
     id_type?: string;
     identification?: string;
     age?: number;
+    date_of_birth?: string | null;
     title?: string;
     passenger_type: string;
+    ticket_number?: string;
+    fare_amount?: number;
 }
 export declare class CreateBookingDto {
     flight_series_id: number;
@@ -19,6 +22,8 @@ export declare class CreateBookingDto {
     return_flight_series_id?: number | null;
     flight_id?: number | null;
     return_flight_id?: number | null;
+    departure_id?: number | null;
+    destination_id?: number | null;
     payment_method: string;
     payment_status?: string;
     override_total_amount?: number;

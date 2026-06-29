@@ -18,9 +18,24 @@ let FlightRoute = class FlightRoute {
     fromDestination;
     to_destination_id;
     toDestination;
+    via_destination_id;
+    viaDestination;
     adult_fare;
     child_fare;
     infant_fare;
+    adult_fare_origin_via;
+    child_fare_origin_via;
+    infant_fare_origin_via;
+    adult_fare_via_destination;
+    child_fare_via_destination;
+    infant_fare_via_destination;
+    currency;
+    adult_return_fare_origin_via;
+    child_return_fare_origin_via;
+    infant_return_fare_origin_via;
+    adult_return_fare_via_destination;
+    child_return_fare_via_destination;
+    infant_return_fare_via_destination;
     adult_return_fare;
     child_return_fare;
     infant_return_fare;
@@ -55,6 +70,15 @@ __decorate([
     __metadata("design:type", destination_entity_1.Destination)
 ], FlightRoute.prototype, "toDestination", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'via_destination_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "via_destination_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => destination_entity_1.Destination, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'via_destination_id' }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "viaDestination", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Object)
 ], FlightRoute.prototype, "adult_fare", void 0);
@@ -66,6 +90,58 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Object)
 ], FlightRoute.prototype, "infant_fare", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'adult_fare_origin_via', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "adult_fare_origin_via", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'child_fare_origin_via', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "child_fare_origin_via", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'infant_fare_origin_via', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "infant_fare_origin_via", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'adult_fare_via_destination', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "adult_fare_via_destination", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'child_fare_via_destination', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "child_fare_via_destination", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'infant_fare_via_destination', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "infant_fare_via_destination", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 10, default: 'USD' }),
+    __metadata("design:type", String)
+], FlightRoute.prototype, "currency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'adult_return_fare_origin_via', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "adult_return_fare_origin_via", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'child_return_fare_origin_via', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "child_return_fare_origin_via", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'infant_return_fare_origin_via', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "infant_return_fare_origin_via", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'adult_return_fare_via_destination', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "adult_return_fare_via_destination", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'child_return_fare_via_destination', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "child_return_fare_via_destination", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'infant_return_fare_via_destination', type: 'decimal', precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Object)
+], FlightRoute.prototype, "infant_return_fare_via_destination", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'adult_return_fare', type: 'decimal', precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Object)

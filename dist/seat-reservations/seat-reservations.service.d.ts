@@ -13,7 +13,7 @@ export declare class SeatReservationsService {
     private passengerRepository;
     private countryRepository;
     constructor(seatReservationRepository: Repository<SeatReservation>, flightSeriesRepository: Repository<FlightSeries>, flightRepository: Repository<Flight>, passengerRepository: Repository<Passenger>, countryRepository: Repository<Country>);
-    findAll(page?: number, limit?: number, flightSeriesId?: number, agentId?: number, status?: string): Promise<{
+    findAll(page?: number, limit?: number, flightSeriesId?: number, agentId?: number, status?: string, staffId?: number): Promise<{
         reservations: SeatReservation[];
         total: number;
     }>;

@@ -12,13 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateSeatReservationDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const emptyToNull = ({ value }) => (value === '' ? null : value);
 class UpdateSeatReservationDto {
     flight_series_id;
     number_of_seats;
+    departure_id;
+    destination_id;
     passenger_id;
     passenger_name;
     passenger_email;
     passenger_phone;
+    date_of_birth;
     status;
     reservation_date;
     notes;
@@ -52,6 +56,18 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], UpdateSeatReservationDto.prototype, "departure_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], UpdateSeatReservationDto.prototype, "destination_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
     __metadata("design:type", Number)
 ], UpdateSeatReservationDto.prototype, "passenger_id", void 0);
 __decorate([
@@ -69,6 +85,12 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateSeatReservationDto.prototype, "passenger_phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", Object)
+], UpdateSeatReservationDto.prototype, "date_of_birth", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

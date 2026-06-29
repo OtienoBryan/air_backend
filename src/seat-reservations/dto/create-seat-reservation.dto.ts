@@ -1,6 +1,8 @@
 import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsIn, IsDateString, ValidateIf, IsNumber } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
+const emptyToNull = ({ value }: { value: unknown }) => (value === '' ? null : value);
+
 export class CreateSeatReservationDto {
   @IsNotEmpty()
   @Type(() => Number)
@@ -11,6 +13,19 @@ export class CreateSeatReservationDto {
   @Type(() => Number)
   @IsInt()
   number_of_seats: number;
+
+  // Overrides for where this reservation actually boards/disembarks — only set when
+  // reserving just one leg of a via-stop flight (origin->via or via->destination).
+  // Omitted/null means "the flight series' normal origin/destination".
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  departure_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  destination_id?: number | null;
 
   @IsOptional()
   @Type(() => Number)
@@ -34,6 +49,11 @@ export class CreateSeatReservationDto {
   passenger_phone?: string;
 
   @IsOptional()
+  @Transform(emptyToNull)
+  @IsDateString()
+  date_of_birth?: string | null;
+
+  @IsOptional()
   @IsString()
   @IsIn(['reserved', 'confirmed', 'cancelled', 'checked_in', 'booked'])
   status?: string;
@@ -54,7 +74,16 @@ export class CreateSeatReservationDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  staff_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   country_id?: number | null;
+
+  @IsOptional()
+  @IsString()
+  country?: string | null;
 
   @IsOptional()
   @IsString()

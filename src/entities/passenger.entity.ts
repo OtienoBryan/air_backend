@@ -29,6 +29,9 @@ export class Passenger {
   @Column({ type: 'int', nullable: true })
   age: number | null;
 
+  @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+  date_of_birth: string | null;
+
   @Column({ type: 'varchar', length: 20, nullable: true })
   title: string | null; // Mr., Mrs., Ms., Dr., etc.
 

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdatePassengerDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const emptyToNull = ({ value }) => (value === '' ? null : value);
 class UpdatePassengerDto {
     name;
     email;
@@ -20,6 +21,7 @@ class UpdatePassengerDto {
     id_type;
     identification;
     age;
+    date_of_birth;
     title;
     booking_status;
 }
@@ -62,6 +64,12 @@ __decorate([
     (0, class_validator_1.Max)(150),
     __metadata("design:type", Object)
 ], UpdatePassengerDto.prototype, "age", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", Object)
+], UpdatePassengerDto.prototype, "date_of_birth", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

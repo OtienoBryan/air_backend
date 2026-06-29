@@ -1,5 +1,7 @@
 import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsIn, IsDateString, IsNumber, IsArray, ValidateNested, IsBoolean, ValidateIf } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
+
+const emptyToNull = ({ value }: { value: unknown }) => (value === '' ? null : value);
 
 export class PassengerDto {
   @IsString()
@@ -32,6 +34,11 @@ export class PassengerDto {
   age?: number;
 
   @IsOptional()
+  @Transform(emptyToNull)
+  @IsDateString()
+  date_of_birth?: string | null;
+
+  @IsOptional()
   @IsString()
   title?: string;
 
@@ -39,6 +46,18 @@ export class PassengerDto {
   @IsNotEmpty()
   @IsIn(['adult', 'child', 'infant'])
   passenger_type: string;
+
+  @IsOptional()
+  @IsString()
+  ticket_number?: string;
+
+  // Optional fare override for this specific passenger — used when the fare was already
+  // resolved client-side (e.g. a via-leg/route fare that differs from the flight series'
+  // own flat fare). Falls back to the flight series fare calculation when omitted.
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  fare_amount?: number;
 }
 
 export class CreateBookingDto {
@@ -84,6 +103,19 @@ export class CreateBookingDto {
   @Type(() => Number)
   @IsInt()
   return_flight_id?: number | null;
+
+  // Overrides for where these passengers actually board/disembark — only set when
+  // booking just one leg of a via-stop flight (origin->via or via->destination).
+  // Omitted/null means "the flight's normal origin/destination".
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  departure_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  destination_id?: number | null;
 
   @IsString()
   @IsNotEmpty()

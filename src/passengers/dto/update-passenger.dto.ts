@@ -1,5 +1,7 @@
-import { IsString, IsOptional, IsInt, IsEmail, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsInt, IsEmail, IsDateString, Min, Max } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+
+const emptyToNull = ({ value }: { value: unknown }) => (value === '' ? null : value);
 
 export class UpdatePassengerDto {
   @IsOptional()
@@ -32,6 +34,11 @@ export class UpdatePassengerDto {
   @Min(0)
   @Max(150)
   age?: number | null;
+
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsDateString()
+  date_of_birth?: string | null;
 
   @IsOptional()
   @IsString()

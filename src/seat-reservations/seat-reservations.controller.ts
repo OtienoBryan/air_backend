@@ -27,14 +27,16 @@ export class SeatReservationsController {
     @Query('limit') limit: string = '50',
     @Query('flightSeriesId') flightSeriesId?: string,
     @Query('agentId') agentId?: string,
+    @Query('staffId') staffId?: string,
     @Query('status') status?: string,
   ): Promise<{ reservations: SeatReservation[], total: number }> {
     const parsedPage = parseInt(page, 10) || 1;
     const parsedLimit = parseInt(limit, 10) || 50;
     const parsedFlightSeriesId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
     const parsedAgentId = agentId ? parseInt(agentId, 10) : undefined;
-    console.log('🎫 [SeatReservationsController] GET /admin/seat-reservations', { page: parsedPage, limit: parsedLimit, flightSeriesId: parsedFlightSeriesId, agentId: parsedAgentId, status });
-    return this.seatReservationsService.findAll(parsedPage, parsedLimit, parsedFlightSeriesId, parsedAgentId, status);
+    const parsedStaffId = staffId ? parseInt(staffId, 10) : undefined;
+    console.log('🎫 [SeatReservationsController] GET /admin/seat-reservations', { page: parsedPage, limit: parsedLimit, flightSeriesId: parsedFlightSeriesId, agentId: parsedAgentId, staffId: parsedStaffId, status });
+    return this.seatReservationsService.findAll(parsedPage, parsedLimit, parsedFlightSeriesId, parsedAgentId, status, parsedStaffId);
   }
 
   @Get('flight-series/:flightSeriesId')

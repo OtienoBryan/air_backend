@@ -41,6 +41,7 @@ export class FlightsController {
     @Query('search')   search?:  string,
     @Query('status')   status?:  string,
     @Query('seriesId') seriesId?: number,
+    @Query('id')       id?:       number,
   ) {
     const qb = this.flightRepository
       .createQueryBuilder('f')
@@ -52,6 +53,7 @@ export class FlightsController {
       .orderBy('f.flight_date', 'ASC')
       .addOrderBy('f.flight_no', 'ASC')
 
+    if (id)       qb.andWhere('f.id = :id',               { id: Number(id) })
     if (from)     qb.andWhere('f.flight_date >= :from',    { from })
     if (to)       qb.andWhere('f.flight_date <= :to',      { to })
     if (status)   qb.andWhere('f.status = :status',        { status })
@@ -155,6 +157,7 @@ export class FlightsController {
         'flight', 'flight.series',
         'flight.series.fromDestination', 'flight.series.toDestination',
         'flight.series.viaDestination', 'flight.aircraft',
+        'departure', 'destination',
       ],
       order: { created_at: 'ASC' },
     })
@@ -166,6 +169,10 @@ export class FlightsController {
       payment_status:  (bp as any).booking?.payment_status ?? null,
       passenger_type:  bp.passenger_type,
       fare_amount:     Number(bp.fare_amount ?? 0),
+      // This passenger's actual boarding/disembarkation point — null means "the
+      // flight's normal origin/destination" (frontend falls back to flight.series).
+      departure:       (bp as any).departure ?? null,
+      destination:     (bp as any).destination ?? null,
       travel_date:     bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
       leg:             bp.leg,
       status:          bp.status ?? null,

@@ -15,7 +15,7 @@ export class FlightRoutesService {
 
   async findAll(): Promise<FlightRoute[]> {
     return this.routeRepository.find({
-      relations: ['fromDestination', 'toDestination'],
+      relations: ['fromDestination', 'toDestination', 'viaDestination'],
       order: { id: 'DESC' },
     });
   }
@@ -23,7 +23,7 @@ export class FlightRoutesService {
   async findOne(id: number): Promise<FlightRoute> {
     const route = await this.routeRepository.findOne({
       where: { id },
-      relations: ['fromDestination', 'toDestination'],
+      relations: ['fromDestination', 'toDestination', 'viaDestination'],
     });
     if (!route) throw new NotFoundException(`Route #${id} not found`);
     return route;
@@ -62,6 +62,7 @@ export class FlightRoutesService {
       ...data,
       fromDestination: undefined,
       toDestination: undefined,
+      viaDestination: undefined,
     });
     return this.findOne(id);
   }

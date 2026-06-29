@@ -2,6 +2,7 @@ import { Booking } from './booking.entity';
 import { Passenger } from './passenger.entity';
 import { FlightSeries } from './flight-series.entity';
 import { Flight } from './flight.entity';
+import { Destination } from './destination.entity';
 export declare class BookingPassenger {
     id: number;
     booking_id: number;
@@ -10,6 +11,10 @@ export declare class BookingPassenger {
     flightSeries?: FlightSeries;
     flight_id: number | null;
     flight?: Flight | null;
+    departure_id: number | null;
+    departure?: Destination | null;
+    destination_id: number | null;
+    destination?: Destination | null;
     passenger_id: number;
     passenger?: Passenger;
     passenger_type: string;

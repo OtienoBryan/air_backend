@@ -39,13 +39,18 @@ export class LuggageController {
   @Get('all')
   async findAllWithDetails(
     @Query('flightSeriesId') flightSeriesId?: string,
+    @Query('flightId') flightIdParam?: string,
   ): Promise<any[]> {
-    const flightId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
-    if (flightSeriesId && isNaN(flightId!)) {
+    const seriesId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
+    if (flightSeriesId && isNaN(seriesId!)) {
       throw new Error('flightSeriesId must be a valid number');
     }
-    console.log(`🧳 [LuggageController] GET /admin/luggage/all${flightId ? `?flightSeriesId=${flightId}` : ''}`);
-    return this.luggageService.findAllWithDetails(flightId);
+    const flightId = flightIdParam ? parseInt(flightIdParam, 10) : undefined;
+    if (flightIdParam && isNaN(flightId!)) {
+      throw new Error('flightId must be a valid number');
+    }
+    console.log(`🧳 [LuggageController] GET /admin/luggage/all${seriesId ? `?flightSeriesId=${seriesId}` : ''}${flightId ? `&flightId=${flightId}` : ''}`);
+    return this.luggageService.findAllWithDetails(seriesId, flightId);
   }
 
   @Get('passenger/:passengerId')

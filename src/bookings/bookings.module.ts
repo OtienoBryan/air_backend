@@ -14,11 +14,13 @@ import { ChartOfAccount } from '../entities/chart-of-account.entity';
 import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { PassengersModule } from '../passengers/passengers.module';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Booking, FlightSeries, Flight, Passenger, BookingPassenger, SeatReservation, Agency, AgencyLedger, JournalEntry, JournalEntryLine, ChartOfAccount]),
-    PassengersModule
+    PassengersModule,
+    MailModule
   ],
   providers: [BookingsService],
   controllers: [BookingsController],

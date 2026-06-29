@@ -130,9 +130,9 @@ export class LuggageService {
     console.log(`✅ [LuggageService] All luggage deleted for passenger: ${passengerId}`);
   }
 
-  async findAllWithDetails(flightSeriesId?: number): Promise<any[]> {
-    console.log(`🧳 [LuggageService] Finding all luggage with details${flightSeriesId ? ` for flight: ${flightSeriesId}` : ''}`);
-    
+  async findAllWithDetails(flightSeriesId?: number, flightId?: number): Promise<any[]> {
+    console.log(`🧳 [LuggageService] Finding all luggage with details${flightSeriesId ? ` for series: ${flightSeriesId}` : ''}${flightId ? ` for flight: ${flightId}` : ''}`);
+
     const query = this.luggageRepository
       .createQueryBuilder('luggage')
       .leftJoinAndSelect('luggage.passenger', 'passenger')
@@ -143,7 +143,11 @@ export class LuggageService {
       .leftJoinAndSelect('flightSeries.viaDestination', 'viaDestination')
       .orderBy('luggage.created_at', 'ASC');
 
-    if (flightSeriesId) {
+    // Scope to the specific flight occurrence when known — flightSeriesId alone
+    // would match every date of a recurring series, not just this one flight.
+    if (flightId) {
+      query.andWhere('luggage.flight_id = :flightId', { flightId });
+    } else if (flightSeriesId) {
       query.andWhere('luggage.flight_series_id = :flightSeriesId', { flightSeriesId });
     }
 

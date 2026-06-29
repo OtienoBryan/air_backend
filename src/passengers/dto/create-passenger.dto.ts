@@ -1,5 +1,9 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsInt, IsEmail, IsDateString, Min, Max } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+
+// Date inputs left blank send '' rather than omitting the field — @IsOptional()
+// only skips validation for null/undefined, so '' still fails @IsDateString().
+const emptyToNull = ({ value }: { value: unknown }) => (value === '' ? null : value);
 
 export class CreatePassengerDto {
   @IsString()
@@ -32,6 +36,11 @@ export class CreatePassengerDto {
   @Min(0)
   @Max(150)
   age?: number | null;
+
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsDateString()
+  date_of_birth?: string | null;
 
   @IsOptional()
   @IsString()

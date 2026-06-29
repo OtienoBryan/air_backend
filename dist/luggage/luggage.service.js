@@ -120,8 +120,8 @@ let LuggageService = class LuggageService {
         await this.luggageRepository.delete({ passenger_id: passengerId });
         console.log(`✅ [LuggageService] All luggage deleted for passenger: ${passengerId}`);
     }
-    async findAllWithDetails(flightSeriesId) {
-        console.log(`🧳 [LuggageService] Finding all luggage with details${flightSeriesId ? ` for flight: ${flightSeriesId}` : ''}`);
+    async findAllWithDetails(flightSeriesId, flightId) {
+        console.log(`🧳 [LuggageService] Finding all luggage with details${flightSeriesId ? ` for series: ${flightSeriesId}` : ''}${flightId ? ` for flight: ${flightId}` : ''}`);
         const query = this.luggageRepository
             .createQueryBuilder('luggage')
             .leftJoinAndSelect('luggage.passenger', 'passenger')
@@ -131,7 +131,10 @@ let LuggageService = class LuggageService {
             .leftJoinAndSelect('flightSeries.toDestination', 'toDestination')
             .leftJoinAndSelect('flightSeries.viaDestination', 'viaDestination')
             .orderBy('luggage.created_at', 'ASC');
-        if (flightSeriesId) {
+        if (flightId) {
+            query.andWhere('luggage.flight_id = :flightId', { flightId });
+        }
+        else if (flightSeriesId) {
             query.andWhere('luggage.flight_series_id = :flightSeriesId', { flightSeriesId });
         }
         const luggages = await query.getMany();

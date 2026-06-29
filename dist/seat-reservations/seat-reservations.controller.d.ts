@@ -5,7 +5,7 @@ import { UpdateSeatReservationDto } from './dto/update-seat-reservation.dto';
 export declare class SeatReservationsController {
     private readonly seatReservationsService;
     constructor(seatReservationsService: SeatReservationsService);
-    findAll(page?: string, limit?: string, flightSeriesId?: string, agentId?: string, status?: string): Promise<{
+    findAll(page?: string, limit?: string, flightSeriesId?: string, agentId?: string, staffId?: string, status?: string): Promise<{
         reservations: SeatReservation[];
         total: number;
     }>;

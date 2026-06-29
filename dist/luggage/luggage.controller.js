@@ -32,13 +32,17 @@ let LuggageController = class LuggageController {
         console.log('🧳 [LuggageController] POST /admin/luggage');
         return this.luggageService.create(createLuggageDto);
     }
-    async findAllWithDetails(flightSeriesId) {
-        const flightId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
-        if (flightSeriesId && isNaN(flightId)) {
+    async findAllWithDetails(flightSeriesId, flightIdParam) {
+        const seriesId = flightSeriesId ? parseInt(flightSeriesId, 10) : undefined;
+        if (flightSeriesId && isNaN(seriesId)) {
             throw new Error('flightSeriesId must be a valid number');
         }
-        console.log(`🧳 [LuggageController] GET /admin/luggage/all${flightId ? `?flightSeriesId=${flightId}` : ''}`);
-        return this.luggageService.findAllWithDetails(flightId);
+        const flightId = flightIdParam ? parseInt(flightIdParam, 10) : undefined;
+        if (flightIdParam && isNaN(flightId)) {
+            throw new Error('flightId must be a valid number');
+        }
+        console.log(`🧳 [LuggageController] GET /admin/luggage/all${seriesId ? `?flightSeriesId=${seriesId}` : ''}${flightId ? `&flightId=${flightId}` : ''}`);
+        return this.luggageService.findAllWithDetails(seriesId, flightId);
     }
     async findAllByPassenger(passengerId) {
         console.log(`🧳 [LuggageController] GET /admin/luggage/passenger/${passengerId}`);
@@ -112,8 +116,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)('all'),
     __param(0, (0, common_1.Query)('flightSeriesId')),
+    __param(1, (0, common_1.Query)('flightId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], LuggageController.prototype, "findAllWithDetails", null);
 __decorate([

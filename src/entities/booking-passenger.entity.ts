@@ -3,6 +3,7 @@ import { Booking } from './booking.entity';
 import { Passenger } from './passenger.entity';
 import { FlightSeries } from './flight-series.entity';
 import { Flight } from './flight.entity';
+import { Destination } from './destination.entity';
 
 // Uniqueness on (booking_id, passenger_id, leg) is enforced at the DB level only for
 // active (non-cancelled) rows, via a generated `active_leg` column + unique index
@@ -35,6 +36,23 @@ export class BookingPassenger {
   @ManyToOne(() => Flight, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'flight_id' })
   flight?: Flight | null;
+
+  // Where THIS passenger actually boards/disembarks — null on either means "the
+  // flight's normal origin/destination". Only differ for via-stop flights where a
+  // passenger flies just one leg (origin->via or via->destination).
+  @Column({ name: 'departure_id', type: 'int', nullable: true })
+  departure_id: number | null;
+
+  @ManyToOne(() => Destination, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'departure_id' })
+  departure?: Destination | null;
+
+  @Column({ name: 'destination_id', type: 'int', nullable: true })
+  destination_id: number | null;
+
+  @ManyToOne(() => Destination, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'destination_id' })
+  destination?: Destination | null;
 
   @Column({ name: 'passenger_id', type: 'int' })
   passenger_id: number;

@@ -27,14 +27,14 @@ let FlightRoutesService = class FlightRoutesService {
     }
     async findAll() {
         return this.routeRepository.find({
-            relations: ['fromDestination', 'toDestination'],
+            relations: ['fromDestination', 'toDestination', 'viaDestination'],
             order: { id: 'DESC' },
         });
     }
     async findOne(id) {
         const route = await this.routeRepository.findOne({
             where: { id },
-            relations: ['fromDestination', 'toDestination'],
+            relations: ['fromDestination', 'toDestination', 'viaDestination'],
         });
         if (!route)
             throw new common_1.NotFoundException(`Route #${id} not found`);
@@ -66,6 +66,7 @@ let FlightRoutesService = class FlightRoutesService {
             ...data,
             fromDestination: undefined,
             toDestination: undefined,
+            viaDestination: undefined,
         });
         return this.findOne(id);
     }

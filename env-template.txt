@@ -19,3 +19,8 @@ CLOUDINARY_UPLOAD_PRESET=drinks-admin-upload
 # JWT Configuration (if needed)
 JWT_SECRET=your-jwt-secret-key
 JWT_EXPIRES_IN=24h
+
+# Resend Email Configuration
+# Get your API key from https://resend.com/api-keys
+RESEND_API_KEY=your-resend-api-key
+MAIL_FROM=Royal Air <onboarding@resend.dev>

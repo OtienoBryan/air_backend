@@ -9,7 +9,7 @@ export declare class LuggageController {
     private readonly excessChargeRepository;
     constructor(luggageService: LuggageService, excessChargeRepository: Repository<LuggageExcessCharge>);
     create(createLuggageDto: CreateLuggageDto): Promise<Luggage>;
-    findAllWithDetails(flightSeriesId?: string): Promise<any[]>;
+    findAllWithDetails(flightSeriesId?: string, flightIdParam?: string): Promise<any[]>;
     findAllByPassenger(passengerId: number): Promise<Luggage[]>;
     findOne(id: number): Promise<Luggage>;
     update(id: number, updateLuggageDto: UpdateLuggageDto, req: any): Promise<Luggage>;

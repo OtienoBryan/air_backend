@@ -17,6 +17,7 @@ import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
 import { CancelRefundDto } from './dto/cancel-refund.dto';
 import { CancelRescheduleDto } from './dto/cancel-reschedule.dto';
 import { PassengersService } from '../passengers/passengers.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class BookingsService {
@@ -45,6 +46,7 @@ export class BookingsService {
     private chartOfAccountRepository: Repository<ChartOfAccount>,
     private passengersService: PassengersService,
     private dataSource: DataSource,
+    private mailService: MailService,
   ) {}
 
   async create(createBookingDto: CreateBookingDto): Promise<Booking> {
@@ -73,23 +75,29 @@ export class BookingsService {
     for (const passengerDto of createBookingDto.passengers) {
       // Calculate fare based on passenger type
       // For return trips: use adult_return_fare ÷ 2 per leg (each leg gets half the round-trip fare)
+      // A client-supplied fare_amount (e.g. a via-leg/route fare resolved on the confirm page,
+      // which can differ from the flight series' own flat fare) takes priority when present.
       let fare = 0
-      switch (passengerDto.passenger_type) {
-        case 'adult':
-          fare = isReturnTrip
-            ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
-            : Number(flightSeries.adult_fare) || 0
-          break
-        case 'child':
-          fare = isReturnTrip
-            ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
-            : Number(flightSeries.child_fare) || 0
-          break
-        case 'infant':
-          fare = isReturnTrip
-            ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
-            : Number(flightSeries.infant_fare) || 0
-          break
+      if (passengerDto.fare_amount != null) {
+        fare = Number(passengerDto.fare_amount) || 0
+      } else {
+        switch (passengerDto.passenger_type) {
+          case 'adult':
+            fare = isReturnTrip
+              ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
+              : Number(flightSeries.adult_fare) || 0
+            break
+          case 'child':
+            fare = isReturnTrip
+              ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
+              : Number(flightSeries.child_fare) || 0
+            break
+          case 'infant':
+            fare = isReturnTrip
+              ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
+              : Number(flightSeries.infant_fare) || 0
+            break
+        }
       }
       totalAmount += fare
       farePerPassenger = fare
@@ -112,6 +120,7 @@ export class BookingsService {
           passenger.contact       = passengerDto.contact       || passenger.contact
           passenger.nationality   = passengerDto.nationality   || passenger.nationality
           if (passengerDto.title) passenger.title = passengerDto.title as any
+          if (passengerDto.date_of_birth) passenger.date_of_birth = passengerDto.date_of_birth
           passenger = await this.passengerRepository.save(passenger)
         }
       }
@@ -126,6 +135,7 @@ export class BookingsService {
           id_type:        passengerDto.id_type        || null,
           identification: passengerDto.identification || null,
           age:            passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
+          date_of_birth:  passengerDto.date_of_birth   || null,
           title:          passengerDto.title          || null,
         })
         console.log(`✅ [BookingsService] Created new passenger ${passenger.id} with PNR: ${passenger.pnr}`)
@@ -204,22 +214,26 @@ export class BookingsService {
       const passengerDto = createBookingDto.passengers[i]
 
       let fare = 0
-      switch (passengerDto.passenger_type) {
-        case 'adult':
-          fare = isReturnTrip
-            ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
-            : Number(flightSeries.adult_fare) || 0
-          break
-        case 'child':
-          fare = isReturnTrip
-            ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
-            : Number(flightSeries.child_fare) || 0
-          break
-        case 'infant':
-          fare = isReturnTrip
-            ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
-            : Number(flightSeries.infant_fare) || 0
-          break
+      if (passengerDto.fare_amount != null) {
+        fare = Number(passengerDto.fare_amount) || 0
+      } else {
+        switch (passengerDto.passenger_type) {
+          case 'adult':
+            fare = isReturnTrip
+              ? (Number(flightSeries.adult_return_fare ?? flightSeries.adult_fare) || 0) / 2
+              : Number(flightSeries.adult_fare) || 0
+            break
+          case 'child':
+            fare = isReturnTrip
+              ? (Number(flightSeries.child_return_fare ?? flightSeries.child_fare) || 0) / 2
+              : Number(flightSeries.child_fare) || 0
+            break
+          case 'infant':
+            fare = isReturnTrip
+              ? (Number(flightSeries.infant_return_fare ?? flightSeries.infant_fare) || 0) / 2
+              : Number(flightSeries.infant_fare) || 0
+            break
+        }
       }
 
       // Outbound leg
@@ -228,10 +242,13 @@ export class BookingsService {
         passenger_id:      passenger.id,
         flight_series_id:  createBookingDto.flight_series_id,
         flight_id:         outboundFlightId,
+        departure_id:      createBookingDto.departure_id ?? null,
+        destination_id:    createBookingDto.destination_id ?? null,
         passenger_type:    passengerDto.passenger_type,
         fare_amount:       fare,
         travel_date:       outboundDate,
         leg:               'outbound',
+        ticket_number:     passengerDto.ticket_number || null,
         payment_reference: createBookingDto.payment_reference ?? null,
         payment_account:   createBookingDto.payment_account   ?? null,
       })
@@ -451,8 +468,10 @@ export class BookingsService {
 
         if (seatReservation) {
           seatReservation.status = 'booked';
+          seatReservation.payment_status = savedBooking.payment_status;
+          seatReservation.amount_paid = Number(savedBooking.total_amount) || 0;
           await this.seatReservationRepository.save(seatReservation);
-          console.log(`✅ [BookingsService] Updated seat reservation ${seatReservation.id} status to 'booked'`);
+          console.log(`✅ [BookingsService] Updated seat reservation ${seatReservation.id} status to 'booked', payment_status to '${seatReservation.payment_status}', amount_paid to ${seatReservation.amount_paid}`);
 
           // Also create a separate booked record for the return leg so the return flight's
           // availability is tracked (the reservation record only covers the outbound date).
@@ -560,8 +579,59 @@ export class BookingsService {
       where: { id: savedBooking.id },
       relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'returnFlightSeries', 'returnFlightSeries.fromDestination', 'returnFlightSeries.toDestination', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger', 'bookingPassengers.flightSeries', 'bookingPassengers.flightSeries.fromDestination', 'bookingPassengers.flightSeries.toDestination']
     });
-    
-    return bookingWithRelations || savedBooking;
+
+    const finalBooking = bookingWithRelations || savedBooking;
+
+    // Send confirmation email to the passenger — never let an email failure affect the booking response
+    if (finalBooking.passenger_email) {
+      await this.mailService.sendBookingConfirmation({
+        passengerEmail: finalBooking.passenger_email,
+        passengerName: finalBooking.passenger_name,
+        bookingReference: finalBooking.booking_reference,
+        flightNo: finalBooking.flightSeries?.flt || '',
+        origin: finalBooking.flightSeries?.fromDestination?.code || '',
+        destination: finalBooking.flightSeries?.toDestination?.code || '',
+        travelDate: String(finalBooking.booking_date || '').slice(0, 10),
+        std: finalBooking.flightSeries?.std,
+        sta: finalBooking.flightSeries?.sta,
+        totalAmount: Number(finalBooking.total_amount || 0),
+        isReturnTrip: finalBooking.is_return_trip,
+      });
+    }
+
+    // Send each passenger their own ticket as a separate email — one per booking_passenger
+    // row (covers both legs of a return trip), sent to that passenger's own email if known.
+    for (const bp of finalBooking.bookingPassengers || []) {
+      const passenger = bp.passenger;
+      if (!passenger?.email) continue;
+
+      const ticketNumber = bp.ticket_number
+        || `${finalBooking.booking_reference.replace(/-/g, '').slice(0, 6)}${String(passenger.id).padStart(4, '0')}`;
+      const bpFlightSeries = bp.flightSeries || finalBooking.flightSeries;
+
+      await this.mailService.sendTicket({
+        passengerEmail: passenger.email,
+        passengerTitle: (passenger as any).title,
+        passengerName: passenger.name,
+        pnr: passenger.pnr,
+        ticketNumber,
+        bookingReference: finalBooking.booking_reference,
+        passengerType: bp.passenger_type,
+        flightNo: bpFlightSeries?.flt || '',
+        origin: bpFlightSeries?.fromDestination?.code || '',
+        originName: bpFlightSeries?.fromDestination?.name,
+        destination: bpFlightSeries?.toDestination?.code || '',
+        destinationName: bpFlightSeries?.toDestination?.name,
+        travelDate: String(bp.travel_date || finalBooking.booking_date || '').slice(0, 10),
+        std: bpFlightSeries?.std,
+        sta: bpFlightSeries?.sta,
+        seatNumber: bp.seat_number,
+        fareAmount: Number(bp.fare_amount || 0),
+        paymentMethod: finalBooking.payment_method,
+      });
+    }
+
+    return finalBooking;
   }
 
   private async generateEntryNumber(): Promise<string> {
@@ -942,6 +1012,7 @@ export class BookingsService {
         'bookingPassengers.flightSeries',
         'bookingPassengers.flightSeries.fromDestination',
         'bookingPassengers.flightSeries.toDestination',
+        'bookingPassengers.flight',
       ],
       order: { booking_date: 'DESC', created_at: 'DESC' },
       skip: (page - 1) * limit,
@@ -999,6 +1070,8 @@ export class BookingsService {
       passenger_id:     passenger.id,
       flight_series_id: booking.flight_series_id,
       flight_id:        existingOutbound?.flight_id ?? booking.flight_id ?? null,
+      departure_id:     existingOutbound?.departure_id ?? null,
+      destination_id:   existingOutbound?.destination_id ?? null,
       passenger_type:   dto.passenger_type,
       fare_amount:      outboundFare,
       travel_date:      existingOutbound?.travel_date ?? null,

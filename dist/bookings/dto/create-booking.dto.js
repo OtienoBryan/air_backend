@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateBookingDto = exports.PassengerDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const emptyToNull = ({ value }) => (value === '' ? null : value);
 class PassengerDto {
     name;
     email;
@@ -20,8 +21,11 @@ class PassengerDto {
     id_type;
     identification;
     age;
+    date_of_birth;
     title;
     passenger_type;
+    ticket_number;
+    fare_amount;
 }
 exports.PassengerDto = PassengerDto;
 __decorate([
@@ -62,6 +66,12 @@ __decorate([
 ], PassengerDto.prototype, "age", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", Object)
+], PassengerDto.prototype, "date_of_birth", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], PassengerDto.prototype, "title", void 0);
@@ -71,6 +81,17 @@ __decorate([
     (0, class_validator_1.IsIn)(['adult', 'child', 'infant']),
     __metadata("design:type", String)
 ], PassengerDto.prototype, "passenger_type", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PassengerDto.prototype, "ticket_number", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PassengerDto.prototype, "fare_amount", void 0);
 class CreateBookingDto {
     flight_series_id;
     passengers;
@@ -81,6 +102,8 @@ class CreateBookingDto {
     return_flight_series_id;
     flight_id;
     return_flight_id;
+    departure_id;
+    destination_id;
     payment_method;
     payment_status;
     override_total_amount;
@@ -146,6 +169,18 @@ __decorate([
     (0, class_validator_1.IsInt)(),
     __metadata("design:type", Object)
 ], CreateBookingDto.prototype, "return_flight_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "departure_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsInt)(),
+    __metadata("design:type", Object)
+], CreateBookingDto.prototype, "destination_id", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

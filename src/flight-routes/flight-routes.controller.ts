@@ -63,9 +63,23 @@ export class FlightRoutesController {
   create(@Body() body: {
     from_destination_id: number;
     to_destination_id: number;
+    via_destination_id?: number | null;
     adult_fare?: number | null;
     child_fare?: number | null;
     infant_fare?: number | null;
+    adult_fare_origin_via?: number | null;
+    child_fare_origin_via?: number | null;
+    infant_fare_origin_via?: number | null;
+    adult_fare_via_destination?: number | null;
+    child_fare_via_destination?: number | null;
+    infant_fare_via_destination?: number | null;
+    adult_return_fare_origin_via?: number | null;
+    child_return_fare_origin_via?: number | null;
+    infant_return_fare_origin_via?: number | null;
+    adult_return_fare_via_destination?: number | null;
+    child_return_fare_via_destination?: number | null;
+    infant_return_fare_via_destination?: number | null;
+    currency?: string;
     status?: string;
   }) {
     return this.flightRoutesService.create(body);
@@ -77,9 +91,23 @@ export class FlightRoutesController {
     @Body() body: {
       from_destination_id?: number;
       to_destination_id?: number;
+      via_destination_id?: number | null;
       adult_fare?: number | null;
       child_fare?: number | null;
       infant_fare?: number | null;
+      adult_fare_origin_via?: number | null;
+      child_fare_origin_via?: number | null;
+      infant_fare_origin_via?: number | null;
+      adult_fare_via_destination?: number | null;
+      child_fare_via_destination?: number | null;
+      infant_fare_via_destination?: number | null;
+      adult_return_fare_origin_via?: number | null;
+      child_return_fare_origin_via?: number | null;
+      infant_return_fare_origin_via?: number | null;
+      adult_return_fare_via_destination?: number | null;
+      child_return_fare_via_destination?: number | null;
+      infant_return_fare_via_destination?: number | null;
+      currency?: string;
       status?: string;
     },
   ) {

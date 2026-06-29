@@ -4,6 +4,7 @@ import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { Agent } from './agent.entity';
 import { Country } from './country.entity';
+import { Destination } from './destination.entity';
 
 @Entity('seat_reservations')
 export class SeatReservation {
@@ -23,6 +24,23 @@ export class SeatReservation {
   @ManyToOne(() => Flight, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'flight_id' })
   flight?: Flight | null;
+
+  // Where this reservation actually boards/disembarks — null on either means "the
+  // flight series' normal origin/destination". Only differ for via-stop flights
+  // where the reservation covers just one leg (origin->via or via->destination).
+  @Column({ name: 'departure_id', type: 'int', nullable: true })
+  departure_id: number | null;
+
+  @ManyToOne(() => Destination, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'departure_id' })
+  departure?: Destination | null;
+
+  @Column({ name: 'destination_id', type: 'int', nullable: true })
+  destination_id: number | null;
+
+  @ManyToOne(() => Destination, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'destination_id' })
+  destination?: Destination | null;
 
   @Column({ name: 'passenger_id', type: 'int', nullable: true })
   passenger_id: number | null;
@@ -45,6 +63,9 @@ export class SeatReservation {
 
   @Column({ name: 'passenger_phone', type: 'varchar', length: 50, nullable: true })
   passenger_phone: string | null;
+
+  @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+  date_of_birth: string | null;
 
   @Column({ name: 'booking_reference', type: 'varchar', length: 50, unique: true })
   booking_reference: string;
@@ -70,8 +91,14 @@ export class SeatReservation {
   @JoinColumn({ name: 'agent_id' })
   agent?: Agent | null;
 
+  @Column({ name: 'staff_id', type: 'int', nullable: true })
+  staff_id: number | null;
+
   @Column({ name: 'country_id', type: 'int', nullable: true })
   country_id: number | null;
+
+  @Column({ name: 'country', type: 'varchar', length: 100, nullable: true })
+  country_name: string | null;
 
   @Column({ name: 'id_type', type: 'varchar', length: 30, nullable: true })
   id_type: string | null; // 'national_id' | 'passport' | 'travel_document'

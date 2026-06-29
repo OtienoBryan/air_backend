@@ -25,7 +25,7 @@ export class SeatReservationsService {
     private countryRepository: Repository<Country>,
   ) {}
 
-  async findAll(page: number = 1, limit: number = 50, flightSeriesId?: number, agentId?: number, status?: string): Promise<{ reservations: SeatReservation[], total: number }> {
+  async findAll(page: number = 1, limit: number = 50, flightSeriesId?: number, agentId?: number, status?: string, staffId?: number): Promise<{ reservations: SeatReservation[], total: number }> {
     console.log('🎫 [SeatReservationsService] Finding all seat reservations');
 
     const queryBuilder = this.seatReservationRepository.createQueryBuilder('reservation')
@@ -37,6 +37,8 @@ export class SeatReservationsService {
       .leftJoinAndSelect('reservation.agent', 'agent')
       .leftJoinAndSelect('agent.agency', 'agency')
       .leftJoinAndSelect('reservation.country', 'country')
+      .leftJoinAndSelect('reservation.departure', 'departure')
+      .leftJoinAndSelect('reservation.destination', 'destination')
       .where('1 = 1')
       .orderBy('reservation.id', 'DESC');
 
@@ -50,6 +52,10 @@ export class SeatReservationsService {
 
     if (status) {
       queryBuilder.andWhere('reservation.status = :status', { status });
+    }
+
+    if (staffId) {
+      queryBuilder.andWhere('reservation.staff_id = :staffId', { staffId });
     }
 
     const [reservations, total] = await queryBuilder
@@ -66,7 +72,7 @@ export class SeatReservationsService {
     
     const reservation = await this.seatReservationRepository.findOne({
       where: { id },
-      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country']
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country', 'departure', 'destination']
     });
     
     if (!reservation) {
@@ -83,7 +89,7 @@ export class SeatReservationsService {
     
     const reservations = await this.seatReservationRepository.find({
       where: { flight_series_id: flightSeriesId },
-      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'agent', 'agent.agency'],
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'agent', 'agent.agency', 'departure', 'destination'],
       order: { booking_reference: 'ASC' }
     });
     
@@ -181,9 +187,13 @@ export class SeatReservationsService {
     const reservation = this.seatReservationRepository.create({
       flight_series_id: createSeatReservationDto.flight_series_id,
       flight_id: flightId,
+      departure_id: createSeatReservationDto.departure_id ?? null,
+      destination_id: createSeatReservationDto.destination_id ?? null,
       passenger_id: passengerId,
       agent_id: createSeatReservationDto.agent_id ?? null,
+      staff_id: createSeatReservationDto.staff_id ?? null,
       country_id: createSeatReservationDto.country_id ?? null,
+      country_name: createSeatReservationDto.country ?? null,
       id_type: createSeatReservationDto.id_type ?? null,
       id_number: createSeatReservationDto.id_number ?? null,
       id_expiry: createSeatReservationDto.id_expiry ?? null,
@@ -193,6 +203,7 @@ export class SeatReservationsService {
       passenger_title: createSeatReservationDto.passenger_title ?? null,
       passenger_email: passengerEmail,
       passenger_phone: passengerPhone,
+      date_of_birth: createSeatReservationDto.date_of_birth ?? null,
       booking_reference: bookingReference,
       status: createSeatReservationDto.status || 'reserved',
       reservation_date: new Date(createSeatReservationDto.reservation_date),
@@ -211,9 +222,9 @@ export class SeatReservationsService {
       // Reload with flight series, destination, passenger, and agent relations
       const reservationWithRelations = await this.seatReservationRepository.findOne({
         where: { id: savedReservation.id },
-        relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country']
+        relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country', 'departure', 'destination']
       });
-    
+
     return reservationWithRelations || savedReservation;
   }
 
@@ -309,10 +320,13 @@ export class SeatReservationsService {
 
     // Update fields (booking_reference is never updated - always auto-generated)
     if (updateSeatReservationDto.flight_series_id !== undefined) reservation.flight_series_id = updateSeatReservationDto.flight_series_id;
+    if (updateSeatReservationDto.departure_id !== undefined) reservation.departure_id = updateSeatReservationDto.departure_id ?? null;
+    if (updateSeatReservationDto.destination_id !== undefined) reservation.destination_id = updateSeatReservationDto.destination_id ?? null;
     if (updateSeatReservationDto.number_of_seats !== undefined) reservation.number_of_seats = updateSeatReservationDto.number_of_seats;
     if (updateSeatReservationDto.passenger_name !== undefined) reservation.passenger_name = updateSeatReservationDto.passenger_name;
     if (updateSeatReservationDto.passenger_email !== undefined) reservation.passenger_email = updateSeatReservationDto.passenger_email ?? null;
     if (updateSeatReservationDto.passenger_phone !== undefined) reservation.passenger_phone = updateSeatReservationDto.passenger_phone ?? null;
+    if (updateSeatReservationDto.date_of_birth !== undefined) reservation.date_of_birth = updateSeatReservationDto.date_of_birth ?? null;
     if (updateSeatReservationDto.status !== undefined) reservation.status = updateSeatReservationDto.status;
     if (updateSeatReservationDto.reservation_date !== undefined) reservation.reservation_date = new Date(updateSeatReservationDto.reservation_date);
     if (updateSeatReservationDto.notes !== undefined) reservation.notes = updateSeatReservationDto.notes ?? null;
@@ -386,7 +400,7 @@ export class SeatReservationsService {
     // Reload with flight series, destination, passenger, and agent relations
     const reservationWithRelations = await this.seatReservationRepository.findOne({
       where: { id: updatedReservation.id },
-      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country']
+      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'flightSeries.viaDestination', 'passenger', 'agent', 'agent.agency', 'country', 'departure', 'destination']
     });
     return reservationWithRelations || updatedReservation;
   }

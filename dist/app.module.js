@@ -39,6 +39,7 @@ const bookings_module_1 = require("./bookings/bookings.module");
 const crew_module_1 = require("./crew/crew.module");
 const agencies_module_1 = require("./agencies/agencies.module");
 const luggage_module_1 = require("./luggage/luggage.module");
+const mail_module_1 = require("./mail/mail.module");
 const agents_module_1 = require("./agents/agents.module");
 const accounts_module_1 = require("./accounts/accounts.module");
 const iata_codes_module_1 = require("./iata-codes/iata-codes.module");
@@ -98,6 +99,7 @@ exports.AppModule = AppModule = __decorate([
             crew_module_1.CrewModule,
             agencies_module_1.AgenciesModule,
             luggage_module_1.LuggageModule,
+            mail_module_1.MailModule,
             agents_module_1.AgentsModule,
             accounts_module_1.AccountsModule,
             iata_codes_module_1.IataCodesModule,

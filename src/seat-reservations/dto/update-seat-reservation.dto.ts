@@ -1,6 +1,8 @@
 import { IsString, IsOptional, IsInt, IsEmail, IsIn, IsDateString, ValidateIf, IsNumber } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
+const emptyToNull = ({ value }: { value: unknown }) => (value === '' ? null : value);
+
 export class UpdateSeatReservationDto {
   @IsOptional()
   @Type(() => Number)
@@ -11,6 +13,16 @@ export class UpdateSeatReservationDto {
   @Type(() => Number)
   @IsInt()
   number_of_seats?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  departure_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  destination_id?: number | null;
 
   @IsOptional()
   @Type(() => Number)
@@ -28,6 +40,11 @@ export class UpdateSeatReservationDto {
   @IsOptional()
   @IsString()
   passenger_phone?: string;
+
+  @IsOptional()
+  @Transform(emptyToNull)
+  @IsDateString()
+  date_of_birth?: string | null;
 
   @IsOptional()
   @IsString()

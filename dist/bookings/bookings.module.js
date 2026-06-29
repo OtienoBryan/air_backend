@@ -23,6 +23,7 @@ const chart_of_account_entity_1 = require("../entities/chart-of-account.entity")
 const bookings_service_1 = require("./bookings.service");
 const bookings_controller_1 = require("./bookings.controller");
 const passengers_module_1 = require("../passengers/passengers.module");
+const mail_module_1 = require("../mail/mail.module");
 let BookingsModule = class BookingsModule {
 };
 exports.BookingsModule = BookingsModule;
@@ -30,7 +31,8 @@ exports.BookingsModule = BookingsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             typeorm_1.TypeOrmModule.forFeature([booking_entity_1.Booking, flight_series_entity_1.FlightSeries, flight_entity_1.Flight, passenger_entity_1.Passenger, booking_passenger_entity_1.BookingPassenger, seat_reservation_entity_1.SeatReservation, agency_entity_1.Agency, agency_ledger_entity_1.AgencyLedger, journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine, chart_of_account_entity_1.ChartOfAccount]),
-            passengers_module_1.PassengersModule
+            passengers_module_1.PassengersModule,
+            mail_module_1.MailModule
         ],
         providers: [bookings_service_1.BookingsService],
         controllers: [bookings_controller_1.BookingsController],

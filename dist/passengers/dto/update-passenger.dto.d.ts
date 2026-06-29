@@ -6,6 +6,7 @@ export declare class UpdatePassengerDto {
     id_type?: string | null;
     identification?: string | null;
     age?: number | null;
+    date_of_birth?: string | null;
     title?: string | null;
     booking_status?: string | null;
 }

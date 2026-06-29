@@ -11,6 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateCrewDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+const emptyToNull = ({ value }) => (value === '' ? null : value);
 class CreateCrewDto {
     name;
     contact;
@@ -60,6 +62,7 @@ __decorate([
 ], CreateCrewDto.prototype, "license_number", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "license_issue_date", void 0);
@@ -70,31 +73,37 @@ __decorate([
 ], CreateCrewDto.prototype, "medical_class", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "medical_date", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "fixed_wing_training_date", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "rotorcraft_asel", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "rotorcraft_amel", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "rotorcraft_ases", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(emptyToNull),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", Object)
 ], CreateCrewDto.prototype, "rotorcraft_ames", void 0);

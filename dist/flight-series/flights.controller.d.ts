@@ -15,7 +15,7 @@ export declare class FlightsController {
     private readonly crewAssignmentRepository;
     private readonly crewRepository;
     constructor(flightRepository: Repository<Flight>, exceptionRepository: Repository<FlightException>, exceptionTypeRepository: Repository<ExceptionType>, disruptionRepository: Repository<PassengerDisruption>, bookingPassengerRepository: Repository<BookingPassenger>, crewAssignmentRepository: Repository<CrewAssignment>, crewRepository: Repository<Crew>);
-    findAll(page?: number, limit?: number, from?: string, to?: string, search?: string, status?: string, seriesId?: number): Promise<{
+    findAll(page?: number, limit?: number, from?: string, to?: string, search?: string, status?: string, seriesId?: number, id?: number): Promise<{
         flights: {
             booked_count: number;
             available_seats: number | null;
@@ -50,6 +50,8 @@ export declare class FlightsController {
         payment_status: any;
         passenger_type: string;
         fare_amount: number;
+        departure: any;
+        destination: any;
         travel_date: string | null;
         leg: string;
         status: string | null;

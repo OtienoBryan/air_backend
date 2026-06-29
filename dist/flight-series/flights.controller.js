@@ -41,7 +41,7 @@ let FlightsController = class FlightsController {
         this.crewAssignmentRepository = crewAssignmentRepository;
         this.crewRepository = crewRepository;
     }
-    async findAll(page = 1, limit = 50, from, to, search, status, seriesId) {
+    async findAll(page = 1, limit = 50, from, to, search, status, seriesId, id) {
         const qb = this.flightRepository
             .createQueryBuilder('f')
             .leftJoinAndSelect('f.series', 's')
@@ -51,6 +51,8 @@ let FlightsController = class FlightsController {
             .leftJoinAndSelect('f.aircraft', 'fac')
             .orderBy('f.flight_date', 'ASC')
             .addOrderBy('f.flight_no', 'ASC');
+        if (id)
+            qb.andWhere('f.id = :id', { id: Number(id) });
         if (from)
             qb.andWhere('f.flight_date >= :from', { from });
         if (to)
@@ -137,6 +139,7 @@ let FlightsController = class FlightsController {
                 'flight', 'flight.series',
                 'flight.series.fromDestination', 'flight.series.toDestination',
                 'flight.series.viaDestination', 'flight.aircraft',
+                'departure', 'destination',
             ],
             order: { created_at: 'ASC' },
         });
@@ -148,6 +151,8 @@ let FlightsController = class FlightsController {
             payment_status: bp.booking?.payment_status ?? null,
             passenger_type: bp.passenger_type,
             fare_amount: Number(bp.fare_amount ?? 0),
+            departure: bp.departure ?? null,
+            destination: bp.destination ?? null,
             travel_date: bp.travel_date ? String(bp.travel_date).slice(0, 10) : null,
             leg: bp.leg,
             status: bp.status ?? null,
@@ -278,8 +283,9 @@ __decorate([
     __param(4, (0, common_1.Query)('search')),
     __param(5, (0, common_1.Query)('status')),
     __param(6, (0, common_1.Query)('seriesId')),
+    __param(7, (0, common_1.Query)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String, String, String, String, Number]),
+    __metadata("design:paramtypes", [Object, Object, String, String, String, String, Number, Number]),
     __metadata("design:returntype", Promise)
 ], FlightsController.prototype, "findAll", null);
 __decorate([

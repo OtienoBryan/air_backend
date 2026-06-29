@@ -15,6 +15,7 @@ const booking_entity_1 = require("./booking.entity");
 const passenger_entity_1 = require("./passenger.entity");
 const flight_series_entity_1 = require("./flight-series.entity");
 const flight_entity_1 = require("./flight.entity");
+const destination_entity_1 = require("./destination.entity");
 let BookingPassenger = class BookingPassenger {
     id;
     booking_id;
@@ -23,6 +24,10 @@ let BookingPassenger = class BookingPassenger {
     flightSeries;
     flight_id;
     flight;
+    departure_id;
+    departure;
+    destination_id;
+    destination;
     passenger_id;
     passenger;
     passenger_type;
@@ -81,6 +86,24 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'flight_id' }),
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "flight", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'departure_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "departure_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => destination_entity_1.Destination, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'departure_id' }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "departure", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'destination_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "destination_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => destination_entity_1.Destination, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'destination_id' }),
+    __metadata("design:type", Object)
+], BookingPassenger.prototype, "destination", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'passenger_id', type: 'int' }),
     __metadata("design:type", Number)

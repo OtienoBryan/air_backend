@@ -1,10 +1,13 @@
 export declare class UpdateSeatReservationDto {
     flight_series_id?: number;
     number_of_seats?: number;
+    departure_id?: number | null;
+    destination_id?: number | null;
     passenger_id?: number;
     passenger_name?: string;
     passenger_email?: string;
     passenger_phone?: string;
+    date_of_birth?: string | null;
     status?: string;
     reservation_date?: string;
     notes?: string;

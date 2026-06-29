@@ -1,16 +1,21 @@
 export declare class CreateSeatReservationDto {
     flight_series_id: number;
     number_of_seats: number;
+    departure_id?: number | null;
+    destination_id?: number | null;
     passenger_id?: number;
     passenger_name: string;
     passenger_title?: string | null;
     passenger_email?: string;
     passenger_phone?: string;
+    date_of_birth?: string | null;
     status?: string;
     reservation_date: string;
     notes?: string;
     agent_id?: number | null;
+    staff_id?: number | null;
     country_id?: number | null;
+    country?: string | null;
     id_type?: string | null;
     id_number?: string | null;
     id_expiry?: string | null;

@@ -15,6 +15,7 @@ import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
 import { CancelRefundDto } from './dto/cancel-refund.dto';
 import { CancelRescheduleDto } from './dto/cancel-reschedule.dto';
 import { PassengersService } from '../passengers/passengers.service';
+import { MailService } from '../mail/mail.service';
 export declare class BookingsService {
     private bookingRepository;
     private flightSeriesRepository;
@@ -29,7 +30,8 @@ export declare class BookingsService {
     private chartOfAccountRepository;
     private passengersService;
     private dataSource;
-    constructor(bookingRepository: Repository<Booking>, flightSeriesRepository: Repository<FlightSeries>, flightRepository: Repository<Flight>, passengerRepository: Repository<Passenger>, bookingPassengerRepository: Repository<BookingPassenger>, seatReservationRepository: Repository<SeatReservation>, agencyRepository: Repository<Agency>, agencyLedgerRepository: Repository<AgencyLedger>, journalEntryRepository: Repository<JournalEntry>, journalEntryLineRepository: Repository<JournalEntryLine>, chartOfAccountRepository: Repository<ChartOfAccount>, passengersService: PassengersService, dataSource: DataSource);
+    private mailService;
+    constructor(bookingRepository: Repository<Booking>, flightSeriesRepository: Repository<FlightSeries>, flightRepository: Repository<Flight>, passengerRepository: Repository<Passenger>, bookingPassengerRepository: Repository<BookingPassenger>, seatReservationRepository: Repository<SeatReservation>, agencyRepository: Repository<Agency>, agencyLedgerRepository: Repository<AgencyLedger>, journalEntryRepository: Repository<JournalEntry>, journalEntryLineRepository: Repository<JournalEntryLine>, chartOfAccountRepository: Repository<ChartOfAccount>, passengersService: PassengersService, dataSource: DataSource, mailService: MailService);
     create(createBookingDto: CreateBookingDto): Promise<Booking>;
     private generateEntryNumber;
     private createJournalEntryForBooking;

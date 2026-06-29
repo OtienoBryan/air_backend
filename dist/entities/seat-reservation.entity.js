@@ -16,12 +16,17 @@ const flight_entity_1 = require("./flight.entity");
 const passenger_entity_1 = require("./passenger.entity");
 const agent_entity_1 = require("./agent.entity");
 const country_entity_1 = require("./country.entity");
+const destination_entity_1 = require("./destination.entity");
 let SeatReservation = class SeatReservation {
     id;
     flight_series_id;
     flightSeries;
     flight_id;
     flight;
+    departure_id;
+    departure;
+    destination_id;
+    destination;
     passenger_id;
     passenger;
     number_of_seats;
@@ -29,13 +34,16 @@ let SeatReservation = class SeatReservation {
     passenger_title;
     passenger_email;
     passenger_phone;
+    date_of_birth;
     booking_reference;
     status;
     reservation_date;
     notes;
     agent_id;
     agent;
+    staff_id;
     country_id;
+    country_name;
     id_type;
     id_number;
     id_expiry;
@@ -74,6 +82,24 @@ __decorate([
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "flight", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'departure_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "departure_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => destination_entity_1.Destination, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'departure_id' }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "departure", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'destination_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "destination_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => destination_entity_1.Destination, { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.JoinColumn)({ name: 'destination_id' }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "destination", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'passenger_id', type: 'int', nullable: true }),
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "passenger_id", void 0);
@@ -102,6 +128,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'passenger_phone', type: 'varchar', length: 50, nullable: true }),
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "passenger_phone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'date_of_birth', type: 'date', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "date_of_birth", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'booking_reference', type: 'varchar', length: 50, unique: true }),
     __metadata("design:type", String)
@@ -133,9 +163,17 @@ __decorate([
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "agent", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'staff_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "staff_id", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'country_id', type: 'int', nullable: true }),
     __metadata("design:type", Object)
 ], SeatReservation.prototype, "country_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'country', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], SeatReservation.prototype, "country_name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'id_type', type: 'varchar', length: 30, nullable: true }),
     __metadata("design:type", Object)
