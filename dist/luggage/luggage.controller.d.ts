@@ -31,6 +31,8 @@ export declare class LuggageController {
         charge_per_kg: number;
         total_charge: number;
         currency?: string;
+        payment_method?: string;
+        payment_status?: string;
         notes?: string | null;
     }): Promise<LuggageExcessCharge>;
     getExcessCharges(flightId?: string, passengerId?: string): Promise<LuggageExcessCharge[]>;

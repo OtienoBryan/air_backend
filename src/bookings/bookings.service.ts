@@ -582,9 +582,16 @@ export class BookingsService {
 
     const finalBooking = bookingWithRelations || savedBooking;
 
-    // Send confirmation email to the passenger — never let an email failure affect the booking response
+    // Send confirmation + ticket emails in the background. These were previously
+    // `await`ed sequentially (1 confirmation + 1 per booking_passenger row), which
+    // on a return-trip booking with several passengers meant the HTTP response sat
+    // through half a dozen+ SMTP round-trips (each easily 1-3+s) before returning —
+    // the dominant cause of "confirming a booking takes long". The comment above
+    // already documented the intent ("never let an email failure affect the booking
+    // response") — firing these without awaiting actually delivers on that, since a
+    // slow/failed send can no longer add to (or fail) the response at all.
     if (finalBooking.passenger_email) {
-      await this.mailService.sendBookingConfirmation({
+      this.mailService.sendBookingConfirmation({
         passengerEmail: finalBooking.passenger_email,
         passengerName: finalBooking.passenger_name,
         bookingReference: finalBooking.booking_reference,
@@ -596,7 +603,7 @@ export class BookingsService {
         sta: finalBooking.flightSeries?.sta,
         totalAmount: Number(finalBooking.total_amount || 0),
         isReturnTrip: finalBooking.is_return_trip,
-      });
+      }).catch(err => console.error(`❌ [BookingsService] Failed to send booking confirmation email to ${finalBooking.passenger_email}:`, err));
     }
 
     // Send each passenger their own ticket as a separate email — one per booking_passenger
@@ -609,7 +616,7 @@ export class BookingsService {
         || `${finalBooking.booking_reference.replace(/-/g, '').slice(0, 6)}${String(passenger.id).padStart(4, '0')}`;
       const bpFlightSeries = bp.flightSeries || finalBooking.flightSeries;
 
-      await this.mailService.sendTicket({
+      this.mailService.sendTicket({
         passengerEmail: passenger.email,
         passengerTitle: (passenger as any).title,
         passengerName: passenger.name,
@@ -628,7 +635,7 @@ export class BookingsService {
         seatNumber: bp.seat_number,
         fareAmount: Number(bp.fare_amount || 0),
         paymentMethod: finalBooking.payment_method,
-      });
+      }).catch(err => console.error(`❌ [BookingsService] Failed to send ticket email to ${passenger.email}:`, err));
     }
 
     return finalBooking;
@@ -1478,11 +1485,14 @@ export class BookingsService {
     return this.bookingPassengerRepository.save(bp);
   }
 
-  async assignSeat(id: number, seatNumber: string | null): Promise<any> {
+  async assignSeat(id: number, seatNumber: string | null, isComplimentary?: boolean): Promise<any> {
     const bp = await this.bookingPassengerRepository.findOneOrFail({ where: { id } });
     const seat = seatNumber?.trim().toUpperCase() || null;
 
-    if (seat && bp.flight_id) {
+    // "FREE" is a sentinel for a complimentary seat with no specific number
+    // assigned — not a real seat, so multiple passengers can share it without
+    // tripping the uniqueness clash check below.
+    if (seat && seat !== 'FREE' && bp.flight_id) {
       const clash = await this.bookingPassengerRepository.findOne({
         where: { flight_id: bp.flight_id, seat_number: seat },
       });
@@ -1492,6 +1502,9 @@ export class BookingsService {
     }
 
     bp.seat_number = seat;
+    if (isComplimentary !== undefined) {
+      bp.is_complimentary_seat = isComplimentary;
+    }
     return this.bookingPassengerRepository.save(bp);
   }
 }

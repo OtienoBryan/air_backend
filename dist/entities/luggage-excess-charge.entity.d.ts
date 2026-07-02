@@ -15,6 +15,8 @@ export declare class LuggageExcessCharge {
     charge_per_kg: number;
     total_charge: number;
     currency: string;
+    payment_method: string;
+    payment_status: string;
     notes: string | null;
     created_at: Date;
     updated_at: Date;

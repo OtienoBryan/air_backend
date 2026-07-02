@@ -91,6 +91,11 @@ export class BookingPassenger {
   @Column({ name: 'seat_number', type: 'varchar', length: 10, nullable: true })
   seat_number: string | null;
 
+  // Reporting tag only — a staff note that this seat was given at no charge.
+  // Does not affect fare_amount or trigger any refund workflow.
+  @Column({ name: 'is_complimentary_seat', type: 'boolean', default: false })
+  is_complimentary_seat: boolean;
+
   @Column({ name: 'checkin_by', type: 'int', nullable: true })
   checkin_by: number | null;
 

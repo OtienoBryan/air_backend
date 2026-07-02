@@ -495,7 +495,7 @@ let BookingsService = class BookingsService {
         });
         const finalBooking = bookingWithRelations || savedBooking;
         if (finalBooking.passenger_email) {
-            await this.mailService.sendBookingConfirmation({
+            this.mailService.sendBookingConfirmation({
                 passengerEmail: finalBooking.passenger_email,
                 passengerName: finalBooking.passenger_name,
                 bookingReference: finalBooking.booking_reference,
@@ -507,7 +507,7 @@ let BookingsService = class BookingsService {
                 sta: finalBooking.flightSeries?.sta,
                 totalAmount: Number(finalBooking.total_amount || 0),
                 isReturnTrip: finalBooking.is_return_trip,
-            });
+            }).catch(err => console.error(`❌ [BookingsService] Failed to send booking confirmation email to ${finalBooking.passenger_email}:`, err));
         }
         for (const bp of finalBooking.bookingPassengers || []) {
             const passenger = bp.passenger;
@@ -516,7 +516,7 @@ let BookingsService = class BookingsService {
             const ticketNumber = bp.ticket_number
                 || `${finalBooking.booking_reference.replace(/-/g, '').slice(0, 6)}${String(passenger.id).padStart(4, '0')}`;
             const bpFlightSeries = bp.flightSeries || finalBooking.flightSeries;
-            await this.mailService.sendTicket({
+            this.mailService.sendTicket({
                 passengerEmail: passenger.email,
                 passengerTitle: passenger.title,
                 passengerName: passenger.name,
@@ -535,7 +535,7 @@ let BookingsService = class BookingsService {
                 seatNumber: bp.seat_number,
                 fareAmount: Number(bp.fare_amount || 0),
                 paymentMethod: finalBooking.payment_method,
-            });
+            }).catch(err => console.error(`❌ [BookingsService] Failed to send ticket email to ${passenger.email}:`, err));
         }
         return finalBooking;
     }
@@ -1245,10 +1245,10 @@ let BookingsService = class BookingsService {
         }
         return this.bookingPassengerRepository.save(bp);
     }
-    async assignSeat(id, seatNumber) {
+    async assignSeat(id, seatNumber, isComplimentary) {
         const bp = await this.bookingPassengerRepository.findOneOrFail({ where: { id } });
         const seat = seatNumber?.trim().toUpperCase() || null;
-        if (seat && bp.flight_id) {
+        if (seat && seat !== 'FREE' && bp.flight_id) {
             const clash = await this.bookingPassengerRepository.findOne({
                 where: { flight_id: bp.flight_id, seat_number: seat },
             });
@@ -1257,6 +1257,9 @@ let BookingsService = class BookingsService {
             }
         }
         bp.seat_number = seat;
+        if (isComplimentary !== undefined) {
+            bp.is_complimentary_seat = isComplimentary;
+        }
         return this.bookingPassengerRepository.save(bp);
     }
 };

@@ -48,6 +48,12 @@ export class LuggageExcessCharge {
   @Column({ type: 'varchar', length: 10, default: 'USD' })
   currency: string;
 
+  @Column({ name: 'payment_method', type: 'varchar', length: 50, default: 'cash' })
+  payment_method: string; // 'cash', 'card', 'bank_transfer', 'mobile_money'
+
+  @Column({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' })
+  payment_status: string; // 'pending' | 'paid'
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   notes: string | null;
 

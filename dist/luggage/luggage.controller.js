@@ -84,6 +84,8 @@ let LuggageController = class LuggageController {
             charge_per_kg: body.charge_per_kg,
             total_charge: body.total_charge,
             currency: body.currency ?? 'USD',
+            payment_method: body.payment_method ?? 'cash',
+            payment_status: body.payment_status ?? 'pending',
             notes: body.notes ?? null,
         });
         return this.excessChargeRepository.save(record);

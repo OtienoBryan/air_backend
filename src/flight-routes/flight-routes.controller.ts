@@ -36,8 +36,14 @@ export class FlightRoutesController {
   ) {
     const fromId = parseInt(from, 10);
     const toId = parseInt(to, 10);
+    // A route's baggage allowance applies to both directions of travel — a
+    // return-leg flight looks up (to, from) against the same route pair, so
+    // match either orientation instead of only the exact one it was created as.
     const route = await this.flightRouteRepository.findOne({
-      where: { from_destination_id: fromId, to_destination_id: toId },
+      where: [
+        { from_destination_id: fromId, to_destination_id: toId },
+        { from_destination_id: toId, to_destination_id: fromId },
+      ],
     });
     if (!route) return [];
     return this.luggageRepository.find({

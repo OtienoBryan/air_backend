@@ -27,6 +27,7 @@ export declare class BookingPassenger {
     checked_in_at: Date | null;
     boarded_at: Date | null;
     seat_number: string | null;
+    is_complimentary_seat: boolean;
     checkin_by: number | null;
     ticket_number: string | null;
     ticket_status: 'OPEN' | 'USED' | 'VOID' | 'REFUNDED' | 'RESCHEDULED' | null;

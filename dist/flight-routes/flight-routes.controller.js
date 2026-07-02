@@ -42,7 +42,10 @@ let FlightRoutesController = class FlightRoutesController {
         const fromId = parseInt(from, 10);
         const toId = parseInt(to, 10);
         const route = await this.flightRouteRepository.findOne({
-            where: { from_destination_id: fromId, to_destination_id: toId },
+            where: [
+                { from_destination_id: fromId, to_destination_id: toId },
+                { from_destination_id: toId, to_destination_id: fromId },
+            ],
         });
         if (!route)
             return [];

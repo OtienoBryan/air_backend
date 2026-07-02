@@ -28,6 +28,8 @@ let LuggageExcessCharge = class LuggageExcessCharge {
     charge_per_kg;
     total_charge;
     currency;
+    payment_method;
+    payment_status;
     notes;
     created_at;
     updated_at;
@@ -91,6 +93,14 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 10, default: 'USD' }),
     __metadata("design:type", String)
 ], LuggageExcessCharge.prototype, "currency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_method', type: 'varchar', length: 50, default: 'cash' }),
+    __metadata("design:type", String)
+], LuggageExcessCharge.prototype, "payment_method", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_status', type: 'varchar', length: 50, default: 'pending' }),
+    __metadata("design:type", String)
+], LuggageExcessCharge.prototype, "payment_status", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
     __metadata("design:type", Object)

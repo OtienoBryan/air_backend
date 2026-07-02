@@ -61,7 +61,7 @@ let BookingsController = class BookingsController {
         return this.bookingsService.updateBookingPassengerStatus(id, body.status, updatedBy);
     }
     async assignSeat(id, body) {
-        return this.bookingsService.assignSeat(id, body.seat_number);
+        return this.bookingsService.assignSeat(id, body.seat_number, body.is_complimentary_seat);
     }
     async cancelAndRefund(id, cancelRefundDto, req) {
         const staffId = req.user?.sub ? Number(req.user.sub) : null;

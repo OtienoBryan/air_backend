@@ -40,6 +40,7 @@ let BookingPassenger = class BookingPassenger {
     checked_in_at;
     boarded_at;
     seat_number;
+    is_complimentary_seat;
     checkin_by;
     ticket_number;
     ticket_status;
@@ -153,6 +154,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'seat_number', type: 'varchar', length: 10, nullable: true }),
     __metadata("design:type", Object)
 ], BookingPassenger.prototype, "seat_number", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'is_complimentary_seat', type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], BookingPassenger.prototype, "is_complimentary_seat", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'checkin_by', type: 'int', nullable: true }),
     __metadata("design:type", Object)

@@ -78,9 +78,9 @@ export class BookingsController {
   @Patch('booking-passengers/:id/seat')
   async assignSeat(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { seat_number: string | null },
+    @Body() body: { seat_number: string | null; is_complimentary_seat?: boolean },
   ) {
-    return this.bookingsService.assignSeat(id, body.seat_number);
+    return this.bookingsService.assignSeat(id, body.seat_number, body.is_complimentary_seat);
   }
 
   @Patch('booking-passengers/:id/cancel-refund')
