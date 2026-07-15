@@ -15,17 +15,20 @@ export class SecurityInterceptor implements NestInterceptor {
     response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     response.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
     
-    // Log security events
-    const { method, url, ip } = request;
-    const userAgent = request.get('User-Agent') || 'Unknown';
-    
-    console.log(`🔒 [Security] ${method} ${url} from ${ip} - ${userAgent}`);
-    
-    return next.handle().pipe(
-      tap(() => {
-        // Log successful requests
-        console.log(`✅ [Security] ${method} ${url} completed successfully`);
-      })
-    );
+    // Log security events — every request pays for this, so keep it to
+    // non-production environments rather than writing two lines per request
+    // (and a User-Agent lookup) in prod, where it's pure overhead + log noise.
+    if (process.env.NODE_ENV !== 'production') {
+      const { method, url, ip } = request;
+      const userAgent = request.get('User-Agent') || 'Unknown';
+      console.log(`🔒 [Security] ${method} ${url} from ${ip} - ${userAgent}`);
+      return next.handle().pipe(
+        tap(() => {
+          console.log(`✅ [Security] ${method} ${url} completed successfully`);
+        })
+      );
+    }
+
+    return next.handle();
   }
 }

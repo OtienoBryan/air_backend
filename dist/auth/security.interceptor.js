@@ -18,12 +18,15 @@ let SecurityInterceptor = class SecurityInterceptor {
         response.setHeader('X-XSS-Protection', '1; mode=block');
         response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         response.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-        const { method, url, ip } = request;
-        const userAgent = request.get('User-Agent') || 'Unknown';
-        console.log(`🔒 [Security] ${method} ${url} from ${ip} - ${userAgent}`);
-        return next.handle().pipe((0, operators_1.tap)(() => {
-            console.log(`✅ [Security] ${method} ${url} completed successfully`);
-        }));
+        if (process.env.NODE_ENV !== 'production') {
+            const { method, url, ip } = request;
+            const userAgent = request.get('User-Agent') || 'Unknown';
+            console.log(`🔒 [Security] ${method} ${url} from ${ip} - ${userAgent}`);
+            return next.handle().pipe((0, operators_1.tap)(() => {
+                console.log(`✅ [Security] ${method} ${url} completed successfully`);
+            }));
+        }
+        return next.handle();
     }
 };
 exports.SecurityInterceptor = SecurityInterceptor;

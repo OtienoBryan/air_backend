@@ -66,4 +66,11 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   logging: configService.get<string>('NODE_ENV') === 'development',
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
   migrationsRun: false,
+  // mysql2's default pool is 10 connections — several admin pages fire off
+  // 3-6 parallel large queries per page load (Promise.all of getFlights/
+  // getBookings/getCargoBookings/etc.), so a handful of concurrent users can
+  // already exhaust the default pool and start queueing. Widen it.
+  extra: {
+    connectionLimit: 20,
+  },
 });

@@ -66,6 +66,9 @@ const getDatabaseConfig = (configService) => ({
     logging: configService.get('NODE_ENV') === 'development',
     migrations: [__dirname + '/../migrations/*{.ts,.js}'],
     migrationsRun: false,
+    extra: {
+        connectionLimit: 20,
+    },
 });
 exports.getDatabaseConfig = getDatabaseConfig;
 //# sourceMappingURL=database.config.js.map

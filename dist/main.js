@@ -8,8 +8,10 @@ const common_1 = require("@nestjs/common");
 const app_module_1 = require("./app.module");
 const security_interceptor_1 = require("./auth/security.interceptor");
 const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.use((0, compression_1.default)());
     app.use((0, helmet_1.default)({
         contentSecurityPolicy: {
             directives: {
@@ -32,6 +34,9 @@ async function bootstrap() {
     }));
     app.useGlobalInterceptors(new security_interceptor_1.SecurityInterceptor());
     app.setGlobalPrefix('api');
+    const isProd = process.env.NODE_ENV === 'production';
+    const corsLog = (...args) => { if (!isProd)
+        console.log(...args); };
     app.enableCors({
         origin: (origin, callback) => {
             const allowedOrigins = [
@@ -47,32 +52,32 @@ async function bootstrap() {
                 'https://mc-aviation.vercel.app',
                 'https://mcaviation.citlogisticssystems.com',
             ];
-            console.log('🌍 CORS check - Origin received:', origin);
+            corsLog('🌍 CORS check - Origin received:', origin);
             if (!origin) {
-                console.log('✅ CORS: Allowing request with no origin (proxy/mobile)');
+                corsLog('✅ CORS: Allowing request with no origin (proxy/mobile)');
                 return callback(null, true);
             }
             const normalizedOrigin = (origin.endsWith('/') ? origin.slice(0, -1) : origin).toLowerCase();
             if (normalizedOrigin && normalizedOrigin.includes('vercel.app')) {
-                console.log('✅ CORS: Allowing Vercel domain:', normalizedOrigin);
+                corsLog('✅ CORS: Allowing Vercel domain:', normalizedOrigin);
                 return callback(null, true);
             }
             if (normalizedOrigin && normalizedOrigin.includes('mc-aviation')) {
-                console.log('✅ CORS: Allowing mc-aviation domain:', normalizedOrigin);
+                corsLog('✅ CORS: Allowing mc-aviation domain:', normalizedOrigin);
                 return callback(null, true);
             }
             if (normalizedOrigin && normalizedOrigin.includes('citlogisticssystems.com')) {
-                console.log('✅ CORS: Allowing citlogisticssystems.com domain:', normalizedOrigin);
+                corsLog('✅ CORS: Allowing citlogisticssystems.com domain:', normalizedOrigin);
                 return callback(null, true);
             }
             if (normalizedOrigin && normalizedOrigin.includes('royalairsarl.com')) {
-                console.log('✅ CORS: Allowing royalairsarl.com domain:', normalizedOrigin);
+                corsLog('✅ CORS: Allowing royalairsarl.com domain:', normalizedOrigin);
                 return callback(null, true);
             }
             const normalizedAllowedOrigins = allowedOrigins.map(o => o.toLowerCase());
             if (normalizedAllowedOrigins.indexOf(normalizedOrigin) !== -1 ||
                 allowedOrigins.indexOf(origin) !== -1) {
-                console.log('✅ CORS: Allowing origin:', normalizedOrigin);
+                corsLog('✅ CORS: Allowing origin:', normalizedOrigin);
                 callback(null, true);
             }
             else {

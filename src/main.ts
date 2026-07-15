@@ -3,10 +3,16 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { SecurityInterceptor } from './auth/security.interceptor';
 import helmet from 'helmet';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
+  // Gzip/deflate every response — the admin/agent apps regularly pull large
+  // JSON payloads (paginated lists with deep relations), so this is a large,
+  // free win on transfer time with no behavior change.
+  app.use(compression());
+
   // Security middleware
   app.use(helmet({
     contentSecurityPolicy: {
@@ -38,6 +44,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   
   // Enhanced CORS configuration with proxy support
+  const isProd = process.env.NODE_ENV === 'production';
+  // Verbose CORS tracing is genuinely useful in dev but runs on every single
+  // request in prod for a decision that's normally identical — keep the
+  // allow/deny logic untouched, just stop paying for the logging in prod.
+  const corsLog = (...args: unknown[]) => { if (!isProd) console.log(...args); };
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
@@ -53,55 +64,54 @@ async function bootstrap() {
         'https://mc-aviation.vercel.app', // Vercel production domain
         'https://mcaviation.citlogisticssystems.com',
       ];
-      
-      // Log the origin for debugging
-      console.log('🌍 CORS check - Origin received:', origin);
-      
+
+      corsLog('🌍 CORS check - Origin received:', origin);
+
       // Allow requests with no origin (mobile apps, Postman, proxy requests, etc.)
       // Proxy requests often don't include origin header
       if (!origin) {
-        console.log('✅ CORS: Allowing request with no origin (proxy/mobile)');
+        corsLog('✅ CORS: Allowing request with no origin (proxy/mobile)');
         return callback(null, true);
       }
-      
+
       // Normalize origin (remove trailing slash if present, convert to lowercase)
       const normalizedOrigin = (origin.endsWith('/') ? origin.slice(0, -1) : origin).toLowerCase();
-      
+
       // Allow Vercel domains (production and preview deployments)
       if (normalizedOrigin && normalizedOrigin.includes('vercel.app')) {
-        console.log('✅ CORS: Allowing Vercel domain:', normalizedOrigin);
+        corsLog('✅ CORS: Allowing Vercel domain:', normalizedOrigin);
         return callback(null, true);
       }
-      
+
       // Allow mc-aviation domains
       if (normalizedOrigin && normalizedOrigin.includes('mc-aviation')) {
-        console.log('✅ CORS: Allowing mc-aviation domain:', normalizedOrigin);
+        corsLog('✅ CORS: Allowing mc-aviation domain:', normalizedOrigin);
         return callback(null, true);
       }
 
       // Allow citlogisticssystems.com subdomains (e.g. mcaviation.citlogisticssystems.com)
       if (normalizedOrigin && normalizedOrigin.includes('citlogisticssystems.com')) {
-        console.log('✅ CORS: Allowing citlogisticssystems.com domain:', normalizedOrigin);
+        corsLog('✅ CORS: Allowing citlogisticssystems.com domain:', normalizedOrigin);
         return callback(null, true);
       }
 
       // Allow royalairsarl.com subdomains over either http or https
       // (admin.royalairsarl.com, agents.royalairsarl.com, etc.)
       if (normalizedOrigin && normalizedOrigin.includes('royalairsarl.com')) {
-        console.log('✅ CORS: Allowing royalairsarl.com domain:', normalizedOrigin);
+        corsLog('✅ CORS: Allowing royalairsarl.com domain:', normalizedOrigin);
         return callback(null, true);
       }
-      
+
       // Check exact match (case-insensitive)
       const normalizedAllowedOrigins = allowedOrigins.map(o => o.toLowerCase());
-      if (normalizedAllowedOrigins.indexOf(normalizedOrigin) !== -1 || 
+      if (normalizedAllowedOrigins.indexOf(normalizedOrigin) !== -1 ||
           allowedOrigins.indexOf(origin) !== -1) {
-        console.log('✅ CORS: Allowing origin:', normalizedOrigin);
+        corsLog('✅ CORS: Allowing origin:', normalizedOrigin);
         callback(null, true);
       } else {
+        // Always log denials — they're rare and worth knowing about even in prod.
         console.log('❌ CORS: Blocking origin:', normalizedOrigin);
         console.log('❌ CORS: Allowed origins:', allowedOrigins);
-        // For proxy requests, allow if no origin or if it's a known proxy pattern
         callback(new Error('Not allowed by CORS'));
       }
     },
