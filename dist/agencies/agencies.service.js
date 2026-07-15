@@ -295,6 +295,15 @@ let AgenciesService = class AgenciesService {
     }
     async deductForBooking(agencyId, amount, reference, description, transactionDate) {
         const agency = await this.findOne(agencyId);
+        if (reference) {
+            const existingEntry = await this.agencyLedgerRepository.findOne({
+                where: { agencyId, reference },
+            });
+            if (existingEntry) {
+                console.log(`♻️ [AgenciesService] Deduction already posted for agency ${agencyId}, reference "${reference}" — skipping duplicate`);
+                return agency;
+            }
+        }
         const currentBalance = Number(agency.balance);
         if (currentBalance < amount) {
             throw new common_1.BadRequestException(`Insufficient agency balance. Available: ${currentBalance.toFixed(2)}, Required: ${amount.toFixed(2)}`);

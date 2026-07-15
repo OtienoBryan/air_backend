@@ -35,7 +35,7 @@ let CargoBookingsController = class CargoBookingsController {
     }
     async assignFlight(id, dto) {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/assign-flight`, dto);
-        return this.cargoBookingsService.assignFlight(id, dto.flight_series_id ?? null);
+        return this.cargoBookingsService.assignFlight(id, dto.flight_id ?? null, dto.flight_series_id ?? null);
     }
     async updateStatus(id, body) {
         console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/status`, body);

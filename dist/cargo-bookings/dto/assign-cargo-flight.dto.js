@@ -14,6 +14,7 @@ const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 class AssignCargoFlightDto {
     flight_series_id;
+    flight_id;
 }
 exports.AssignCargoFlightDto = AssignCargoFlightDto;
 __decorate([
@@ -22,4 +23,10 @@ __decorate([
     (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Object)
 ], AssignCargoFlightDto.prototype, "flight_series_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Object)
+], AssignCargoFlightDto.prototype, "flight_id", void 0);
 //# sourceMappingURL=assign-cargo-flight.dto.js.map

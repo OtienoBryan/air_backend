@@ -141,6 +141,19 @@ let BookingsService = class BookingsService {
             console.log(`✅ [BookingsService] Using passenger ${passenger.id} (${passenger.pnr}) for booking`);
         }
         const primaryPassenger = createdPassengers[0];
+        if (createBookingDto.seat_reservation_id) {
+            const existingBooking = await this.bookingRepository.findOne({
+                where: {
+                    flight_series_id: createBookingDto.flight_series_id,
+                    passenger_id: primaryPassenger.id,
+                },
+                order: { created_at: 'DESC' },
+            });
+            if (existingBooking) {
+                console.log(`♻️ [BookingsService] Booking already exists for seat_reservation_id=${createBookingDto.seat_reservation_id}, flight_series_id=${createBookingDto.flight_series_id}, passenger_id=${primaryPassenger.id} — returning existing booking ${existingBooking.id} instead of creating a duplicate`);
+                return this.findOne(existingBooking.id);
+            }
+        }
         const bookingReference = this.generateBookingReference();
         const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null;
         const returnDate = isReturnTrip ? (createBookingDto.return_date ?? null) : null;

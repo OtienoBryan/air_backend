@@ -15,6 +15,7 @@ const class_transformer_1 = require("class-transformer");
 class CreateCargoBookingDto {
     awb_number;
     flight_series_id;
+    flight_id;
     origin;
     destination;
     shipper_name;
@@ -50,6 +51,12 @@ __decorate([
     (0, class_transformer_1.Type)(() => Number),
     __metadata("design:type", Object)
 ], CreateCargoBookingDto.prototype, "flight_series_id", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Object)
+], CreateCargoBookingDto.prototype, "flight_id", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),

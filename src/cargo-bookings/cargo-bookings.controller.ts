@@ -35,7 +35,7 @@ export class CargoBookingsController {
     @Body() dto: AssignCargoFlightDto,
   ): Promise<CargoBooking> {
     console.log(`📦 [CargoBookingsController] PATCH /admin/cargo-bookings/${id}/assign-flight`, dto);
-    return this.cargoBookingsService.assignFlight(id, dto.flight_series_id ?? null);
+    return this.cargoBookingsService.assignFlight(id, dto.flight_id ?? null, dto.flight_series_id ?? null);
   }
 
   @Patch(':id/status')

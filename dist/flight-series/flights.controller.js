@@ -47,6 +47,7 @@ let FlightsController = class FlightsController {
             .leftJoinAndSelect('f.series', 's')
             .leftJoinAndSelect('s.fromDestination', 'fd')
             .leftJoinAndSelect('s.toDestination', 'td')
+            .leftJoinAndSelect('s.viaDestination', 'vd')
             .leftJoinAndSelect('s.aircraft', 'ac')
             .leftJoinAndSelect('f.aircraft', 'fac')
             .orderBy('f.flight_date', 'ASC')

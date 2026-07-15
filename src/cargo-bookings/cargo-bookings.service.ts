@@ -32,7 +32,18 @@ export class CargoBookingsService {
 
     let flightSeries: FlightSeries | null = null;
     let flightId: number | null = null;
-    if (dto.flight_series_id) {
+    if (dto.flight_id) {
+      // Specific flight occurrence given — derive the series from the flight
+      const flight = await this.flightRepository.findOne({
+        where: { id: dto.flight_id },
+        relations: ['series'],
+      });
+      if (!flight) {
+        throw new NotFoundException(`Flight with ID ${dto.flight_id} not found`);
+      }
+      flightId = flight.id;
+      flightSeries = flight.series ?? null;
+    } else if (dto.flight_series_id) {
       flightSeries = await this.flightSeriesRepository.findOne({ where: { id: dto.flight_series_id } });
       if (!flightSeries) {
         throw new NotFoundException(`Flight series with ID ${dto.flight_series_id} not found`);
@@ -42,7 +53,7 @@ export class CargoBookingsService {
 
     const entity = this.cargoBookingRepository.create({
       awb_number: dto.awb_number.trim(),
-      flight_series_id: dto.flight_series_id ?? null,
+      flight_series_id: flightSeries?.id ?? dto.flight_series_id ?? null,
       flightSeries: flightSeries ?? null,
       flight_id: flightId,
       origin: dto.origin.trim().toUpperCase(),
@@ -85,11 +96,19 @@ export class CargoBookingsService {
   ): Promise<{ cargoBookings: CargoBooking[]; total: number }> {
     const where: any = {};
     // flight_id scopes to the specific flight occurrence — preferred over
-    // flight_series_id alone when known, since a series can recur over many dates.
+    // flight_series_id alone, since a series can recur over many dates.
     if (flightId !== undefined && !Number.isNaN(flightId)) {
       where.flight_id = flightId;
     } else if (flightSeriesId !== undefined && !Number.isNaN(flightSeriesId)) {
-      where.flight_series_id = flightSeriesId;
+      // Resolve the series to its flight occurrence and match on flight_id;
+      // fall back to the series filter only when no flight exists for it.
+      const flightSeries = await this.flightSeriesRepository.findOne({ where: { id: flightSeriesId } });
+      const resolvedFlightId = flightSeries ? await this.resolveFlightId(flightSeries) : null;
+      if (resolvedFlightId != null) {
+        where.flight_id = resolvedFlightId;
+      } else {
+        where.flight_series_id = flightSeriesId;
+      }
     }
 
     const [cargoBookings, total] = await this.cargoBookingRepository.findAndCount({
@@ -111,18 +130,27 @@ export class CargoBookingsService {
     return cargo;
   }
 
-  async assignFlight(id: number, flightSeriesId: number | null): Promise<CargoBooking> {
+  async assignFlight(id: number, flightIdInput: number | null, flightSeriesId: number | null): Promise<CargoBooking> {
     const cargo = await this.findOne(id);
     let flightSeries: FlightSeries | null = null;
     let flightId: number | null = null;
 
-    if (flightSeriesId) {
+    if (flightIdInput) {
+      // Specific flight occurrence given — derive the series from the flight
+      const flight = await this.flightRepository.findOne({
+        where: { id: flightIdInput },
+        relations: ['series'],
+      });
+      if (!flight) throw new NotFoundException(`Flight with ID ${flightIdInput} not found`);
+      flightId = flight.id;
+      flightSeries = flight.series ?? null;
+    } else if (flightSeriesId) {
       flightSeries = await this.flightSeriesRepository.findOne({ where: { id: flightSeriesId } });
       if (!flightSeries) throw new NotFoundException(`Flight series with ID ${flightSeriesId} not found`);
       flightId = await this.resolveFlightId(flightSeries);
     }
 
-    cargo.flight_series_id = flightSeriesId ?? null;
+    cargo.flight_series_id = flightSeries?.id ?? null;
     cargo.flightSeries = flightSeries ?? null;
     cargo.flight_id = flightId;
     await this.cargoBookingRepository.save(cargo);

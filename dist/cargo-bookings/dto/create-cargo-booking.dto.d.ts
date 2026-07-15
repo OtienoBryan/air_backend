@@ -1,6 +1,7 @@
 export declare class CreateCargoBookingDto {
     awb_number: string;
     flight_series_id?: number | null;
+    flight_id?: number | null;
     origin: string;
     destination: string;
     shipper_name: string;

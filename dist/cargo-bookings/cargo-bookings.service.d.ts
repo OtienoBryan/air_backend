@@ -15,7 +15,7 @@ export declare class CargoBookingsService {
         total: number;
     }>;
     findOne(id: number): Promise<CargoBooking>;
-    assignFlight(id: number, flightSeriesId: number | null): Promise<CargoBooking>;
+    assignFlight(id: number, flightIdInput: number | null, flightSeriesId: number | null): Promise<CargoBooking>;
     updateStatus(id: number, status: string): Promise<CargoBooking>;
     updatePrice(id: number, data: {
         total_charges: number;

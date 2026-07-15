@@ -351,6 +351,21 @@ export class AgenciesService {
     transactionDate: Date,
   ): Promise<Agency> {
     const agency = await this.findOne(agencyId);
+
+    // Idempotency guard: a retried confirm-booking submission (e.g. after a client
+    // timeout that actually succeeded server-side) must not deduct the agency twice
+    // for the same booking. Reference is stable across retries for a given
+    // reservation/booking, so an existing ledger entry means this was already posted.
+    if (reference) {
+      const existingEntry = await this.agencyLedgerRepository.findOne({
+        where: { agencyId, reference },
+      });
+      if (existingEntry) {
+        console.log(`♻️ [AgenciesService] Deduction already posted for agency ${agencyId}, reference "${reference}" — skipping duplicate`);
+        return agency;
+      }
+    }
+
     const currentBalance = Number(agency.balance);
 
     if (currentBalance < amount) {
