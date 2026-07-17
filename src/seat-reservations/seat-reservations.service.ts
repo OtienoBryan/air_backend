@@ -123,10 +123,13 @@ export class SeatReservationsService {
       throw new BadRequestException(`Flight series ${flightSeriesWithAircraft.flt} does not have a defined number of seats. Please set the number of seats in the flight series or ensure the aircraft has a capacity.`);
     }
 
-    // Calculate total reserved seats for this flight (count all reservations except cancelled)
+    // Calculate total reserved seats for this specific flight date — not the whole
+    // series, otherwise every past/future date's bookings count against this one
+    const requestedDateStr = this.toDateString(createSeatReservationDto.reservation_date);
     const existingReservations = await this.seatReservationRepository.find({
       where: {
-        flight_series_id: createSeatReservationDto.flight_series_id
+        flight_series_id: createSeatReservationDto.flight_series_id,
+        reservation_date: requestedDateStr as any,
       }
     });
 
@@ -173,15 +176,14 @@ export class SeatReservationsService {
     // Look up the specific flight record from the flights table
     let flightId: number | null = null
     if (createSeatReservationDto.reservation_date) {
-      const dateStr = String(createSeatReservationDto.reservation_date).slice(0, 10)
       const matchingFlight = await this.flightRepository.findOne({
         where: {
           series_id:   createSeatReservationDto.flight_series_id,
-          flight_date: dateStr as any,
+          flight_date: requestedDateStr as any,
         },
       })
       flightId = matchingFlight?.id ?? null
-      console.log(`✈️ [SeatReservationsService] flight_id lookup: series=${createSeatReservationDto.flight_series_id} date=${dateStr} → flight_id=${flightId}`)
+      console.log(`✈️ [SeatReservationsService] flight_id lookup: series=${createSeatReservationDto.flight_series_id} date=${requestedDateStr} → flight_id=${flightId}`)
     }
 
     const reservation = this.seatReservationRepository.create({
@@ -237,13 +239,15 @@ export class SeatReservationsService {
     const flightSeriesId = updateSeatReservationDto.flight_series_id ?? reservation.flight_series_id;
     const numberOfSeats = updateSeatReservationDto.number_of_seats ?? reservation.number_of_seats;
     const newStatus = updateSeatReservationDto.status ?? reservation.status;
+    const targetDateStr = this.toDateString(updateSeatReservationDto.reservation_date ?? reservation.reservation_date);
 
     // Check availability if:
-    // 1. Flight series changed
+    // 1. Flight series or travel date changed
     // 2. Number of seats changed
     // 3. Status changed (cancelling frees seats, uncancelling reserves seats)
-    const needsAvailabilityCheck = 
+    const needsAvailabilityCheck =
       updateSeatReservationDto.flight_series_id !== undefined ||
+      updateSeatReservationDto.reservation_date !== undefined ||
       updateSeatReservationDto.number_of_seats !== undefined ||
       (updateSeatReservationDto.status !== undefined && newStatus !== reservation.status);
 
@@ -269,10 +273,11 @@ export class SeatReservationsService {
         throw new BadRequestException(`Flight series ${flightSeriesWithAircraft.flt} does not have a defined number of seats. Please set the number of seats in the flight series or ensure the aircraft has a capacity.`);
       }
 
-      // Calculate total reserved seats for this flight (count all reservations except cancelled)
+      // Calculate total reserved seats for this specific flight date — not the whole series
       const existingReservations = await this.seatReservationRepository.find({
         where: {
-          flight_series_id: flightSeriesId
+          flight_series_id: flightSeriesId,
+          reservation_date: targetDateStr as any,
         }
       });
 
@@ -282,14 +287,9 @@ export class SeatReservationsService {
         .filter(res => res.id !== id && res.status !== 'cancelled') // Exclude current reservation and cancelled ones
         .reduce((sum, res) => sum + (res.number_of_seats || 0), 0);
 
-      // If current reservation was not cancelled and is on the same flight, we need to account for its seats being freed up
-      const isSameFlight = !updateSeatReservationDto.flight_series_id || updateSeatReservationDto.flight_series_id === reservation.flight_series_id;
-      const currentReservationWasActive = reservation.status !== 'cancelled' && isSameFlight;
-      const currentReservationSeats = currentReservationWasActive ? (reservation.number_of_seats || 0) : 0;
-
-      // Calculate available seats: max - (other active reservations) + (current reservation seats if it was active)
-      // This ensures we don't double-count the current reservation's seats
-      const availableSeats = maxSeats - totalReservedSeats + currentReservationSeats;
+      // totalReservedSeats already excludes this reservation, so its old seats are
+      // freed up implicitly — whether it stays on this flight or moves to another
+      const availableSeats = maxSeats - totalReservedSeats;
 
       if (numberOfSeats > availableSeats) {
         throw new BadRequestException(
@@ -342,6 +342,18 @@ export class SeatReservationsService {
     if (updateSeatReservationDto.fare_amount !== undefined) reservation.fare_amount = updateSeatReservationDto.fare_amount ?? null;
     if (updateSeatReservationDto.payment_status !== undefined) reservation.payment_status = updateSeatReservationDto.payment_status;
     if (updateSeatReservationDto.amount_paid !== undefined) reservation.amount_paid = updateSeatReservationDto.amount_paid ?? 0;
+
+    // Re-link the specific flight record when the series or travel date changed
+    if (updateSeatReservationDto.flight_series_id !== undefined || updateSeatReservationDto.reservation_date !== undefined) {
+      const matchingFlight = await this.flightRepository.findOne({
+        where: {
+          series_id:   reservation.flight_series_id,
+          flight_date: this.toDateString(reservation.reservation_date) as any,
+        },
+      });
+      reservation.flight_id = matchingFlight?.id ?? null;
+      console.log(`✈️ [SeatReservationsService] flight_id re-link: series=${reservation.flight_series_id} date=${this.toDateString(reservation.reservation_date)} → flight_id=${reservation.flight_id}`);
+    }
 
     // Only create or sync passenger record when the reservation is confirmed
     const finalStatus = updateSeatReservationDto.status ?? reservation.status;
@@ -410,6 +422,17 @@ export class SeatReservationsService {
     const reservation = await this.findOne(id);
     await this.seatReservationRepository.remove(reservation);
     console.log(`✅ [SeatReservationsService] Reservation deleted`);
+  }
+
+  // Normalize a date value (Date object or ISO-ish string) to 'YYYY-MM-DD'
+  private toDateString(value: Date | string): string {
+    if (value instanceof Date) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(value).slice(0, 10);
   }
 
   private generateBookingReference(): string {

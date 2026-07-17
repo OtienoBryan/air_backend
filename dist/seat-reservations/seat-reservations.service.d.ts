@@ -22,6 +22,7 @@ export declare class SeatReservationsService {
     create(createSeatReservationDto: CreateSeatReservationDto): Promise<SeatReservation>;
     update(id: number, updateSeatReservationDto: UpdateSeatReservationDto): Promise<SeatReservation>;
     remove(id: number): Promise<void>;
+    private toDateString;
     private generateBookingReference;
     private generatePNR;
 }

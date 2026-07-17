@@ -110,9 +110,11 @@ let SeatReservationsService = class SeatReservationsService {
         if (maxSeats === null || maxSeats === undefined) {
             throw new common_1.BadRequestException(`Flight series ${flightSeriesWithAircraft.flt} does not have a defined number of seats. Please set the number of seats in the flight series or ensure the aircraft has a capacity.`);
         }
+        const requestedDateStr = this.toDateString(createSeatReservationDto.reservation_date);
         const existingReservations = await this.seatReservationRepository.find({
             where: {
-                flight_series_id: createSeatReservationDto.flight_series_id
+                flight_series_id: createSeatReservationDto.flight_series_id,
+                reservation_date: requestedDateStr,
             }
         });
         const totalReservedSeats = existingReservations
@@ -142,15 +144,14 @@ let SeatReservationsService = class SeatReservationsService {
         const bookingReference = this.generateBookingReference();
         let flightId = null;
         if (createSeatReservationDto.reservation_date) {
-            const dateStr = String(createSeatReservationDto.reservation_date).slice(0, 10);
             const matchingFlight = await this.flightRepository.findOne({
                 where: {
                     series_id: createSeatReservationDto.flight_series_id,
-                    flight_date: dateStr,
+                    flight_date: requestedDateStr,
                 },
             });
             flightId = matchingFlight?.id ?? null;
-            console.log(`✈️ [SeatReservationsService] flight_id lookup: series=${createSeatReservationDto.flight_series_id} date=${dateStr} → flight_id=${flightId}`);
+            console.log(`✈️ [SeatReservationsService] flight_id lookup: series=${createSeatReservationDto.flight_series_id} date=${requestedDateStr} → flight_id=${flightId}`);
         }
         const reservation = this.seatReservationRepository.create({
             flight_series_id: createSeatReservationDto.flight_series_id,
@@ -197,7 +198,9 @@ let SeatReservationsService = class SeatReservationsService {
         const flightSeriesId = updateSeatReservationDto.flight_series_id ?? reservation.flight_series_id;
         const numberOfSeats = updateSeatReservationDto.number_of_seats ?? reservation.number_of_seats;
         const newStatus = updateSeatReservationDto.status ?? reservation.status;
+        const targetDateStr = this.toDateString(updateSeatReservationDto.reservation_date ?? reservation.reservation_date);
         const needsAvailabilityCheck = updateSeatReservationDto.flight_series_id !== undefined ||
+            updateSeatReservationDto.reservation_date !== undefined ||
             updateSeatReservationDto.number_of_seats !== undefined ||
             (updateSeatReservationDto.status !== undefined && newStatus !== reservation.status);
         if (needsAvailabilityCheck) {
@@ -220,16 +223,14 @@ let SeatReservationsService = class SeatReservationsService {
             }
             const existingReservations = await this.seatReservationRepository.find({
                 where: {
-                    flight_series_id: flightSeriesId
+                    flight_series_id: flightSeriesId,
+                    reservation_date: targetDateStr,
                 }
             });
             const totalReservedSeats = existingReservations
                 .filter(res => res.id !== id && res.status !== 'cancelled')
                 .reduce((sum, res) => sum + (res.number_of_seats || 0), 0);
-            const isSameFlight = !updateSeatReservationDto.flight_series_id || updateSeatReservationDto.flight_series_id === reservation.flight_series_id;
-            const currentReservationWasActive = reservation.status !== 'cancelled' && isSameFlight;
-            const currentReservationSeats = currentReservationWasActive ? (reservation.number_of_seats || 0) : 0;
-            const availableSeats = maxSeats - totalReservedSeats + currentReservationSeats;
+            const availableSeats = maxSeats - totalReservedSeats;
             if (numberOfSeats > availableSeats) {
                 throw new common_1.BadRequestException(`Not enough seats available for flight ${flightSeriesWithAircraft.flt}. ` +
                     `Available: ${availableSeats} of ${maxSeats} total seats, ` +
@@ -297,6 +298,16 @@ let SeatReservationsService = class SeatReservationsService {
             reservation.payment_status = updateSeatReservationDto.payment_status;
         if (updateSeatReservationDto.amount_paid !== undefined)
             reservation.amount_paid = updateSeatReservationDto.amount_paid ?? 0;
+        if (updateSeatReservationDto.flight_series_id !== undefined || updateSeatReservationDto.reservation_date !== undefined) {
+            const matchingFlight = await this.flightRepository.findOne({
+                where: {
+                    series_id: reservation.flight_series_id,
+                    flight_date: this.toDateString(reservation.reservation_date),
+                },
+            });
+            reservation.flight_id = matchingFlight?.id ?? null;
+            console.log(`✈️ [SeatReservationsService] flight_id re-link: series=${reservation.flight_series_id} date=${this.toDateString(reservation.reservation_date)} → flight_id=${reservation.flight_id}`);
+        }
         const finalStatus = updateSeatReservationDto.status ?? reservation.status;
         if (finalStatus === 'confirmed') {
             if (!reservation.passenger_id) {
@@ -360,6 +371,15 @@ let SeatReservationsService = class SeatReservationsService {
         const reservation = await this.findOne(id);
         await this.seatReservationRepository.remove(reservation);
         console.log(`✅ [SeatReservationsService] Reservation deleted`);
+    }
+    toDateString(value) {
+        if (value instanceof Date) {
+            const y = value.getFullYear();
+            const m = String(value.getMonth() + 1).padStart(2, '0');
+            const d = String(value.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        return String(value).slice(0, 10);
     }
     generateBookingReference() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
