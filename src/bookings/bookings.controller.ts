@@ -30,9 +30,16 @@ export class BookingsController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 50,
+    @Query('agentFilter') agentFilter: string,
+    @Request() req,
   ): Promise<{ bookings: Booking[], total: number }> {
-    console.log('🎫 [BookingsController] GET /admin/bookings', { page, limit });
-    return this.bookingsService.findAll(page, limit);
+    console.log('🎫 [BookingsController] GET /admin/bookings', { page, limit, agentFilter });
+    // Only ever scope to the CALLER's own agent id (from the verified JWT), never a
+    // client-supplied one — otherwise an agent could pass another agent's id and see
+    // their bookings. Non-agent (staff/admin) callers never send agentFilter, so this
+    // is a no-op for them.
+    const agentId = agentFilter === 'me' && req.user?.sub ? Number(req.user.sub) : undefined;
+    return this.bookingsService.findAll(page, limit, agentId);
   }
 
   @Get('seat-counts')

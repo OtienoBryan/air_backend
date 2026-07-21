@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, Query, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { Agent } from '../entities/agent.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('admin/agents')
 @UseGuards(JwtAuthGuard)
@@ -24,6 +26,25 @@ export class AgentsController {
     const id = req.user?.sub;
     console.log(`👤 [AgentsController] GET /admin/agents/me (agent id=${id})`);
     return this.agentsService.findOne(id);
+  }
+
+  // Scoped to the authenticated agent's OWN id (from the verified JWT) — never a
+  // client-supplied one, so an agent can't edit another agent's profile/password
+  // by guessing an id, the way the generic PUT /admin/agents/:id below would allow.
+  @Put('me')
+  async updateMe(@Req() req: any, @Body() dto: UpdateAgentProfileDto): Promise<Agent> {
+    const id = req.user?.sub;
+    if (!id) throw new UnauthorizedException();
+    console.log(`👤 [AgentsController] PUT /admin/agents/me (agent id=${id})`);
+    return this.agentsService.updateProfile(id, dto);
+  }
+
+  @Post('me/change-password')
+  async changeMyPassword(@Req() req: any, @Body() dto: ChangePasswordDto): Promise<{ message: string }> {
+    const id = req.user?.sub;
+    if (!id) throw new UnauthorizedException();
+    console.log(`👤 [AgentsController] POST /admin/agents/me/change-password (agent id=${id})`);
+    return this.agentsService.changePassword(id, dto);
   }
 
   @Get(':id')

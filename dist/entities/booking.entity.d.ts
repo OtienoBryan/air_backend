@@ -2,6 +2,7 @@ import { FlightSeries } from './flight-series.entity';
 import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { BookingPassenger } from './booking-passenger.entity';
+import { Agent } from './agent.entity';
 export declare class Booking {
     id: number;
     booking_reference: string;
@@ -27,6 +28,8 @@ export declare class Booking {
     booking_date: Date;
     notes: string | null;
     agency_id: number | null;
+    agent_id: number | null;
+    agent?: Agent | null;
     is_return_trip: boolean;
     return_date: string | null;
     return_flight_series_id: number | null;

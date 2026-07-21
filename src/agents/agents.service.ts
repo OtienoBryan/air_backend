@@ -1,9 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
 import { Agent } from '../entities/agent.entity';
 import { CreateAgentDto } from './dto/create-agent.dto';
 import { UpdateAgentDto } from './dto/update-agent.dto';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AgentsService {
@@ -79,11 +82,67 @@ export class AgentsService {
 
   async remove(id: number): Promise<void> {
     console.log(`👤 [AgentsService] Deleting agent ID: ${id}`);
-    
+
     const agent = await this.findOne(id);
     await this.agentRepository.remove(agent);
-    
+
     console.log(`✅ [AgentsService] Agent deleted: ${agent.name}`);
+  }
+
+  // Self-service profile update — deliberately only touches the fields
+  // UpdateAgentProfileDto exposes (name/email/country/contact), never
+  // agency_id/use_deposit, regardless of what the admin-only update() above allows.
+  async updateProfile(id: number, dto: UpdateAgentProfileDto): Promise<Agent> {
+    console.log(`👤 [AgentsService] Updating own profile for agent ID: ${id}`);
+
+    const agent = await this.findOne(id);
+
+    if (dto.name !== undefined) agent.name = dto.name;
+    if (dto.email !== undefined) agent.email = dto.email ?? null;
+    if (dto.country !== undefined) agent.country = dto.country ?? null;
+    if (dto.contact !== undefined) agent.contact = dto.contact ?? null;
+
+    await this.agentRepository.save(agent);
+    console.log(`✅ [AgentsService] Profile updated for agent ID: ${id}`);
+    return this.findOne(id);
+  }
+
+  // Mirrors the dual bcrypt-hash/legacy-plaintext check in AuthService.loginAgent
+  // so a self-service change works no matter which form the agent's current
+  // password is stored in — but always WRITES the new one as a bcrypt hash into
+  // password_hash, and clears the legacy plaintext `password` column, so the
+  // account is migrated off plaintext storage the moment it changes its password.
+  async changePassword(id: number, dto: ChangePasswordDto): Promise<{ message: string }> {
+    console.log(`👤 [AgentsService] Changing password for agent ID: ${id}`);
+
+    const agent = await this.agentRepository.findOne({ where: { id } });
+    if (!agent) throw new NotFoundException(`Agent with ID ${id} not found`);
+
+    const storedHash = agent.password_hash || null;
+    const storedPlain = agent.password || null;
+
+    if (!storedHash && !storedPlain) {
+      throw new BadRequestException('No password is set for this account yet — contact your administrator.');
+    }
+
+    let valid = false;
+    if (storedHash) {
+      try { valid = await bcrypt.compare(dto.current_password, storedHash); } catch { valid = false; }
+    }
+    if (!valid && storedPlain) {
+      valid = storedPlain === dto.current_password;
+      if (!valid) {
+        try { valid = await bcrypt.compare(dto.current_password, storedPlain); } catch { valid = false; }
+      }
+    }
+    if (!valid) throw new UnauthorizedException('Current password is incorrect.');
+
+    agent.password_hash = await bcrypt.hash(dto.new_password, 10);
+    agent.password = null;
+    await this.agentRepository.save(agent);
+
+    console.log(`✅ [AgentsService] Password changed for agent ID: ${id}`);
+    return { message: 'Password changed successfully.' };
   }
 }
 

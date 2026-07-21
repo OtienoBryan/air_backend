@@ -3,6 +3,7 @@ import { FlightSeries } from './flight-series.entity';
 import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { BookingPassenger } from './booking-passenger.entity';
+import { Agent } from './agent.entity';
 
 @Entity('bookings')
 export class Booking {
@@ -80,6 +81,13 @@ export class Booking {
 
   @Column({ name: 'agency_id', type: 'int', nullable: true })
   agency_id: number | null;
+
+  @Column({ name: 'agent_id', type: 'int', nullable: true })
+  agent_id: number | null;
+
+  @ManyToOne(() => Agent, { nullable: true })
+  @JoinColumn({ name: 'agent_id' })
+  agent?: Agent | null;
 
   @Column({ name: 'is_return_trip', type: 'tinyint', width: 1, default: 0 })
   is_return_trip: boolean;

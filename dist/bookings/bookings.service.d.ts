@@ -35,7 +35,7 @@ export declare class BookingsService {
     create(createBookingDto: CreateBookingDto): Promise<Booking>;
     private generateEntryNumber;
     private createJournalEntryForBooking;
-    findAll(page?: number, limit?: number): Promise<{
+    findAll(page?: number, limit?: number, agentId?: number): Promise<{
         bookings: Booking[];
         total: number;
     }>;

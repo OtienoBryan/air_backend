@@ -38,9 +38,10 @@ let BookingsController = class BookingsController {
             throw error;
         }
     }
-    async findAll(page = 1, limit = 50) {
-        console.log('🎫 [BookingsController] GET /admin/bookings', { page, limit });
-        return this.bookingsService.findAll(page, limit);
+    async findAll(page = 1, limit = 50, agentFilter, req) {
+        console.log('🎫 [BookingsController] GET /admin/bookings', { page, limit, agentFilter });
+        const agentId = agentFilter === 'me' && req.user?.sub ? Number(req.user.sub) : undefined;
+        return this.bookingsService.findAll(page, limit, agentId);
     }
     async getSeatCounts(flightSeriesId) {
         return this.bookingsService.getBookedSeatCounts(Number(flightSeriesId));
@@ -86,8 +87,10 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('agentFilter')),
+    __param(3, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:paramtypes", [Number, Number, String, Object]),
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "findAll", null);
 __decorate([

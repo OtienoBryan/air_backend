@@ -51,12 +51,28 @@ export class BookingsService {
 
   async create(createBookingDto: CreateBookingDto): Promise<Booking> {
     console.log('🎫 [BookingsService] Creating new booking:', createBookingDto);
-    
-    // Verify flight series exists
-    const flightSeries = await this.flightSeriesRepository.findOne({
-      where: { id: createBookingDto.flight_series_id }
-    });
-    
+
+    const isReturnTrip = !!createBookingDto.is_return_trip
+    const returnFsIdEarly = isReturnTrip
+      ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id)
+      : null
+
+    // Load the outbound (and, for return trips, return) flight series up front with
+    // the destination relations needed for confirmation/ticket emails. Loading these
+    // now — instead of the flat findOne this used to be — lets the final response
+    // and background emails be built from data already in memory, avoiding the
+    // expensive multi-relation reload query that used to run at the very end.
+    // Also fetched concurrently with the passenger idempotency work below.
+    const [flightSeries, returnFlightSeriesEntity] = await Promise.all([
+      this.flightSeriesRepository.findOne({
+        where: { id: createBookingDto.flight_series_id },
+        relations: ['fromDestination', 'toDestination'],
+      }),
+      (returnFsIdEarly && returnFsIdEarly !== createBookingDto.flight_series_id)
+        ? this.flightSeriesRepository.findOne({ where: { id: returnFsIdEarly }, relations: ['fromDestination', 'toDestination'] })
+        : Promise.resolve(null),
+    ])
+
     if (!flightSeries) {
       throw new NotFoundException(`Flight series with ID ${createBookingDto.flight_series_id} not found`);
     }
@@ -66,10 +82,8 @@ export class BookingsService {
     }
 
     // Create all passengers first
-    const createdPassengers: Passenger[] = []
     let totalAmount = 0
     let farePerPassenger = 0
-    const isReturnTrip = !!createBookingDto.is_return_trip
     console.log(`✈️ [BookingsService] is_return_trip=${createBookingDto.is_return_trip} → isReturnTrip=${isReturnTrip}, flight=${flightSeries.flt}, adult_fare=${flightSeries.adult_fare}, adult_return_fare=${flightSeries.adult_return_fare}`)
 
     for (const passengerDto of createBookingDto.passengers) {
@@ -101,49 +115,54 @@ export class BookingsService {
       }
       totalAmount += fare
       farePerPassenger = fare
-
-      // Check if passenger already exists by id_type + identification before creating
-      let passenger: Passenger | null = null
-
-      if (passengerDto.id_type && passengerDto.identification) {
-        passenger = await this.passengerRepository.findOne({
-          where: {
-            id_type:        passengerDto.id_type,
-            identification: passengerDto.identification,
-          },
-        })
-        if (passenger) {
-          console.log(`♻️ [BookingsService] Reusing existing passenger id=${passenger.id} (${passenger.pnr}) matched by ${passengerDto.id_type}/${passengerDto.identification}`)
-          // Update name/contact in case details changed
-          passenger.name          = passengerDto.name          || passenger.name
-          passenger.email         = passengerDto.email         || passenger.email
-          passenger.contact       = passengerDto.contact       || passenger.contact
-          passenger.nationality   = passengerDto.nationality   || passenger.nationality
-          if (passengerDto.title) passenger.title = passengerDto.title as any
-          if (passengerDto.date_of_birth) passenger.date_of_birth = passengerDto.date_of_birth
-          passenger = await this.passengerRepository.save(passenger)
-        }
-      }
-
-      if (!passenger) {
-        // No match — create a new passenger record
-        passenger = await this.passengersService.create({
-          name:           passengerDto.name,
-          email:          passengerDto.email          || null,
-          contact:        passengerDto.contact        || null,
-          nationality:    passengerDto.nationality    || null,
-          id_type:        passengerDto.id_type        || null,
-          identification: passengerDto.identification || null,
-          age:            passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
-          date_of_birth:  passengerDto.date_of_birth   || null,
-          title:          passengerDto.title          || null,
-        })
-        console.log(`✅ [BookingsService] Created new passenger ${passenger.id} with PNR: ${passenger.pnr}`)
-      }
-
-      createdPassengers.push(passenger)
-      console.log(`✅ [BookingsService] Using passenger ${passenger.id} (${passenger.pnr}) for booking`)
     }
+
+    // Resolve/create all passengers concurrently — the DB is remote, so sequential
+    // per-passenger round-trips (lookup + save each) dominated response time.
+    const createdPassengers: Passenger[] = await Promise.all(
+      createBookingDto.passengers.map(async (passengerDto) => {
+        // Check if passenger already exists by id_type + identification before creating
+        let passenger: Passenger | null = null
+
+        if (passengerDto.id_type && passengerDto.identification) {
+          passenger = await this.passengerRepository.findOne({
+            where: {
+              id_type:        passengerDto.id_type,
+              identification: passengerDto.identification,
+            },
+          })
+          if (passenger) {
+            console.log(`♻️ [BookingsService] Reusing existing passenger id=${passenger.id} (${passenger.pnr}) matched by ${passengerDto.id_type}/${passengerDto.identification}`)
+            // Update name/contact in case details changed
+            passenger.name          = passengerDto.name          || passenger.name
+            passenger.email         = passengerDto.email         || passenger.email
+            passenger.contact       = passengerDto.contact       || passenger.contact
+            passenger.nationality   = passengerDto.nationality   || passenger.nationality
+            if (passengerDto.title) passenger.title = passengerDto.title as any
+            if (passengerDto.date_of_birth) passenger.date_of_birth = passengerDto.date_of_birth
+            passenger = await this.passengerRepository.save(passenger)
+          }
+        }
+
+        if (!passenger) {
+          // No match — create a new passenger record
+          passenger = await this.passengersService.create({
+            name:           passengerDto.name,
+            email:          passengerDto.email          || null,
+            contact:        passengerDto.contact        || null,
+            nationality:    passengerDto.nationality    || null,
+            id_type:        passengerDto.id_type        || null,
+            identification: passengerDto.identification || null,
+            age:            passengerDto.age ? (typeof passengerDto.age === 'string' ? parseInt(passengerDto.age, 10) : passengerDto.age) : null,
+            date_of_birth:  passengerDto.date_of_birth   || null,
+            title:          passengerDto.title          || null,
+          })
+          console.log(`✅ [BookingsService] Created new passenger ${passenger.id} with PNR: ${passenger.pnr}`)
+        }
+
+        return passenger
+      })
+    )
 
     // Use first passenger as primary passenger for booking record
     const primaryPassenger = createdPassengers[0]
@@ -175,7 +194,7 @@ export class BookingsService {
     // bookings.flight_id (not just booking_passengers.flight_id) gets populated.
     const outboundDate = createBookingDto.travel_date ?? createBookingDto.booking_date ?? null
     const returnDate   = isReturnTrip ? (createBookingDto.return_date ?? null) : null
-    const returnFsId   = isReturnTrip ? (createBookingDto.return_flight_series_id ?? createBookingDto.flight_series_id) : null
+    const returnFsId   = returnFsIdEarly
 
     // Use provided flight_id if available, otherwise look up from the flights table
     const lookupFlightId = async (seriesId: number | null, date: string | null): Promise<number | null> => {
@@ -188,11 +207,17 @@ export class BookingsService {
       } catch { return null }
     }
 
-    const outboundFlightId = createBookingDto.flight_id
-      ?? await lookupFlightId(createBookingDto.flight_series_id, outboundDate)
-    const returnFlightId = isReturnTrip
-      ? (createBookingDto.return_flight_id ?? await lookupFlightId(returnFsId, returnDate))
-      : null
+    // Resolve both legs' flight rows concurrently — they're independent lookups.
+    const [outboundFlightId, returnFlightId] = await Promise.all([
+      createBookingDto.flight_id != null
+        ? Promise.resolve(createBookingDto.flight_id)
+        : lookupFlightId(createBookingDto.flight_series_id, outboundDate),
+      isReturnTrip
+        ? (createBookingDto.return_flight_id != null
+            ? Promise.resolve(createBookingDto.return_flight_id)
+            : lookupFlightId(returnFsId, returnDate))
+        : Promise.resolve(null),
+    ])
     console.log(`✈️ [BookingsService] flight_id: outbound=${outboundFlightId}, return=${returnFlightId}`)
 
     const booking = this.bookingRepository.create({
@@ -216,6 +241,7 @@ export class BookingsService {
       payment_reference:  createBookingDto.payment_reference  ?? null,
       payment_account:    createBookingDto.payment_account    ?? null,
       agency_id: createBookingDto.agency_id ?? null,
+      agent_id: createBookingDto.agent_id ?? null,
       is_return_trip: isReturnTrip,
       return_date: isReturnTrip ? (createBookingDto.return_date ?? null) : null,
       return_flight_series_id: isReturnTrip ? (createBookingDto.return_flight_series_id ?? null) : null,
@@ -227,8 +253,10 @@ export class BookingsService {
     console.log(`✅ [BookingsService] Booking saved: id=${savedBooking.id} ref=${savedBooking.booking_reference} flight_id=${savedBooking.flight_id ?? 'null'} payment_ref=${savedBooking.payment_reference ?? 'null'} payment_acc=${savedBooking.payment_account ?? 'null'}`);
     console.log(`✅ [BookingsService] Created ${createdPassengers.length} passengers for booking`);
 
-    // Create booking_passengers records — one row per passenger per leg
-    const bookingPassengerRecords: BookingPassenger[] = []
+    // Build all booking_passengers rows (one per passenger per leg) then persist them
+    // in a single batched insert instead of a round-trip per row — a return trip with
+    // several passengers previously issued 2×N sequential INSERTs.
+    const bookingPassengersToSave: BookingPassenger[] = []
     for (let i = 0; i < createdPassengers.length; i++) {
       const passenger = createdPassengers[i]
       const passengerDto = createBookingDto.passengers[i]
@@ -257,7 +285,7 @@ export class BookingsService {
       }
 
       // Outbound leg
-      const outboundBp = this.bookingPassengerRepository.create({
+      bookingPassengersToSave.push(this.bookingPassengerRepository.create({
         booking_id:        savedBooking.id,
         passenger_id:      passenger.id,
         flight_series_id:  createBookingDto.flight_series_id,
@@ -271,22 +299,13 @@ export class BookingsService {
         ticket_number:     passengerDto.ticket_number || null,
         payment_reference: createBookingDto.payment_reference ?? null,
         payment_account:   createBookingDto.payment_account   ?? null,
-      })
-      try {
-        const saved = await this.bookingPassengerRepository.save(outboundBp)
-        bookingPassengerRecords.push(saved)
-        console.log(`✅ [BookingsService] Created outbound booking_passenger for pax ${passenger.id} (${passenger.pnr}), date=${outboundDate}, fs=${createBookingDto.flight_series_id}`)
-      } catch (error) {
-        console.error(`❌ [BookingsService] Error saving outbound booking_passenger for passenger ${passenger.id}:`, error)
-        throw new BadRequestException(`Failed to link passenger ${passenger.name} to booking: ${error instanceof Error ? error.message : String(error)}`)
-      }
+      }))
 
       // Return leg — always created for return trips so both travel dates and flight
       // details are stored as separate rows in booking_passengers.
       if (isReturnTrip) {
         const retFsId = returnFsId ?? createBookingDto.flight_series_id
-        console.log(`🔁 [BookingsService] Saving return booking_passenger: booking=${savedBooking.id}, pax=${passenger.id}, fs=${retFsId}, date=${returnDate ?? 'null'}`)
-        const returnBp = this.bookingPassengerRepository.create({
+        bookingPassengersToSave.push(this.bookingPassengerRepository.create({
           booking_id:        savedBooking.id,
           passenger_id:      passenger.id,
           flight_series_id:  retFsId,
@@ -297,23 +316,23 @@ export class BookingsService {
           leg:               'return',
           payment_reference: createBookingDto.payment_reference ?? null,
           payment_account:   createBookingDto.payment_account   ?? null,
-        })
-        try {
-          const saved = await this.bookingPassengerRepository.save(returnBp)
-          bookingPassengerRecords.push(saved)
-          console.log(`✅ [BookingsService] Return booking_passenger saved: id=${saved.id}, pax=${passenger.id} (${passenger.pnr}), date=${returnDate ?? 'null'}, fs=${retFsId}`)
-        } catch (error: any) {
-          // Surface the real error — most likely cause is the old unique constraint
-          // (booking_id, passenger_id) without the leg column.
-          // Fix: ALTER TABLE booking_passengers DROP INDEX <old>, ADD UNIQUE KEY(booking_id, passenger_id, leg)
-          console.error(`❌ [BookingsService] Return booking_passenger FAILED for pax ${passenger.id}: ${error?.message}`)
-          console.error(`❌ SQL error code: ${error?.code}  errno: ${error?.errno}`)
-          throw new BadRequestException(
-            `Failed to save return leg for passenger ${passenger.name}: ${error?.message}. ` +
-            `If this is a duplicate key error, run the DB migration to update the unique constraint on booking_passengers.`
-          )
-        }
+        }))
       }
+    }
+
+    let bookingPassengerRecords: BookingPassenger[]
+    try {
+      bookingPassengerRecords = await this.bookingPassengerRepository.save(bookingPassengersToSave)
+    } catch (error: any) {
+      // Most likely cause of a duplicate-key failure is the old unique constraint
+      // (booking_id, passenger_id) that predates the per-leg `leg` column.
+      // Fix: ALTER TABLE booking_passengers DROP INDEX <old>, ADD UNIQUE KEY(booking_id, passenger_id, leg)
+      console.error(`❌ [BookingsService] Failed to save booking_passenger rows: ${error?.message}`)
+      console.error(`❌ SQL error code: ${error?.code}  errno: ${error?.errno}`)
+      throw new BadRequestException(
+        `Failed to link passengers to booking: ${error?.message}. ` +
+        `If this is a duplicate key error, run the DB migration to update the unique constraint on booking_passengers.`
+      )
     }
 
     console.log(`✅ [BookingsService] Created ${bookingPassengerRecords.length} booking_passenger records (${isReturnTrip ? 'return trip' : 'one-way'})`)
@@ -594,13 +613,25 @@ export class BookingsService {
       }
     }
     
-    // Reload with relations
-    const bookingWithRelations = await this.bookingRepository.findOne({
-      where: { id: savedBooking.id },
-      relations: ['flightSeries', 'flightSeries.fromDestination', 'flightSeries.toDestination', 'returnFlightSeries', 'returnFlightSeries.fromDestination', 'returnFlightSeries.toDestination', 'passenger', 'bookingPassengers', 'bookingPassengers.passenger', 'bookingPassengers.flightSeries', 'bookingPassengers.flightSeries.fromDestination', 'bookingPassengers.flightSeries.toDestination']
-    });
+    // Attach relations from data already in memory instead of an expensive reload
+    // query with 9+ joined tables — flightSeries (and returnFlightSeries), the
+    // primary passenger, and each booking_passenger's own passenger/flightSeries
+    // were all already fetched/created above in this same request.
+    const passengerById = new Map(createdPassengers.map(p => [p.id, p]))
+    const flightSeriesById = new Map<number, FlightSeries>([[flightSeries.id, flightSeries]])
+    if (returnFlightSeriesEntity) flightSeriesById.set(returnFlightSeriesEntity.id, returnFlightSeriesEntity)
 
-    const finalBooking = bookingWithRelations || savedBooking;
+    const finalBooking = savedBooking as Booking & { bookingPassengers: (BookingPassenger & { passenger?: Passenger; flightSeries?: FlightSeries })[] }
+    finalBooking.flightSeries = flightSeries
+    finalBooking.passenger = primaryPassenger
+    if (isReturnTrip) {
+      finalBooking.returnFlightSeries = (returnFsId != null ? flightSeriesById.get(returnFsId) : undefined) ?? flightSeries
+    }
+    finalBooking.bookingPassengers = bookingPassengerRecords.map(bp => ({
+      ...bp,
+      passenger: passengerById.get(bp.passenger_id),
+      flightSeries: (bp.flight_series_id != null ? flightSeriesById.get(bp.flight_series_id) : undefined) ?? flightSeries,
+    }))
 
     // Send confirmation + ticket emails in the background. These were previously
     // `await`ed sequentially (1 confirmation + 1 per booking_passenger row), which
@@ -725,13 +756,15 @@ export class BookingsService {
       // Fallback: Sales Revenue. We do NOT want fixed-asset accounts here.
       console.log('📝 [BookingsService] Looking for Passenger Revenue account...');
       let revenueAccount: ChartOfAccount | null = null;
-      
+
+      // Fetch all accounts once — reused below both for revenue-account name matching
+      // AND for the payment-account lookup, so we don't issue 2-3 more sequential
+      // queries against the same small table for something already in memory.
+      console.log('📝 [BookingsService] Fetching chart of accounts for revenue matching...');
+      const allAccounts = await queryRunner.manager.find(ChartOfAccount);
+      console.log(`📝 [BookingsService] Found ${allAccounts.length} total accounts in chart_of_accounts`);
+
       try {
-        // Fetch all accounts once and search by name keywords (case-insensitive)
-        console.log('📝 [BookingsService] Fetching chart of accounts for revenue matching...');
-        const allAccounts = await queryRunner.manager.find(ChartOfAccount);
-        console.log(`📝 [BookingsService] Found ${allAccounts.length} total accounts in chart_of_accounts`);
-        
         const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
         // 1) Prefer exact "Passenger Revenue"
@@ -768,63 +801,28 @@ export class BookingsService {
       }
       
       if (!revenueAccount) {
-        try {
-          const sampleAccounts = await queryRunner.manager.find(ChartOfAccount, { take: 10 });
-          console.error(`❌ [BookingsService] Revenue account not found. Sample accounts:`, 
-            sampleAccounts.map(a => ({ id: a.id, name: a.name, type: a.account_type }))
-          );
-        } catch (error) {
-          console.error(`❌ [BookingsService] Error fetching sample accounts:`, error);
-        }
+        console.error(`❌ [BookingsService] Revenue account not found. Sample accounts:`,
+          allAccounts.slice(0, 10).map(a => ({ id: a.id, name: a.name, type: a.account_type }))
+        );
         const errorMsg = 'Passenger Revenue account not found. Please create a "Passenger Revenue" (or "Sales Revenue") account in chart of accounts.';
         console.error(`❌ [BookingsService] ${errorMsg}`);
         throw new Error(errorMsg);
       }
-      
+
        console.log(`✅ [BookingsService] Revenue account selected: ${revenueAccount.name} (${revenueAccount.code}), Type: ${revenueAccount.account_type}, ID: ${revenueAccount.id}`);
-       
-       // Find payment account from chart_of_accounts
+
+       // Find payment account — reuse the already-fetched allAccounts list instead of
+       // issuing 2-3 more sequential queries against the same table for one row we
+       // already have in memory.
        console.log(`📝 [BookingsService] Looking for payment account with ID ${paymentAccountId}...`);
-       let paymentAccount: ChartOfAccount | null = null;
-      
-      try {
-        paymentAccount = await queryRunner.manager.findOne(ChartOfAccount, {
-          where: { id: paymentAccountId, account_type: 9 },
-        });
-        console.log(`📝 [BookingsService] Payment account search (with type=9) result: ${paymentAccount ? `Found: ${paymentAccount.name}` : 'Not found'}`);
-      } catch (error) {
-        console.error(`❌ [BookingsService] Error searching for payment account with type=9:`, error);
-        console.error(`❌ [BookingsService] Error details:`, error instanceof Error ? error.message : String(error));
-      }
-      
-      // If not found with account_type = 9, try without the type restriction
+       const paymentAccount = allAccounts.find(a => a.id === paymentAccountId) || null;
+
       if (!paymentAccount) {
-        try {
-          console.log(`📝 [BookingsService] Payment account not found with account_type=9, trying without type restriction...`);
-          paymentAccount = await queryRunner.manager.findOne(ChartOfAccount, {
-            where: { id: paymentAccountId },
-          });
-          console.log(`📝 [BookingsService] Payment account search (without type) result: ${paymentAccount ? `Found: ${paymentAccount.name} (type: ${paymentAccount.account_type})` : 'Not found'}`);
-        } catch (error) {
-          console.error(`❌ [BookingsService] Error searching for payment account without type:`, error);
-          console.error(`❌ [BookingsService] Error details:`, error instanceof Error ? error.message : String(error));
-        }
-      }
-      
-      if (!paymentAccount) {
-        // Try to find all accounts with the given ID to see what's in the database
-        try {
-          const allAccountsWithId = await queryRunner.manager.find(ChartOfAccount, {
-            where: { id: paymentAccountId },
-          });
-          console.error(`❌ [BookingsService] Payment account with ID ${paymentAccountId} not found. Accounts with this ID:`, allAccountsWithId);
-        } catch (error) {
-          console.error(`❌ [BookingsService] Error checking for accounts with ID ${paymentAccountId}:`, error);
-        }
+        console.error(`❌ [BookingsService] Payment account with ID ${paymentAccountId} not found in chart_of_accounts`);
         const errorMsg = `Payment account with ID ${paymentAccountId} not found in chart_of_accounts`;
-        console.error(`❌ [BookingsService] ${errorMsg}`);
         throw new Error(errorMsg);
       }
+      console.log(`📝 [BookingsService] Payment account search result: Found: ${paymentAccount.name} (type: ${paymentAccount.account_type})`);
       
        console.log(`✅ [BookingsService] Payment account found: ${paymentAccount.name} (${paymentAccount.code}), Type: ${paymentAccount.account_type}, ID: ${paymentAccount.id}`);
        
@@ -894,16 +892,6 @@ export class BookingsService {
         console.log(`   - Total Debit: ${savedJournalEntry.total_debit}`);
         console.log(`   - Total Credit: ${savedJournalEntry.total_credit}`);
         console.log(`   - Status: ${savedJournalEntry.status}`);
-        
-        // Verify it was actually saved by querying it back
-        const verifyEntry = await queryRunner.manager.findOne(JournalEntry, {
-          where: { id: savedJournalEntry.id }
-        });
-        if (verifyEntry) {
-          console.log(`✅ [BookingsService] Verified: Journal entry exists in database with ID ${verifyEntry.id}`);
-        } else {
-          console.error(`❌ [BookingsService] WARNING: Journal entry was not found after save!`);
-        }
       } catch (error) {
         console.error(`❌ [BookingsService] Error saving journal entry to database:`, error);
         console.error(`❌ [BookingsService] Error details:`, error instanceof Error ? error.message : String(error));
@@ -968,15 +956,6 @@ export class BookingsService {
         console.log(`✅ [BookingsService] Journal entry lines saved to journal_entry_lines table:`);
         console.log(`   - Debit line ID: ${savedLines[0].id}, Journal Entry ID: ${savedLines[0].journal_entry_id}, Account ID: ${savedLines[0].account_id}, Account: ${paymentAccount.name}, Debit Amount: ${savedLines[0].debit_amount}`);
         console.log(`   - Credit line ID: ${savedLines[1].id}, Journal Entry ID: ${savedLines[1].journal_entry_id}, Account ID: ${savedLines[1].account_id}, Account: ${revenueAccount.name}, Credit Amount: ${savedLines[1].credit_amount}`);
-        
-        // Verify lines were actually saved by querying them back
-        const verifyLines = await queryRunner.manager.find(JournalEntryLine, {
-          where: { journal_entry_id: savedJournalEntry.id }
-        });
-        console.log(`✅ [BookingsService] Verified: Found ${verifyLines.length} journal entry lines in database for journal entry ID ${savedJournalEntry.id}`);
-        verifyLines.forEach((line, index) => {
-          console.log(`   Line ${index + 1}: ID=${line.id}, Account ID=${line.account_id}, Debit=${line.debit_amount}, Credit=${line.credit_amount}`);
-        });
       } catch (error) {
         console.error(`❌ [BookingsService] Error saving journal entry lines to database:`, error);
         console.error(`❌ [BookingsService] Error details:`, error instanceof Error ? error.message : String(error));
@@ -1023,8 +1002,9 @@ export class BookingsService {
     }
   }
 
-  async findAll(page: number = 1, limit: number = 50): Promise<{ bookings: Booking[], total: number }> {
+  async findAll(page: number = 1, limit: number = 50, agentId?: number): Promise<{ bookings: Booking[], total: number }> {
     const [bookings, total] = await this.bookingRepository.findAndCount({
+      where: agentId ? { agent_id: agentId } : {},
       relations: [
         'flightSeries',
         'flightSeries.fromDestination',

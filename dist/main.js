@@ -45,6 +45,7 @@ async function bootstrap() {
                 'http://localhost:3003',
                 'http://localhost:3004',
                 'http://localhost:5173',
+                'http://localhost:3023',
                 'http://127.0.0.1:5173',
                 'http://localhost:8080',
                 'http://admin.royalairsarl.com',

@@ -8,7 +8,7 @@ export declare class BookingsController {
     private readonly bookingsService;
     constructor(bookingsService: BookingsService);
     create(createBookingDto: CreateBookingDto): Promise<Booking>;
-    findAll(page?: number, limit?: number): Promise<{
+    findAll(page: number | undefined, limit: number | undefined, agentFilter: string, req: any): Promise<{
         bookings: Booking[];
         total: number;
     }>;

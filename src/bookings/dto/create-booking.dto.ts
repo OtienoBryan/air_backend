@@ -158,6 +158,11 @@ export class CreateBookingDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  agent_id?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   account_id?: number | null;
 
   @IsOptional()

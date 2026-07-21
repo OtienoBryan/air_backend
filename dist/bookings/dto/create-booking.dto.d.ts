@@ -32,6 +32,7 @@ export declare class CreateBookingDto {
     payment_reference?: string | null;
     payment_account?: string | null;
     agency_id?: number | null;
+    agent_id?: number | null;
     account_id?: number | null;
     deduct_from_account?: boolean;
     payment_account_id?: number | null;

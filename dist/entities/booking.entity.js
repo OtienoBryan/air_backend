@@ -15,6 +15,7 @@ const flight_series_entity_1 = require("./flight-series.entity");
 const flight_entity_1 = require("./flight.entity");
 const passenger_entity_1 = require("./passenger.entity");
 const booking_passenger_entity_1 = require("./booking-passenger.entity");
+const agent_entity_1 = require("./agent.entity");
 let Booking = class Booking {
     id;
     booking_reference;
@@ -40,6 +41,8 @@ let Booking = class Booking {
     booking_date;
     notes;
     agency_id;
+    agent_id;
+    agent;
     is_return_trip;
     return_date;
     return_flight_series_id;
@@ -147,6 +150,15 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'agency_id', type: 'int', nullable: true }),
     __metadata("design:type", Object)
 ], Booking.prototype, "agency_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'agent_id', type: 'int', nullable: true }),
+    __metadata("design:type", Object)
+], Booking.prototype, "agent_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => agent_entity_1.Agent, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'agent_id' }),
+    __metadata("design:type", Object)
+], Booking.prototype, "agent", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'is_return_trip', type: 'tinyint', width: 1, default: 0 }),
     __metadata("design:type", Boolean)

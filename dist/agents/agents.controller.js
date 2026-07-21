@@ -18,6 +18,8 @@ const agents_service_1 = require("./agents.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const create_agent_dto_1 = require("./dto/create-agent.dto");
 const update_agent_dto_1 = require("./dto/update-agent.dto");
+const update_agent_profile_dto_1 = require("./dto/update-agent-profile.dto");
+const change_password_dto_1 = require("./dto/change-password.dto");
 let AgentsController = class AgentsController {
     agentsService;
     constructor(agentsService) {
@@ -31,6 +33,20 @@ let AgentsController = class AgentsController {
         const id = req.user?.sub;
         console.log(`👤 [AgentsController] GET /admin/agents/me (agent id=${id})`);
         return this.agentsService.findOne(id);
+    }
+    async updateMe(req, dto) {
+        const id = req.user?.sub;
+        if (!id)
+            throw new common_1.UnauthorizedException();
+        console.log(`👤 [AgentsController] PUT /admin/agents/me (agent id=${id})`);
+        return this.agentsService.updateProfile(id, dto);
+    }
+    async changeMyPassword(req, dto) {
+        const id = req.user?.sub;
+        if (!id)
+            throw new common_1.UnauthorizedException();
+        console.log(`👤 [AgentsController] POST /admin/agents/me/change-password (agent id=${id})`);
+        return this.agentsService.changePassword(id, dto);
     }
     async findOne(id) {
         console.log(`👤 [AgentsController] GET /admin/agents/${id}`);
@@ -76,6 +92,22 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AgentsController.prototype, "findMe", null);
+__decorate([
+    (0, common_1.Put)('me'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, update_agent_profile_dto_1.UpdateAgentProfileDto]),
+    __metadata("design:returntype", Promise)
+], AgentsController.prototype, "updateMe", null);
+__decorate([
+    (0, common_1.Post)('me/change-password'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, change_password_dto_1.ChangePasswordDto]),
+    __metadata("design:returntype", Promise)
+], AgentsController.prototype, "changeMyPassword", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
