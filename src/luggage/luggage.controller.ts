@@ -13,13 +13,21 @@ import {
   Request,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource, Like } from 'typeorm';
 import { LuggageService } from './luggage.service';
 import { Luggage } from '../entities/luggage.entity';
 import { LuggageExcessCharge } from '../entities/luggage-excess-charge.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { JournalEntryLine } from '../entities/journal-entry-line.entity';
+import { ChartOfAccount } from '../entities/chart-of-account.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateLuggageDto } from './dto/create-luggage.dto';
 import { UpdateLuggageDto } from './dto/update-luggage.dto';
+
+// Fixed GL account that all excess-baggage revenue posts against — "Cargo Extra
+// Charges" (chart_of_accounts.id = 54). Not configurable per-charge; every
+// excess-weight journal entry credits this same account.
+const EXCESS_BAGGAGE_REVENUE_ACCOUNT_ID = 54;
 
 @Controller('admin/luggage')
 @UseGuards(JwtAuthGuard)
@@ -28,6 +36,13 @@ export class LuggageController {
     private readonly luggageService: LuggageService,
     @InjectRepository(LuggageExcessCharge)
     private readonly excessChargeRepository: Repository<LuggageExcessCharge>,
+    @InjectRepository(JournalEntry)
+    private readonly journalEntryRepository: Repository<JournalEntry>,
+    @InjectRepository(JournalEntryLine)
+    private readonly journalEntryLineRepository: Repository<JournalEntryLine>,
+    @InjectRepository(ChartOfAccount)
+    private readonly chartOfAccountRepository: Repository<ChartOfAccount>,
+    private readonly dataSource: DataSource,
   ) {}
 
   @Post()
@@ -112,8 +127,10 @@ export class LuggageController {
       currency?: string;
       payment_method?: string;
       payment_status?: string;
+      payment_account_id?: number | null;
       notes?: string | null;
     },
+    @Request() req,
   ): Promise<LuggageExcessCharge> {
     // Upsert: replace existing record for same passenger+flight to avoid duplicates
     await this.excessChargeRepository.delete({
@@ -136,7 +153,104 @@ export class LuggageController {
       payment_status:  body.payment_status ?? 'pending',
       notes:           body.notes ?? null,
     });
-    return this.excessChargeRepository.save(record);
+    const saved = await this.excessChargeRepository.save(record);
+
+    // Only post to the ledger once the charge is actually collected, and only
+    // when staff picked a specific GL account to debit (payment_account_id) —
+    // without one we don't know which account received the cash/card/etc, so
+    // there's nothing valid to post.
+    if (saved.payment_status === 'paid' && Number(saved.total_charge) > 0 && body.payment_account_id) {
+      try {
+        await this.postJournalEntryForExcessCharge(saved, body.payment_account_id, req.user?.sub ? Number(req.user.sub) : null);
+      } catch (err) {
+        // Don't fail the whole request over the journal posting — the excess
+        // charge record itself (the source of truth for what's owed/collected)
+        // is already saved; surface the failure in logs so it can be re-posted.
+        console.error('❌ [LuggageController] Failed to post journal entry for excess charge:', err);
+      }
+    }
+
+    return saved;
+  }
+
+  private async generateEntryNumber(): Promise<string> {
+    const today = new Date();
+    const datePrefix = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+    const latestEntry = await this.journalEntryRepository.findOne({
+      where: { entry_number: Like(`JE-${datePrefix}-%`) },
+      order: { entry_number: 'DESC' },
+    });
+    let sequence = 1;
+    if (latestEntry) {
+      const parts = latestEntry.entry_number.split('-');
+      if (parts.length === 3) sequence = (parseInt(parts[2] || '0', 10) || 0) + 1;
+    }
+    return `JE-${datePrefix}-${String(sequence).padStart(4, '0')}`;
+  }
+
+  // Debits the payment account staff collected into, credits the fixed
+  // "Cargo Extra Charges" account (id 54) — the same debit-payment/credit-revenue
+  // shape bookings.service.ts uses for booking payments, just against a fixed
+  // revenue account instead of one looked up by name.
+  private async postJournalEntryForExcessCharge(
+    charge: LuggageExcessCharge,
+    paymentAccountId: number,
+    createdBy: number | null,
+  ): Promise<void> {
+    const paymentAccount = await this.chartOfAccountRepository.findOne({ where: { id: paymentAccountId } });
+    if (!paymentAccount) {
+      console.warn(`⚠️ [LuggageController] Payment account ${paymentAccountId} not found — skipping journal entry`);
+      return;
+    }
+    const revenueAccount = await this.chartOfAccountRepository.findOne({ where: { id: EXCESS_BAGGAGE_REVENUE_ACCOUNT_ID } });
+    if (!revenueAccount) {
+      console.warn(`⚠️ [LuggageController] Excess-baggage revenue account ${EXCESS_BAGGAGE_REVENUE_ACCOUNT_ID} not found — skipping journal entry`);
+      return;
+    }
+
+    const amount = Number(charge.total_charge);
+    const entryNumber = await this.generateEntryNumber();
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const journalEntry = queryRunner.manager.create(JournalEntry, {
+        entry_number: entryNumber,
+        entry_date: new Date(),
+        reference: charge.notes ?? `Excess baggage — passenger ${charge.passenger_id}`,
+        description: `Excess baggage charge — ${charge.excess_kg}kg over limit, passenger ${charge.passenger_id}${charge.flight_id ? `, flight ${charge.flight_id}` : ''}`,
+        total_debit: amount,
+        total_credit: amount,
+        status: 'posted',
+        created_by: createdBy ?? 1,
+      });
+      const savedEntry = await queryRunner.manager.save(JournalEntry, journalEntry);
+
+      const debitLine = queryRunner.manager.create(JournalEntryLine, {
+        journal_entry_id: savedEntry.id,
+        account_id: paymentAccount.id,
+        debit_amount: amount,
+        credit_amount: 0,
+        description: `Excess baggage payment received via ${paymentAccount.name}`,
+      });
+      const creditLine = queryRunner.manager.create(JournalEntryLine, {
+        journal_entry_id: savedEntry.id,
+        account_id: revenueAccount.id,
+        debit_amount: 0,
+        credit_amount: amount,
+        description: `Excess baggage revenue — ${charge.excess_kg}kg over limit`,
+      });
+      await queryRunner.manager.save(JournalEntryLine, [debitLine, creditLine]);
+
+      await queryRunner.commitTransaction();
+      console.log(`✅ [LuggageController] Journal entry ${entryNumber} posted for excess baggage charge (passenger ${charge.passenger_id}, amount ${amount})`);
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   @Get('excess-charges')

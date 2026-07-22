@@ -154,7 +154,7 @@ export class FlightsController {
     const rows = await this.bookingPassengerRepository.find({
       where: { flight_id: id },
       relations: [
-        'passenger', 'booking',
+        'passenger', 'booking', 'booking.agency',
         'flight', 'flight.series',
         'flight.series.fromDestination', 'flight.series.toDestination',
         'flight.series.viaDestination', 'flight.aircraft',
@@ -168,6 +168,8 @@ export class FlightsController {
       booking_reference: (bp as any).booking?.booking_reference ?? null,
       booking_date:    (bp as any).booking?.booking_date ? String((bp as any).booking.booking_date).slice(0, 10) : null,
       payment_status:  (bp as any).booking?.payment_status ?? null,
+      agency_id:       (bp as any).booking?.agency_id ?? null,
+      agency_name:     (bp as any).booking?.agency?.name ?? null,
       passenger_type:  bp.passenger_type,
       fare_amount:     Number(bp.fare_amount ?? 0),
       // This passenger's actual boarding/disembarkation point — null means "the

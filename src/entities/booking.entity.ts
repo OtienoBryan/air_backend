@@ -4,6 +4,7 @@ import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { BookingPassenger } from './booking-passenger.entity';
 import { Agent } from './agent.entity';
+import { Agency } from './agency.entity';
 
 @Entity('bookings')
 export class Booking {
@@ -81,6 +82,10 @@ export class Booking {
 
   @Column({ name: 'agency_id', type: 'int', nullable: true })
   agency_id: number | null;
+
+  @ManyToOne(() => Agency, { nullable: true })
+  @JoinColumn({ name: 'agency_id' })
+  agency?: Agency | null;
 
   @Column({ name: 'agent_id', type: 'int', nullable: true })
   agent_id: number | null;

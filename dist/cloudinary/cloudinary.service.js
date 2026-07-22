@@ -50,6 +50,28 @@ let CloudinaryService = class CloudinaryService {
             throw new Error(`Failed to upload image to Cloudinary: ${error.message}`);
         }
     }
+    async uploadDocument(file, folder = 'documents') {
+        try {
+            const result = await new Promise((resolve, reject) => {
+                cloudinary_1.v2.uploader.upload_stream({
+                    resource_type: 'auto',
+                    folder: folder,
+                }, (error, result) => {
+                    if (error)
+                        reject(error);
+                    else
+                        resolve(result);
+                }).end(file.buffer);
+            });
+            return {
+                url: result.secure_url,
+                public_id: result.public_id
+            };
+        }
+        catch (error) {
+            throw new Error(`Failed to upload document to Cloudinary: ${error.message}`);
+        }
+    }
     async deleteImage(publicId) {
         try {
             await cloudinary_1.v2.uploader.destroy(publicId);

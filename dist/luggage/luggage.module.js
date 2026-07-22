@@ -13,6 +13,9 @@ const luggage_entity_1 = require("../entities/luggage.entity");
 const booking_passenger_entity_1 = require("../entities/booking-passenger.entity");
 const booking_entity_1 = require("../entities/booking.entity");
 const luggage_excess_charge_entity_1 = require("../entities/luggage-excess-charge.entity");
+const journal_entry_entity_1 = require("../entities/journal-entry.entity");
+const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
 const luggage_service_1 = require("./luggage.service");
 const luggage_controller_1 = require("./luggage.controller");
 let LuggageModule = class LuggageModule {
@@ -20,7 +23,10 @@ let LuggageModule = class LuggageModule {
 exports.LuggageModule = LuggageModule;
 exports.LuggageModule = LuggageModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([luggage_entity_1.Luggage, booking_passenger_entity_1.BookingPassenger, booking_entity_1.Booking, luggage_excess_charge_entity_1.LuggageExcessCharge])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([
+                luggage_entity_1.Luggage, booking_passenger_entity_1.BookingPassenger, booking_entity_1.Booking, luggage_excess_charge_entity_1.LuggageExcessCharge,
+                journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine, chart_of_account_entity_1.ChartOfAccount,
+            ])],
         providers: [luggage_service_1.LuggageService],
         controllers: [luggage_controller_1.LuggageController],
         exports: [luggage_service_1.LuggageService],

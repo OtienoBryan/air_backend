@@ -41,6 +41,32 @@ export class CloudinaryService {
     }
   }
 
+  // Unlike uploadImage, this doesn't force resource_type 'image' or apply a
+  // face-crop transformation — needed for document scans (photos or PDFs).
+  async uploadDocument(file: Express.Multer.File, folder: string = 'documents'): Promise<{ url: string; public_id: string }> {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'auto',
+            folder: folder,
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        ).end(file.buffer);
+      });
+
+      return {
+        url: (result as any).secure_url,
+        public_id: (result as any).public_id
+      };
+    } catch (error) {
+      throw new Error(`Failed to upload document to Cloudinary: ${error.message}`);
+    }
+  }
+
   async deleteImage(publicId: string): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId);

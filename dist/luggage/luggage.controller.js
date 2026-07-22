@@ -18,15 +18,27 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const luggage_service_1 = require("./luggage.service");
 const luggage_excess_charge_entity_1 = require("../entities/luggage-excess-charge.entity");
+const journal_entry_entity_1 = require("../entities/journal-entry.entity");
+const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
+const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const create_luggage_dto_1 = require("./dto/create-luggage.dto");
 const update_luggage_dto_1 = require("./dto/update-luggage.dto");
+const EXCESS_BAGGAGE_REVENUE_ACCOUNT_ID = 54;
 let LuggageController = class LuggageController {
     luggageService;
     excessChargeRepository;
-    constructor(luggageService, excessChargeRepository) {
+    journalEntryRepository;
+    journalEntryLineRepository;
+    chartOfAccountRepository;
+    dataSource;
+    constructor(luggageService, excessChargeRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, dataSource) {
         this.luggageService = luggageService;
         this.excessChargeRepository = excessChargeRepository;
+        this.journalEntryRepository = journalEntryRepository;
+        this.journalEntryLineRepository = journalEntryLineRepository;
+        this.chartOfAccountRepository = chartOfAccountRepository;
+        this.dataSource = dataSource;
     }
     async create(createLuggageDto) {
         console.log('🧳 [LuggageController] POST /admin/luggage');
@@ -67,7 +79,7 @@ let LuggageController = class LuggageController {
         await this.luggageService.removeAllByPassenger(passengerId);
         return { message: 'All luggage deleted successfully' };
     }
-    async postExcessCharge(body) {
+    async postExcessCharge(body, req) {
         await this.excessChargeRepository.delete({
             passenger_id: body.passenger_id,
             flight_id: body.flight_id ?? undefined,
@@ -88,7 +100,85 @@ let LuggageController = class LuggageController {
             payment_status: body.payment_status ?? 'pending',
             notes: body.notes ?? null,
         });
-        return this.excessChargeRepository.save(record);
+        const saved = await this.excessChargeRepository.save(record);
+        if (saved.payment_status === 'paid' && Number(saved.total_charge) > 0 && body.payment_account_id) {
+            try {
+                await this.postJournalEntryForExcessCharge(saved, body.payment_account_id, req.user?.sub ? Number(req.user.sub) : null);
+            }
+            catch (err) {
+                console.error('❌ [LuggageController] Failed to post journal entry for excess charge:', err);
+            }
+        }
+        return saved;
+    }
+    async generateEntryNumber() {
+        const today = new Date();
+        const datePrefix = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+        const latestEntry = await this.journalEntryRepository.findOne({
+            where: { entry_number: (0, typeorm_2.Like)(`JE-${datePrefix}-%`) },
+            order: { entry_number: 'DESC' },
+        });
+        let sequence = 1;
+        if (latestEntry) {
+            const parts = latestEntry.entry_number.split('-');
+            if (parts.length === 3)
+                sequence = (parseInt(parts[2] || '0', 10) || 0) + 1;
+        }
+        return `JE-${datePrefix}-${String(sequence).padStart(4, '0')}`;
+    }
+    async postJournalEntryForExcessCharge(charge, paymentAccountId, createdBy) {
+        const paymentAccount = await this.chartOfAccountRepository.findOne({ where: { id: paymentAccountId } });
+        if (!paymentAccount) {
+            console.warn(`⚠️ [LuggageController] Payment account ${paymentAccountId} not found — skipping journal entry`);
+            return;
+        }
+        const revenueAccount = await this.chartOfAccountRepository.findOne({ where: { id: EXCESS_BAGGAGE_REVENUE_ACCOUNT_ID } });
+        if (!revenueAccount) {
+            console.warn(`⚠️ [LuggageController] Excess-baggage revenue account ${EXCESS_BAGGAGE_REVENUE_ACCOUNT_ID} not found — skipping journal entry`);
+            return;
+        }
+        const amount = Number(charge.total_charge);
+        const entryNumber = await this.generateEntryNumber();
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            const journalEntry = queryRunner.manager.create(journal_entry_entity_1.JournalEntry, {
+                entry_number: entryNumber,
+                entry_date: new Date(),
+                reference: charge.notes ?? `Excess baggage — passenger ${charge.passenger_id}`,
+                description: `Excess baggage charge — ${charge.excess_kg}kg over limit, passenger ${charge.passenger_id}${charge.flight_id ? `, flight ${charge.flight_id}` : ''}`,
+                total_debit: amount,
+                total_credit: amount,
+                status: 'posted',
+                created_by: createdBy ?? 1,
+            });
+            const savedEntry = await queryRunner.manager.save(journal_entry_entity_1.JournalEntry, journalEntry);
+            const debitLine = queryRunner.manager.create(journal_entry_line_entity_1.JournalEntryLine, {
+                journal_entry_id: savedEntry.id,
+                account_id: paymentAccount.id,
+                debit_amount: amount,
+                credit_amount: 0,
+                description: `Excess baggage payment received via ${paymentAccount.name}`,
+            });
+            const creditLine = queryRunner.manager.create(journal_entry_line_entity_1.JournalEntryLine, {
+                journal_entry_id: savedEntry.id,
+                account_id: revenueAccount.id,
+                debit_amount: 0,
+                credit_amount: amount,
+                description: `Excess baggage revenue — ${charge.excess_kg}kg over limit`,
+            });
+            await queryRunner.manager.save(journal_entry_line_entity_1.JournalEntryLine, [debitLine, creditLine]);
+            await queryRunner.commitTransaction();
+            console.log(`✅ [LuggageController] Journal entry ${entryNumber} posted for excess baggage charge (passenger ${charge.passenger_id}, amount ${amount})`);
+        }
+        catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        }
+        finally {
+            await queryRunner.release();
+        }
     }
     async getExcessCharges(flightId, passengerId) {
         const where = {};
@@ -163,8 +253,9 @@ __decorate([
 __decorate([
     (0, common_1.Post)('excess-charges'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], LuggageController.prototype, "postExcessCharge", null);
 __decorate([
@@ -186,7 +277,14 @@ exports.LuggageController = LuggageController = __decorate([
     (0, common_1.Controller)('admin/luggage'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(1, (0, typeorm_1.InjectRepository)(luggage_excess_charge_entity_1.LuggageExcessCharge)),
+    __param(2, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
+    __param(3, (0, typeorm_1.InjectRepository)(journal_entry_line_entity_1.JournalEntryLine)),
+    __param(4, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
     __metadata("design:paramtypes", [luggage_service_1.LuggageService,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.DataSource])
 ], LuggageController);
 //# sourceMappingURL=luggage.controller.js.map

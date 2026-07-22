@@ -20,6 +20,9 @@ const agency_ledger_entity_1 = require("../entities/agency-ledger.entity");
 const journal_entry_entity_1 = require("../entities/journal-entry.entity");
 const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
 const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
+const country_tax_entity_1 = require("../entities/country-tax.entity");
+const supplier_entity_1 = require("../entities/supplier.entity");
+const supplier_ledger_entity_1 = require("../entities/supplier-ledger.entity");
 const bookings_service_1 = require("./bookings.service");
 const bookings_controller_1 = require("./bookings.controller");
 const passengers_module_1 = require("../passengers/passengers.module");
@@ -30,7 +33,7 @@ exports.BookingsModule = BookingsModule;
 exports.BookingsModule = BookingsModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([booking_entity_1.Booking, flight_series_entity_1.FlightSeries, flight_entity_1.Flight, passenger_entity_1.Passenger, booking_passenger_entity_1.BookingPassenger, seat_reservation_entity_1.SeatReservation, agency_entity_1.Agency, agency_ledger_entity_1.AgencyLedger, journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine, chart_of_account_entity_1.ChartOfAccount]),
+            typeorm_1.TypeOrmModule.forFeature([booking_entity_1.Booking, flight_series_entity_1.FlightSeries, flight_entity_1.Flight, passenger_entity_1.Passenger, booking_passenger_entity_1.BookingPassenger, seat_reservation_entity_1.SeatReservation, agency_entity_1.Agency, agency_ledger_entity_1.AgencyLedger, journal_entry_entity_1.JournalEntry, journal_entry_line_entity_1.JournalEntryLine, chart_of_account_entity_1.ChartOfAccount, country_tax_entity_1.CountryTax, supplier_entity_1.Supplier, supplier_ledger_entity_1.SupplierLedger]),
             passengers_module_1.PassengersModule,
             mail_module_1.MailModule
         ],

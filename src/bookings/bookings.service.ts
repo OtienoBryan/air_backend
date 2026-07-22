@@ -12,6 +12,9 @@ import { AgencyLedger } from '../entities/agency-ledger.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalEntryLine } from '../entities/journal-entry-line.entity';
 import { ChartOfAccount } from '../entities/chart-of-account.entity';
+import { CountryTax } from '../entities/country-tax.entity';
+import { Supplier } from '../entities/supplier.entity';
+import { SupplierLedger } from '../entities/supplier-ledger.entity';
 import { CreateBookingDto, PassengerDto } from './dto/create-booking.dto';
 import { AddBookingPassengerDto } from './dto/add-booking-passenger.dto';
 import { CancelRefundDto } from './dto/cancel-refund.dto';
@@ -44,6 +47,12 @@ export class BookingsService {
     private journalEntryLineRepository: Repository<JournalEntryLine>,
     @InjectRepository(ChartOfAccount)
     private chartOfAccountRepository: Repository<ChartOfAccount>,
+    @InjectRepository(CountryTax)
+    private countryTaxRepository: Repository<CountryTax>,
+    @InjectRepository(Supplier)
+    private supplierRepository: Repository<Supplier>,
+    @InjectRepository(SupplierLedger)
+    private supplierLedgerRepository: Repository<SupplierLedger>,
     private passengersService: PassengersService,
     private dataSource: DataSource,
     private mailService: MailService,
@@ -170,20 +179,30 @@ export class BookingsService {
     // Idempotency guard: bookings table has no seat_reservation_id column, but the
     // passenger lookup above already dedups by id_type+identification, so a retried
     // submission (e.g. the confirm page re-posting after a client-side timeout that
-    // actually succeeded server-side) resolves to the SAME primary passenger. If a
-    // booking already exists for this exact leg (same flight series + same primary
-    // passenger) from a reservation-based confirm, return it instead of double-booking.
+    // actually succeeded server-side) resolves to the SAME primary passenger. Only
+    // short-circuit when THIS reservation has already been converted before (status
+    // != 'reserved') — otherwise a still-'reserved' reservation must always create
+    // its own new booking, even if the same passenger (matched by id_type+identification,
+    // which can collide on placeholder/test data) already has an unrelated booking on
+    // this flight series from a different reservation. Without this check that other
+    // booking gets silently returned and the current reservation never gets marked
+    // 'booked'.
     if (createBookingDto.seat_reservation_id) {
-      const existingBooking = await this.bookingRepository.findOne({
-        where: {
-          flight_series_id: createBookingDto.flight_series_id,
-          passenger_id: primaryPassenger.id,
-        },
-        order: { created_at: 'DESC' },
+      const reservationForIdempotency = await this.seatReservationRepository.findOne({
+        where: { id: createBookingDto.seat_reservation_id },
       })
-      if (existingBooking) {
-        console.log(`♻️ [BookingsService] Booking already exists for seat_reservation_id=${createBookingDto.seat_reservation_id}, flight_series_id=${createBookingDto.flight_series_id}, passenger_id=${primaryPassenger.id} — returning existing booking ${existingBooking.id} instead of creating a duplicate`)
-        return this.findOne(existingBooking.id)
+      if (reservationForIdempotency && reservationForIdempotency.status !== 'reserved') {
+        const existingBooking = await this.bookingRepository.findOne({
+          where: {
+            flight_series_id: createBookingDto.flight_series_id,
+            passenger_id: primaryPassenger.id,
+          },
+          order: { created_at: 'DESC' },
+        })
+        if (existingBooking) {
+          console.log(`♻️ [BookingsService] Reservation ${createBookingDto.seat_reservation_id} already has status '${reservationForIdempotency.status}' and booking ${existingBooking.id} exists for flight_series_id=${createBookingDto.flight_series_id}, passenger_id=${primaryPassenger.id} — returning existing booking instead of creating a duplicate`)
+          return this.findOne(existingBooking.id)
+        }
       }
     }
 
@@ -399,6 +418,18 @@ export class BookingsService {
           } catch (journalErr) {
             console.warn(`⚠️ [BookingsService] Journal entry skipped for agency booking:`, journalErr instanceof Error ? journalErr.message : String(journalErr));
           }
+
+          if (createBookingDto.payment_account_id) {
+            try {
+              await this.postCountryTaxesForBooking(
+                savedBooking, flightSeries, createdPassengers.length,
+                createBookingDto.payment_account_id,
+                createBookingDto.booking_date,
+              );
+            } catch (taxErr) {
+              console.warn(`⚠️ [BookingsService] Country tax posting skipped for agency booking:`, taxErr instanceof Error ? taxErr.message : String(taxErr));
+            }
+          }
         }
       } catch (error) {
         console.error(`❌ [BookingsService] Error deducting from agency balance:`, error);
@@ -460,6 +491,16 @@ export class BookingsService {
         // Don't throw - booking is already created successfully
         // But log prominently so it's not missed
         console.warn(`⚠️ [BookingsService] WARNING: Journal entry was not created. Please check the logs above for details.`);
+      }
+
+      try {
+        await this.postCountryTaxesForBooking(
+          savedBooking, flightSeries, createdPassengers.length,
+          createBookingDto.payment_account_id,
+          createBookingDto.booking_date,
+        );
+      } catch (taxErr) {
+        console.warn(`⚠️ [BookingsService] Country tax posting skipped:`, taxErr instanceof Error ? taxErr.message : String(taxErr));
       }
 
       // Legacy account_ledger write — skipped because account_ledger references the
@@ -999,6 +1040,157 @@ export class BookingsService {
       } catch (releaseError) {
         console.error(`❌ [BookingsService] Error releasing query runner:`, releaseError);
       }
+    }
+  }
+
+  // Country taxes collected on bookings are owed to the Tanzania Airport Authority,
+  // modeled here as supplier #2 — every country-tax posting also credits their
+  // supplier ledger and running balance, not just the chart-of-accounts.
+  private static readonly COUNTRY_TAX_SUPPLIER_ID = 2;
+
+  // Posts each applicable country_taxes row for the flight's departure (origin)
+  // country as its OWN separate journal entry (own entry_number, own debit/credit
+  // lines, own supplier ledger posting) — rather than combining all rows into one
+  // entry — so "Airport Taxes", "Passenger Facilitation Fees", and "Carrier
+  // Charges" each show up as their own distinct, traceable transaction. No-op if
+  // the origin has no country_id or no tax rows.
+  // Origin, not destination: the configured rows are departure/embarkation taxes
+  // owed to the Tanzania Airport Authority — charged when departing Tanzania,
+  // regardless of where the flight lands.
+  private async postCountryTaxesForBooking(
+    booking: Booking,
+    flightSeries: FlightSeries,
+    passengerCount: number,
+    paymentAccountId: number,
+    bookingDate: string,
+  ): Promise<void> {
+    const countryId = flightSeries.fromDestination?.country_id;
+    if (!countryId) {
+      console.log('📝 [BookingsService] Origin destination has no country_id — skipping country tax posting');
+      return;
+    }
+
+    const taxRows = await this.countryTaxRepository.find({
+      where: { country_id: countryId },
+      relations: ['account'],
+    });
+    if (taxRows.length === 0) {
+      console.log(`📝 [BookingsService] No country_taxes rows for country ${countryId} — skipping`);
+      return;
+    }
+
+    const paymentAccount = await this.chartOfAccountRepository.findOne({ where: { id: paymentAccountId } });
+    if (!paymentAccount) {
+      console.warn(`⚠️ [BookingsService] Payment account ${paymentAccountId} not found — skipping country tax posting`);
+      return;
+    }
+
+    // Each tax row can carry its own account — only post rows whose account
+    // actually resolved (relation load failures shouldn't silently post to account_id 0).
+    const validRows = taxRows.filter(t => !!t.account);
+    if (validRows.length === 0) {
+      console.warn(`⚠️ [BookingsService] Country ${countryId} has tax rows but none resolved a valid account — skipping`);
+      return;
+    }
+
+    // Posted sequentially (not Promise.all) — generateEntryNumber() reads the
+    // latest committed entry_number, so each row must fully commit before the
+    // next one asks for its number, or two rows could compute the same number.
+    for (const taxRow of validRows) {
+      const amount = Number(taxRow.amount) * passengerCount;
+      if (amount <= 0) continue;
+      try {
+        await this.postSingleCountryTax(booking, flightSeries, taxRow, amount, passengerCount, paymentAccount, bookingDate);
+      } catch (err) {
+        console.warn(`⚠️ [BookingsService] Failed to post country tax row ${taxRow.id} (${taxRow.account?.name}):`, err instanceof Error ? err.message : String(err));
+      }
+    }
+  }
+
+  private async postSingleCountryTax(
+    booking: Booking,
+    flightSeries: FlightSeries,
+    taxRow: CountryTax,
+    amount: number,
+    passengerCount: number,
+    paymentAccount: ChartOfAccount,
+    bookingDate: string,
+  ): Promise<void> {
+    const taxAccount = taxRow.account!;
+    const countryName = flightSeries.fromDestination?.country?.name || `country #${taxRow.country_id}`;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const entryNumber = await this.generateEntryNumber();
+      const journalEntry = queryRunner.manager.create(JournalEntry, {
+        entry_number: entryNumber,
+        entry_date: new Date(bookingDate),
+        reference: booking.booking_reference,
+        description: `${taxAccount.name} (${countryName}) — ${flightSeries.flt} — ${booking.booking_reference}`,
+        total_debit: amount,
+        total_credit: amount,
+        status: 'posted',
+        created_by: 1,
+      });
+      const savedEntry = await queryRunner.manager.save(JournalEntry, journalEntry);
+
+      const debitLine = queryRunner.manager.create(JournalEntryLine, {
+        journal_entry_id: savedEntry.id,
+        account_id: paymentAccount.id,
+        debit_amount: amount,
+        credit_amount: 0,
+        description: `${taxAccount.name} collected via ${paymentAccount.name} — ${booking.booking_reference}`,
+      });
+      const creditLine = queryRunner.manager.create(JournalEntryLine, {
+        journal_entry_id: savedEntry.id,
+        account_id: taxAccount.id,
+        debit_amount: 0,
+        credit_amount: amount,
+        description: `${taxAccount.name} — ${passengerCount} pax × ${Number(taxRow.amount).toFixed(2)} ${taxRow.currency} — ${booking.booking_reference}`,
+      });
+      await queryRunner.manager.save(JournalEntryLine, [debitLine, creditLine]);
+
+      // Credit the Tanzania Airport Authority's supplier ledger for this same tax
+      // row's amount — this is money collected from the passenger but owed onward.
+      const supplier = await queryRunner.manager.findOne(Supplier, {
+        where: { id: BookingsService.COUNTRY_TAX_SUPPLIER_ID },
+      });
+      if (supplier) {
+        const latestLedger = await queryRunner.manager.findOne(SupplierLedger, {
+          where: { supplierId: supplier.id },
+          order: { date: 'DESC', createdAt: 'DESC' },
+        });
+        const currentBalance = latestLedger ? Number(latestLedger.runningBalance) : Number(supplier.balance || 0);
+        const updatedBalance = currentBalance + amount;
+
+        const ledgerEntry = queryRunner.manager.create(SupplierLedger, {
+          supplierId: supplier.id,
+          date: new Date(bookingDate),
+          description: `${taxAccount.name} — ${flightSeries.flt} — ${booking.booking_reference}`,
+          debit: 0,
+          credit: amount,
+          runningBalance: updatedBalance,
+          referenceType: 'BOOKING_COUNTRY_TAX',
+          referenceId: savedEntry.id,
+        });
+        await queryRunner.manager.save(SupplierLedger, ledgerEntry);
+
+        supplier.balance = updatedBalance;
+        await queryRunner.manager.save(Supplier, supplier);
+        console.log(`✅ [BookingsService] Supplier ${supplier.company_name} ledger/balance updated: ${currentBalance} -> ${updatedBalance} (${taxAccount.name})`);
+      } else {
+        console.warn(`⚠️ [BookingsService] Supplier #${BookingsService.COUNTRY_TAX_SUPPLIER_ID} not found — skipping supplier ledger update`);
+      }
+
+      await queryRunner.commitTransaction();
+      console.log(`✅ [BookingsService] Country tax journal entry ${entryNumber} posted (${taxAccount.name}, ${amount})`);
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
   }
 

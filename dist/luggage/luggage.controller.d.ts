@@ -1,13 +1,20 @@
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { LuggageService } from './luggage.service';
 import { Luggage } from '../entities/luggage.entity';
 import { LuggageExcessCharge } from '../entities/luggage-excess-charge.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { JournalEntryLine } from '../entities/journal-entry-line.entity';
+import { ChartOfAccount } from '../entities/chart-of-account.entity';
 import { CreateLuggageDto } from './dto/create-luggage.dto';
 import { UpdateLuggageDto } from './dto/update-luggage.dto';
 export declare class LuggageController {
     private readonly luggageService;
     private readonly excessChargeRepository;
-    constructor(luggageService: LuggageService, excessChargeRepository: Repository<LuggageExcessCharge>);
+    private readonly journalEntryRepository;
+    private readonly journalEntryLineRepository;
+    private readonly chartOfAccountRepository;
+    private readonly dataSource;
+    constructor(luggageService: LuggageService, excessChargeRepository: Repository<LuggageExcessCharge>, journalEntryRepository: Repository<JournalEntry>, journalEntryLineRepository: Repository<JournalEntryLine>, chartOfAccountRepository: Repository<ChartOfAccount>, dataSource: DataSource);
     create(createLuggageDto: CreateLuggageDto): Promise<Luggage>;
     findAllWithDetails(flightSeriesId?: string, flightIdParam?: string): Promise<any[]>;
     findAllByPassenger(passengerId: number): Promise<Luggage[]>;
@@ -33,8 +40,11 @@ export declare class LuggageController {
         currency?: string;
         payment_method?: string;
         payment_status?: string;
+        payment_account_id?: number | null;
         notes?: string | null;
-    }): Promise<LuggageExcessCharge>;
+    }, req: any): Promise<LuggageExcessCharge>;
+    private generateEntryNumber;
+    private postJournalEntryForExcessCharge;
     getExcessCharges(flightId?: string, passengerId?: string): Promise<LuggageExcessCharge[]>;
     deleteExcessCharge(id: number): Promise<{
         message: string;

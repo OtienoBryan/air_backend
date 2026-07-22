@@ -53,6 +53,8 @@ import { CountryTax } from '../entities/country-tax.entity';
 import { RouteFareCharge } from '../entities/route-fare-charge.entity';
 import { RouteLuggageSetting } from '../entities/route-luggage-setting.entity';
 import { LuggageExcessCharge } from '../entities/luggage-excess-charge.entity';
+import { PassengerMedicalForm } from '../entities/passenger-medical-form.entity';
+import { PassengerTravelDocument } from '../entities/passenger-travel-document.entity';
 
 export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'mysql',
@@ -61,7 +63,7 @@ export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOp
   username: configService.get<string>('DB_USERNAME'),
   password: configService.get<string>('DB_PASSWORD'),
   database: configService.get<string>('DB_DATABASE'),
-      entities: [Staff, Department, ChatRoom, ChatMessage, Notice, Country, SalesRep, Region, Route, LoginHistory, Client, Product, Category, Aircraft, Destination, FlightSeries, Flight, ExceptionType, FlightException, PassengerDisruption, CrewAssignment, SeatReservation, Passenger, Booking, BookingPassenger, ClientLedger, SalesOrder, SalesOrderItem, Supplier, SupplierLedger, PurchaseOrder, PurchaseOrderItem, Task, Crew, FlightCrew, Agency, AgencyLedger, AgencyDeposit, Agent, Account, AccountLedger, ChartOfAccount, Expense, JournalEntry, JournalEntryLine, Luggage, IataCode, AccountType, Fueling, CargoBooking, Currency, FlightRoute, FareHistory, CargoShcCharge, CargoFreightRate, CargoHandlingFee, ExpenseCategory, ExpenseType, CountryTax, RouteFareCharge, RouteLuggageSetting, LuggageExcessCharge],
+      entities: [Staff, Department, ChatRoom, ChatMessage, Notice, Country, SalesRep, Region, Route, LoginHistory, Client, Product, Category, Aircraft, Destination, FlightSeries, Flight, ExceptionType, FlightException, PassengerDisruption, CrewAssignment, SeatReservation, Passenger, Booking, BookingPassenger, ClientLedger, SalesOrder, SalesOrderItem, Supplier, SupplierLedger, PurchaseOrder, PurchaseOrderItem, Task, Crew, FlightCrew, Agency, AgencyLedger, AgencyDeposit, Agent, Account, AccountLedger, ChartOfAccount, Expense, JournalEntry, JournalEntryLine, Luggage, IataCode, AccountType, Fueling, CargoBooking, Currency, FlightRoute, FareHistory, CargoShcCharge, CargoFreightRate, CargoHandlingFee, ExpenseCategory, ExpenseType, CountryTax, RouteFareCharge, RouteLuggageSetting, LuggageExcessCharge, PassengerMedicalForm, PassengerTravelDocument],
   synchronize: false, // Disabled to avoid schema conflicts
   logging: configService.get<string>('NODE_ENV') === 'development',
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],

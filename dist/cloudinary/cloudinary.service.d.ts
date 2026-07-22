@@ -6,6 +6,10 @@ export declare class CloudinaryService {
         url: string;
         public_id: string;
     }>;
+    uploadDocument(file: Express.Multer.File, folder?: string): Promise<{
+        url: string;
+        public_id: string;
+    }>;
     deleteImage(publicId: string): Promise<void>;
     uploadFromBase64(base64Data: string, folder?: string): Promise<{
         url: string;

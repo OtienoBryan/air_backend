@@ -48,6 +48,8 @@ export declare class FlightsController {
         booking_reference: any;
         booking_date: string | null;
         payment_status: any;
+        agency_id: any;
+        agency_name: any;
         passenger_type: string;
         fare_amount: number;
         departure: any;

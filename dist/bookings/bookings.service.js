@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var BookingsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BookingsService = void 0;
 const common_1 = require("@nestjs/common");
@@ -27,9 +28,13 @@ const agency_ledger_entity_1 = require("../entities/agency-ledger.entity");
 const journal_entry_entity_1 = require("../entities/journal-entry.entity");
 const journal_entry_line_entity_1 = require("../entities/journal-entry-line.entity");
 const chart_of_account_entity_1 = require("../entities/chart-of-account.entity");
+const country_tax_entity_1 = require("../entities/country-tax.entity");
+const supplier_entity_1 = require("../entities/supplier.entity");
+const supplier_ledger_entity_1 = require("../entities/supplier-ledger.entity");
 const passengers_service_1 = require("../passengers/passengers.service");
 const mail_service_1 = require("../mail/mail.service");
 let BookingsService = class BookingsService {
+    static { BookingsService_1 = this; }
     bookingRepository;
     flightSeriesRepository;
     flightRepository;
@@ -41,10 +46,13 @@ let BookingsService = class BookingsService {
     journalEntryRepository;
     journalEntryLineRepository;
     chartOfAccountRepository;
+    countryTaxRepository;
+    supplierRepository;
+    supplierLedgerRepository;
     passengersService;
     dataSource;
     mailService;
-    constructor(bookingRepository, flightSeriesRepository, flightRepository, passengerRepository, bookingPassengerRepository, seatReservationRepository, agencyRepository, agencyLedgerRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, passengersService, dataSource, mailService) {
+    constructor(bookingRepository, flightSeriesRepository, flightRepository, passengerRepository, bookingPassengerRepository, seatReservationRepository, agencyRepository, agencyLedgerRepository, journalEntryRepository, journalEntryLineRepository, chartOfAccountRepository, countryTaxRepository, supplierRepository, supplierLedgerRepository, passengersService, dataSource, mailService) {
         this.bookingRepository = bookingRepository;
         this.flightSeriesRepository = flightSeriesRepository;
         this.flightRepository = flightRepository;
@@ -56,6 +64,9 @@ let BookingsService = class BookingsService {
         this.journalEntryRepository = journalEntryRepository;
         this.journalEntryLineRepository = journalEntryLineRepository;
         this.chartOfAccountRepository = chartOfAccountRepository;
+        this.countryTaxRepository = countryTaxRepository;
+        this.supplierRepository = supplierRepository;
+        this.supplierLedgerRepository = supplierLedgerRepository;
         this.passengersService = passengersService;
         this.dataSource = dataSource;
         this.mailService = mailService;
@@ -151,16 +162,21 @@ let BookingsService = class BookingsService {
         }));
         const primaryPassenger = createdPassengers[0];
         if (createBookingDto.seat_reservation_id) {
-            const existingBooking = await this.bookingRepository.findOne({
-                where: {
-                    flight_series_id: createBookingDto.flight_series_id,
-                    passenger_id: primaryPassenger.id,
-                },
-                order: { created_at: 'DESC' },
+            const reservationForIdempotency = await this.seatReservationRepository.findOne({
+                where: { id: createBookingDto.seat_reservation_id },
             });
-            if (existingBooking) {
-                console.log(`♻️ [BookingsService] Booking already exists for seat_reservation_id=${createBookingDto.seat_reservation_id}, flight_series_id=${createBookingDto.flight_series_id}, passenger_id=${primaryPassenger.id} — returning existing booking ${existingBooking.id} instead of creating a duplicate`);
-                return this.findOne(existingBooking.id);
+            if (reservationForIdempotency && reservationForIdempotency.status !== 'reserved') {
+                const existingBooking = await this.bookingRepository.findOne({
+                    where: {
+                        flight_series_id: createBookingDto.flight_series_id,
+                        passenger_id: primaryPassenger.id,
+                    },
+                    order: { created_at: 'DESC' },
+                });
+                if (existingBooking) {
+                    console.log(`♻️ [BookingsService] Reservation ${createBookingDto.seat_reservation_id} already has status '${reservationForIdempotency.status}' and booking ${existingBooking.id} exists for flight_series_id=${createBookingDto.flight_series_id}, passenger_id=${primaryPassenger.id} — returning existing booking instead of creating a duplicate`);
+                    return this.findOne(existingBooking.id);
+                }
             }
         }
         const bookingReference = this.generateBookingReference();
@@ -330,6 +346,14 @@ let BookingsService = class BookingsService {
                     catch (journalErr) {
                         console.warn(`⚠️ [BookingsService] Journal entry skipped for agency booking:`, journalErr instanceof Error ? journalErr.message : String(journalErr));
                     }
+                    if (createBookingDto.payment_account_id) {
+                        try {
+                            await this.postCountryTaxesForBooking(savedBooking, flightSeries, createdPassengers.length, createBookingDto.payment_account_id, createBookingDto.booking_date);
+                        }
+                        catch (taxErr) {
+                            console.warn(`⚠️ [BookingsService] Country tax posting skipped for agency booking:`, taxErr instanceof Error ? taxErr.message : String(taxErr));
+                        }
+                    }
                 }
             }
             catch (error) {
@@ -376,6 +400,12 @@ let BookingsService = class BookingsService {
                     console.error(`❌ [BookingsService] Full error:`, JSON.stringify(journalError, Object.getOwnPropertyNames(journalError), 2));
                     console.error(`❌ [BookingsService] ==========================================`);
                     console.warn(`⚠️ [BookingsService] WARNING: Journal entry was not created. Please check the logs above for details.`);
+                }
+                try {
+                    await this.postCountryTaxesForBooking(savedBooking, flightSeries, createdPassengers.length, createBookingDto.payment_account_id, createBookingDto.booking_date);
+                }
+                catch (taxErr) {
+                    console.warn(`⚠️ [BookingsService] Country tax posting skipped:`, taxErr instanceof Error ? taxErr.message : String(taxErr));
                 }
                 console.log(`✅ [BookingsService] Skipping legacy account_ledger write (uses accounts table).`);
             }
@@ -834,6 +864,116 @@ let BookingsService = class BookingsService {
             }
         }
     }
+    static COUNTRY_TAX_SUPPLIER_ID = 2;
+    async postCountryTaxesForBooking(booking, flightSeries, passengerCount, paymentAccountId, bookingDate) {
+        const countryId = flightSeries.fromDestination?.country_id;
+        if (!countryId) {
+            console.log('📝 [BookingsService] Origin destination has no country_id — skipping country tax posting');
+            return;
+        }
+        const taxRows = await this.countryTaxRepository.find({
+            where: { country_id: countryId },
+            relations: ['account'],
+        });
+        if (taxRows.length === 0) {
+            console.log(`📝 [BookingsService] No country_taxes rows for country ${countryId} — skipping`);
+            return;
+        }
+        const paymentAccount = await this.chartOfAccountRepository.findOne({ where: { id: paymentAccountId } });
+        if (!paymentAccount) {
+            console.warn(`⚠️ [BookingsService] Payment account ${paymentAccountId} not found — skipping country tax posting`);
+            return;
+        }
+        const validRows = taxRows.filter(t => !!t.account);
+        if (validRows.length === 0) {
+            console.warn(`⚠️ [BookingsService] Country ${countryId} has tax rows but none resolved a valid account — skipping`);
+            return;
+        }
+        for (const taxRow of validRows) {
+            const amount = Number(taxRow.amount) * passengerCount;
+            if (amount <= 0)
+                continue;
+            try {
+                await this.postSingleCountryTax(booking, flightSeries, taxRow, amount, passengerCount, paymentAccount, bookingDate);
+            }
+            catch (err) {
+                console.warn(`⚠️ [BookingsService] Failed to post country tax row ${taxRow.id} (${taxRow.account?.name}):`, err instanceof Error ? err.message : String(err));
+            }
+        }
+    }
+    async postSingleCountryTax(booking, flightSeries, taxRow, amount, passengerCount, paymentAccount, bookingDate) {
+        const taxAccount = taxRow.account;
+        const countryName = flightSeries.fromDestination?.country?.name || `country #${taxRow.country_id}`;
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            const entryNumber = await this.generateEntryNumber();
+            const journalEntry = queryRunner.manager.create(journal_entry_entity_1.JournalEntry, {
+                entry_number: entryNumber,
+                entry_date: new Date(bookingDate),
+                reference: booking.booking_reference,
+                description: `${taxAccount.name} (${countryName}) — ${flightSeries.flt} — ${booking.booking_reference}`,
+                total_debit: amount,
+                total_credit: amount,
+                status: 'posted',
+                created_by: 1,
+            });
+            const savedEntry = await queryRunner.manager.save(journal_entry_entity_1.JournalEntry, journalEntry);
+            const debitLine = queryRunner.manager.create(journal_entry_line_entity_1.JournalEntryLine, {
+                journal_entry_id: savedEntry.id,
+                account_id: paymentAccount.id,
+                debit_amount: amount,
+                credit_amount: 0,
+                description: `${taxAccount.name} collected via ${paymentAccount.name} — ${booking.booking_reference}`,
+            });
+            const creditLine = queryRunner.manager.create(journal_entry_line_entity_1.JournalEntryLine, {
+                journal_entry_id: savedEntry.id,
+                account_id: taxAccount.id,
+                debit_amount: 0,
+                credit_amount: amount,
+                description: `${taxAccount.name} — ${passengerCount} pax × ${Number(taxRow.amount).toFixed(2)} ${taxRow.currency} — ${booking.booking_reference}`,
+            });
+            await queryRunner.manager.save(journal_entry_line_entity_1.JournalEntryLine, [debitLine, creditLine]);
+            const supplier = await queryRunner.manager.findOne(supplier_entity_1.Supplier, {
+                where: { id: BookingsService_1.COUNTRY_TAX_SUPPLIER_ID },
+            });
+            if (supplier) {
+                const latestLedger = await queryRunner.manager.findOne(supplier_ledger_entity_1.SupplierLedger, {
+                    where: { supplierId: supplier.id },
+                    order: { date: 'DESC', createdAt: 'DESC' },
+                });
+                const currentBalance = latestLedger ? Number(latestLedger.runningBalance) : Number(supplier.balance || 0);
+                const updatedBalance = currentBalance + amount;
+                const ledgerEntry = queryRunner.manager.create(supplier_ledger_entity_1.SupplierLedger, {
+                    supplierId: supplier.id,
+                    date: new Date(bookingDate),
+                    description: `${taxAccount.name} — ${flightSeries.flt} — ${booking.booking_reference}`,
+                    debit: 0,
+                    credit: amount,
+                    runningBalance: updatedBalance,
+                    referenceType: 'BOOKING_COUNTRY_TAX',
+                    referenceId: savedEntry.id,
+                });
+                await queryRunner.manager.save(supplier_ledger_entity_1.SupplierLedger, ledgerEntry);
+                supplier.balance = updatedBalance;
+                await queryRunner.manager.save(supplier_entity_1.Supplier, supplier);
+                console.log(`✅ [BookingsService] Supplier ${supplier.company_name} ledger/balance updated: ${currentBalance} -> ${updatedBalance} (${taxAccount.name})`);
+            }
+            else {
+                console.warn(`⚠️ [BookingsService] Supplier #${BookingsService_1.COUNTRY_TAX_SUPPLIER_ID} not found — skipping supplier ledger update`);
+            }
+            await queryRunner.commitTransaction();
+            console.log(`✅ [BookingsService] Country tax journal entry ${entryNumber} posted (${taxAccount.name}, ${amount})`);
+        }
+        catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        }
+        finally {
+            await queryRunner.release();
+        }
+    }
     async findAll(page = 1, limit = 50, agentId) {
         const [bookings, total] = await this.bookingRepository.findAndCount({
             where: agentId ? { agent_id: agentId } : {},
@@ -1239,7 +1379,7 @@ let BookingsService = class BookingsService {
     }
 };
 exports.BookingsService = BookingsService;
-exports.BookingsService = BookingsService = __decorate([
+exports.BookingsService = BookingsService = BookingsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(booking_entity_1.Booking)),
     __param(1, (0, typeorm_1.InjectRepository)(flight_series_entity_1.FlightSeries)),
@@ -1252,7 +1392,13 @@ exports.BookingsService = BookingsService = __decorate([
     __param(8, (0, typeorm_1.InjectRepository)(journal_entry_entity_1.JournalEntry)),
     __param(9, (0, typeorm_1.InjectRepository)(journal_entry_line_entity_1.JournalEntryLine)),
     __param(10, (0, typeorm_1.InjectRepository)(chart_of_account_entity_1.ChartOfAccount)),
+    __param(11, (0, typeorm_1.InjectRepository)(country_tax_entity_1.CountryTax)),
+    __param(12, (0, typeorm_1.InjectRepository)(supplier_entity_1.Supplier)),
+    __param(13, (0, typeorm_1.InjectRepository)(supplier_ledger_entity_1.SupplierLedger)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

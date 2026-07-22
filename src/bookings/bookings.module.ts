@@ -11,6 +11,9 @@ import { AgencyLedger } from '../entities/agency-ledger.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalEntryLine } from '../entities/journal-entry-line.entity';
 import { ChartOfAccount } from '../entities/chart-of-account.entity';
+import { CountryTax } from '../entities/country-tax.entity';
+import { Supplier } from '../entities/supplier.entity';
+import { SupplierLedger } from '../entities/supplier-ledger.entity';
 import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { PassengersModule } from '../passengers/passengers.module';
@@ -18,7 +21,7 @@ import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, FlightSeries, Flight, Passenger, BookingPassenger, SeatReservation, Agency, AgencyLedger, JournalEntry, JournalEntryLine, ChartOfAccount]),
+    TypeOrmModule.forFeature([Booking, FlightSeries, Flight, Passenger, BookingPassenger, SeatReservation, Agency, AgencyLedger, JournalEntry, JournalEntryLine, ChartOfAccount, CountryTax, Supplier, SupplierLedger]),
     PassengersModule,
     MailModule
   ],

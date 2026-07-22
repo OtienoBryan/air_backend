@@ -3,6 +3,7 @@ import { Flight } from './flight.entity';
 import { Passenger } from './passenger.entity';
 import { BookingPassenger } from './booking-passenger.entity';
 import { Agent } from './agent.entity';
+import { Agency } from './agency.entity';
 export declare class Booking {
     id: number;
     booking_reference: string;
@@ -28,6 +29,7 @@ export declare class Booking {
     booking_date: Date;
     notes: string | null;
     agency_id: number | null;
+    agency?: Agency | null;
     agent_id: number | null;
     agent?: Agent | null;
     is_return_trip: boolean;

@@ -136,7 +136,7 @@ let FlightsController = class FlightsController {
         const rows = await this.bookingPassengerRepository.find({
             where: { flight_id: id },
             relations: [
-                'passenger', 'booking',
+                'passenger', 'booking', 'booking.agency',
                 'flight', 'flight.series',
                 'flight.series.fromDestination', 'flight.series.toDestination',
                 'flight.series.viaDestination', 'flight.aircraft',
@@ -150,6 +150,8 @@ let FlightsController = class FlightsController {
             booking_reference: bp.booking?.booking_reference ?? null,
             booking_date: bp.booking?.booking_date ? String(bp.booking.booking_date).slice(0, 10) : null,
             payment_status: bp.booking?.payment_status ?? null,
+            agency_id: bp.booking?.agency_id ?? null,
+            agency_name: bp.booking?.agency?.name ?? null,
             passenger_type: bp.passenger_type,
             fare_amount: Number(bp.fare_amount ?? 0),
             departure: bp.departure ?? null,

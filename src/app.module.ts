@@ -30,6 +30,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { CrewModule } from './crew/crew.module';
 import { AgenciesModule } from './agencies/agencies.module';
 import { LuggageModule } from './luggage/luggage.module';
+import { PassengerDocsModule } from './passenger-docs/passenger-docs.module';
 import { MailModule } from './mail/mail.module';
 import { AgentsModule } from './agents/agents.module';
 import { AccountsModule } from './accounts/accounts.module';
@@ -87,6 +88,7 @@ import { GlobalAuthGuard } from './auth/global-auth.guard';
     CrewModule,
     AgenciesModule,
     LuggageModule,
+    PassengerDocsModule,
     MailModule,
     AgentsModule,
     AccountsModule,
